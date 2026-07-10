@@ -5,9 +5,10 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from agent_company.backend import LocalBackend
-from agent_company.brandkit import BrandKitError, build_campaign_manifest, validate_brand_kit
+from agent_company.brandkit import BrandKitError, build_campaign_manifest, validate_brand_kit, write_json
 from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
@@ -283,6 +284,18 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(first["variant_count"], 16)
         self.assertEqual(len({item["id"] for item in first["variants"]}), 16)
         self.assertEqual(first["manifest_sha256"], second["manifest_sha256"])
+
+    def test_json_artifact_write_preserves_existing_file_when_replace_fails(self) -> None:
+        output = self.root / "artifacts" / "manifest.json"
+        write_json(output, {"version": "original"})
+        original = output.read_bytes()
+
+        with patch("agent_company.brandkit.os.replace", side_effect=OSError("simulated interruption")):
+            with self.assertRaisesRegex(OSError, "simulated interruption"):
+                write_json(output, {"version": "replacement"})
+
+        self.assertEqual(output.read_bytes(), original)
+        self.assertEqual(list(output.parent.glob(f".{output.name}.*.tmp")), [])
 
 
 if __name__ == "__main__":

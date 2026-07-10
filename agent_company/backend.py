@@ -44,7 +44,7 @@ class LocalBackend:
                 ],
             },
         }
-        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        write_json(path, payload)
         return {"path": str(path), "seed": digest[:16], "summary": payload["artifact"]["description"]}
 
     def validate_brand_kit_file(self, path: Path) -> dict[str, object]:
