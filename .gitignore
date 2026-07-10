@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.python-version
+.venv/
+venv/
+data/*.sqlite3
+data/*.sqlite3-*
+data/artifacts/*.json
+data/chairman/inbox/*.json
+data/chairman/outbox/*.json
+logs/*
+!logs/.gitkeep
+archives/

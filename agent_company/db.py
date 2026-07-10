@@ -1,0 +1,150 @@
+"""SQLite persistence and audit helpers."""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Iterable
+
+from .models import RACI, ROLES, SEED_TASKS
+
+
+def utcnow() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+class Store:
+    def __init__(self, db_path: Path):
+        self.db_path = db_path
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    def connect(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn
+
+    def init(self) -> None:
+        with self.connect() as conn:
+            conn.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS audit_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ts TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    action TEXT NOT NULL,
+                    entity TEXT NOT NULL,
+                    entity_id TEXT,
+                    details TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS roles (
+                    name TEXT PRIMARY KEY,
+                    kind TEXT NOT NULL,
+                    mandate TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS raci (
+                    domain TEXT PRIMARY KEY,
+                    responsible TEXT NOT NULL,
+                    accountable TEXT NOT NULL,
+                    consulted TEXT NOT NULL,
+                    informed TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS tasks (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    owner TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    domain TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    priority INTEGER NOT NULL,
+                    blocked_reason TEXT,
+                    result TEXT,
+                    acceptance_criteria TEXT
+                );
+                CREATE TABLE IF NOT EXISTS approvals (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    decided_at TEXT,
+                    requested_by TEXT NOT NULL,
+                    action_type TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    decision TEXT,
+                    rationale TEXT,
+                    inbox_file TEXT,
+                    outbox_file TEXT
+                );
+                CREATE TABLE IF NOT EXISTS metrics (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ts TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    value REAL NOT NULL,
+                    unit TEXT NOT NULL,
+                    source TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS experiments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    owner TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    hypothesis TEXT NOT NULL,
+                    metric TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    result TEXT
+                );
+                CREATE TABLE IF NOT EXISTS cycles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    started_at TEXT NOT NULL,
+                    finished_at TEXT,
+                    summary TEXT NOT NULL
+                );
+                """
+            )
+            task_columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
+            if "acceptance_criteria" not in task_columns:
+                conn.execute("ALTER TABLE tasks ADD COLUMN acceptance_criteria TEXT")
+            self._seed(conn)
+
+    def _seed(self, conn: sqlite3.Connection) -> None:
+        for name, mandate in ROLES.items():
+            kind = "human" if name == "Chairman" else "agent"
+            conn.execute(
+                "INSERT OR IGNORE INTO roles(name, kind, mandate) VALUES (?, ?, ?)",
+                (name, kind, mandate),
+            )
+        for domain, values in RACI.items():
+            conn.execute(
+                "INSERT OR IGNORE INTO raci(domain, responsible, accountable, consulted, informed) VALUES (?, ?, ?, ?, ?)",
+                (domain, *values),
+            )
+        count = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+        if count == 0:
+            now = utcnow()
+            conn.executemany(
+                "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority, blocked_reason, result) VALUES (?, ?, ?, ?, ?, 'open', ?, NULL, NULL)",
+                [(now, now, owner, title, domain, priority) for owner, title, domain, priority in SEED_TASKS],
+            )
+        # Reads call CompanyOS.init() defensively, so initialization must remain
+        # idempotent in the audit trail as well as in the schema.
+        initialized = conn.execute(
+            "SELECT 1 FROM audit_log WHERE actor='system' AND action='init' LIMIT 1"
+        ).fetchone()
+        if initialized is None:
+            self.audit(conn, "system", "init", "database", None, {"seeded": True})
+
+    def audit(self, conn: sqlite3.Connection, actor: str, action: str, entity: str, entity_id: Any, details: dict[str, Any]) -> None:
+        conn.execute(
+            "INSERT INTO audit_log(ts, actor, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)",
+            (utcnow(), actor, action, entity, str(entity_id) if entity_id is not None else None, json.dumps(details, sort_keys=True)),
+        )
+
+    def fetch_all(self, query: str, params: Iterable[Any] = ()) -> list[sqlite3.Row]:
+        with self.connect() as conn:
+            return list(conn.execute(query, tuple(params)))
+
+    def fetch_one(self, query: str, params: Iterable[Any] = ()) -> sqlite3.Row | None:
+        with self.connect() as conn:
+            return conn.execute(query, tuple(params)).fetchone()
