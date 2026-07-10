@@ -1,0 +1,75 @@
+{
+  "schema_version": "campaign-review-decisions/v1",
+  "reviewer": {
+    "reviewer_ref": "cpo.internal",
+    "role": "CPO internal creative reviewer",
+    "reviewed_at": "2026-07-11T00:00:00Z"
+  },
+  "decisions": [
+    {
+      "variant_id": "3618f1bab2554728",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "ef390a582a9531d0",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "fb6a737245f3a020",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "3810a93863aa3321",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "d37298d581e910c7",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "48d95af879f2c770",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "a067f2c97a2644c8",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "ce29e5135cac92a0",
+      "decision": "reject",
+      "rejection_reason": "Headline hierarchy is not strong enough for square social review."
+    },
+    {
+      "variant_id": "835533a0bd2e5f45",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "d3b50431a6c2c722",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "f8833caa7597b689",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "2fb6b7a15b7741bf",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "d75a96345fbede87",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "bbc31a5c6a609873",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "55c28eb3143e6b65",
+      "decision": "approve"
+    },
+    {
+      "variant_id": "fc73029d9f41fb3f",
+      "decision": "approve"
+    }
+  ]
+}

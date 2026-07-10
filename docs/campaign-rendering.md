@@ -18,4 +18,12 @@ python3 -m agent_company campaign-render-verify data/artifacts/campaign-render-v
 
 `campaign-render-verify` independently checks `render-manifest.json`, `review-gallery.html`, the exact SVG inventory, stable `{variant_id}.svg` filenames, per-file SHA-256 checksums, and the required draft/no-publish controls. It exits non-zero on malformed input, tampering, missing files, extra files, path traversal, checksum mismatches, or any publish authorization flag.
 
-The bundle remains `draft`, records `external_publish_authorized: false`, and is not evidence of visual quality. External publishing still requires Chairman approval.
+Record internal review decisions only after verification:
+
+```bash
+python3 -m agent_company campaign-review data/artifacts/campaign-render-v2-95ca21758bde examples/campaign-review-decisions.json
+```
+
+The decisions file must use `campaign-review-decisions/v1`, include reviewer metadata, and provide exactly one decision for every variant in the verified bundle. Decisions are limited to `approve` and `reject`; rejected variants require a non-empty `rejection_reason`, and approved variants cannot carry a rejection reason. The generated `campaign-review/v1` artifact binds the review to the render bundle SHA-256, campaign manifest SHA-256, render manifest SHA-256, and each variant SVG checksum. It is written atomically so failed validation, bundle tampering, or interrupted replacement cannot expose a partial review artifact.
+
+The render bundle remains `draft`, records `external_publish_authorized: false`, and is not evidence of visual quality. The review artifact also records `external_publish_authorized: false` and `publication_authorization: none`; external publishing still requires Chairman approval.

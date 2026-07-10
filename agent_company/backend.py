@@ -7,7 +7,13 @@ import json
 from pathlib import Path
 
 from .brandkit import build_campaign_manifest, load_json, validate_brand_kit, write_json
-from .campaign_render import CAMPAIGN_RENDER_SCHEMA_VERSION, render_campaign_bundle, verify_campaign_render_bundle
+from .campaign_render import (
+    CAMPAIGN_RENDER_MANIFEST_FILE,
+    CAMPAIGN_RENDER_SCHEMA_VERSION,
+    render_campaign_bundle,
+    verify_campaign_render_bundle,
+)
+from .campaign_review import build_campaign_review_record, record_campaign_review
 from .config import CompanyConfig
 from .product_shot import build_product_shot_manifest
 from .prompt_pack import build_prompt_manifest
@@ -86,6 +92,21 @@ class LocalBackend:
 
     def verify_campaign_render_bundle_dir(self, bundle_dir: Path) -> dict[str, object]:
         return verify_campaign_render_bundle(bundle_dir)
+
+    def record_campaign_review_file(
+        self,
+        bundle_dir: Path,
+        decisions_path: Path,
+        output_path: Path | None = None,
+    ) -> dict[str, object]:
+        if output_path is None:
+            render_manifest = load_json(bundle_dir / CAMPAIGN_RENDER_MANIFEST_FILE)
+            decisions_input = load_json(decisions_path)
+            record = build_campaign_review_record(render_manifest, decisions_input)
+            output_path = self.config.artifacts_dir / (
+                f"campaign-review-v1-{record['bundle_sha256'][:12]}-{record['review_sha256'][:12]}.json"
+            )
+        return record_campaign_review(bundle_dir, decisions_path, output_path)
 
     def generate_prompt_manifest_file(self, input_path: Path, output_path: Path | None = None) -> dict[str, object]:
         prompt_pack = load_json(input_path)

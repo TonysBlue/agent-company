@@ -18,6 +18,7 @@ from agent_company.campaign_render import (
     render_campaign_bundle,
     verify_campaign_render_bundle,
 )
+from agent_company.campaign_review import CampaignReviewError, record_campaign_review
 from agent_company.cli import main as cli_main
 from agent_company.config import load_config
 from agent_company.db import Store
@@ -542,11 +543,123 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         with self.assertRaisesRegex(CampaignRenderVerificationError, "invalid JSON"):
             verify_campaign_render_bundle(malformed)
 
+    def test_campaign_review_records_complete_internal_decisions_through_cli(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        bundle = self.root / "render"
+        render_manifest = render_campaign_bundle(campaign, bundle)
+        decisions_path = Path(__file__).parents[1] / "examples" / "campaign-review-decisions.json"
+        output = self.root / "review.json"
+
+        result = record_campaign_review(bundle, decisions_path, output)
+
+        self.assertEqual(result["asset_count"], 16)
+        self.assertEqual(result["approved_count"], 15)
+        self.assertEqual(result["rejected_count"], 1)
+        self.assertFalse(result["external_publish_authorized"])
+        record = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(record["schema_version"], "campaign-review/v1")
+        self.assertEqual(record["bundle_sha256"], render_manifest["bundle_sha256"])
+        self.assertEqual(record["campaign_manifest_sha256"], render_manifest["campaign_manifest_sha256"])
+        self.assertEqual(record["publication_authorization"], "none")
+        self.assertFalse(record["external_publish_authorized"])
+        self.assertEqual(len(record["decisions"]), 16)
+        self.assertEqual(
+            {item["variant_id"]: item["svg_sha256"] for item in record["decisions"]},
+            {item["variant_id"]: item["sha256"] for item in render_manifest["assets"]},
+        )
+        self.assertEqual(self._quiet_cli(["campaign-review", str(bundle), str(decisions_path), "--output", str(self.root / "cli-review.json")]), 0)
+
+    def test_campaign_review_fails_on_tampered_bundle_and_incomplete_or_malformed_decisions(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        bundle = self.root / "render"
+        render_manifest = render_campaign_bundle(campaign, bundle)
+        decisions_path = self.root / "decisions.json"
+        write_json(decisions_path, self._review_decisions(render_manifest))
+        tampered = self.root / "tampered"
+        shutil.copytree(bundle, tampered)
+        first_asset = render_manifest["assets"][0]["file"]
+        (tampered / first_asset).write_text("changed", encoding="utf-8")
+
+        with self.assertRaisesRegex(CampaignRenderVerificationError, "checksum mismatch"):
+            record_campaign_review(tampered, decisions_path, self.root / "tampered-review.json")
+        self.assertFalse((self.root / "tampered-review.json").exists())
+
+        incomplete = self._review_decisions(render_manifest)
+        incomplete["decisions"].pop()
+        incomplete_path = self.root / "incomplete.json"
+        write_json(incomplete_path, incomplete)
+        with self.assertRaisesRegex(CampaignReviewError, "decisions missing variants"):
+            record_campaign_review(bundle, incomplete_path, self.root / "incomplete-review.json")
+        self.assertFalse((self.root / "incomplete-review.json").exists())
+
+        malformed = self._review_decisions(render_manifest, reject_first=True)
+        del malformed["decisions"][0]["rejection_reason"]
+        malformed["reviewer"]["reviewer_ref"] = "?"
+        malformed_path = self.root / "malformed.json"
+        write_json(malformed_path, malformed)
+        with self.assertRaisesRegex(CampaignReviewError, "reviewer_ref|rejection_reason"):
+            record_campaign_review(bundle, malformed_path, self.root / "malformed-review.json")
+        self.assertEqual(self._quiet_cli(["campaign-review", str(bundle), str(malformed_path), "--output", str(self.root / "cli-bad.json")]), 2)
+
+        invalid_timestamp = self._review_decisions(render_manifest)
+        invalid_timestamp["reviewer"]["reviewed_at"] = "2026-02-30T25:61:61Z"
+        invalid_timestamp_path = self.root / "invalid-timestamp.json"
+        write_json(invalid_timestamp_path, invalid_timestamp)
+        with self.assertRaisesRegex(CampaignReviewError, "ISO-8601 UTC timestamp"):
+            record_campaign_review(bundle, invalid_timestamp_path, self.root / "invalid-timestamp-review.json")
+
+    def test_campaign_review_is_deterministic_and_leaves_no_partial_output(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        bundle = self.root / "render"
+        render_manifest = render_campaign_bundle(campaign, bundle)
+        decisions_path = self.root / "decisions.json"
+        write_json(decisions_path, self._review_decisions(render_manifest, reject_first=True))
+        first = self.root / "review-first.json"
+        second = self.root / "review-second.json"
+
+        first_result = record_campaign_review(bundle, decisions_path, first)
+        second_result = record_campaign_review(bundle, decisions_path, second)
+
+        self.assertEqual(first_result["review_sha256"], second_result["review_sha256"])
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+        existing = self.root / "existing-review.json"
+        write_json(existing, {"version": "original"})
+        original = existing.read_bytes()
+        with patch("agent_company.brandkit.os.replace", side_effect=OSError("simulated review write failure")):
+            with self.assertRaisesRegex(OSError, "simulated review write failure"):
+                record_campaign_review(bundle, decisions_path, existing)
+        self.assertEqual(existing.read_bytes(), original)
+        self.assertEqual(list(self.root.glob(".existing-review.json.*.tmp")), [])
+
     def _mutate_render_manifest(self, bundle: Path, mutate: object) -> None:
         manifest_path = bundle / "render-manifest.json"
         data = json.loads(manifest_path.read_text(encoding="utf-8"))
         mutate(data)  # type: ignore[operator]
         manifest_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    def _review_decisions(self, render_manifest: dict[str, object], reject_first: bool = False) -> dict[str, object]:
+        decisions = []
+        assets = sorted(render_manifest["assets"], key=lambda item: item["variant_id"])  # type: ignore[index]
+        for index, asset in enumerate(assets):
+            item = {
+                "variant_id": asset["variant_id"],
+                "decision": "reject" if reject_first and index == 0 else "approve",
+            }
+            if item["decision"] == "reject":
+                item["rejection_reason"] = "Needs stronger hierarchy before internal approval."
+            decisions.append(item)
+        return {
+            "schema_version": "campaign-review-decisions/v1",
+            "reviewer": {
+                "reviewer_ref": "cpo.internal",
+                "role": "CPO internal creative reviewer",
+                "reviewed_at": "2026-07-11T00:00:00Z",
+            },
+            "decisions": decisions,
+        }
 
     def _quiet_cli(self, argv: list[str]) -> int:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):

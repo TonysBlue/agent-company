@@ -28,6 +28,7 @@ python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
 python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
 python3.11 -m agent_company.cli campaign-render examples/campaign.json
 python3.11 -m agent_company.cli campaign-render-verify data/artifacts/campaign-render-v2-95ca21758bde
+python3.11 -m agent_company.cli campaign-review data/artifacts/campaign-render-v2-95ca21758bde examples/campaign-review-decisions.json
 python3.11 -m agent_company.cli prompt-pack examples/prompt-pack.json
 python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
 python3.11 -m agent_company.cli product-shot-workflow examples/product-shot-workflow.json
@@ -36,6 +37,7 @@ python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard
 
 `campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives, per-variant checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
 `campaign-render-verify` fails closed unless a retained `campaign-render/v2` bundle has a valid manifest, gallery, exact SVG inventory, stable variant filenames, matching SHA-256 checksums, and draft/no-publish controls.
+`campaign-review` consumes a verified `campaign-render/v2` bundle plus complete per-variant approve/reject decisions, validates reviewer metadata and rejection reasons, and writes a deterministic internal review record bound to the bundle and SVG checksums. It explicitly records no external publication authorization.
 
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
 claims that work is complete. Agents must use `task-claim` for still-open work and

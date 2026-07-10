@@ -38,6 +38,7 @@ Pre-revenue/internal milestones may use `v0.x.y`. The first working company base
 - Chairman decisions remain in SQLite audit/approval records and archived inbox/outbox files.
 - Customer, revenue, contract, deployment, cost, and interview claims require linked evidence.
 - Campaign render bundles are internal review evidence only. Their SVG files, `review-gallery.html`, and `render-manifest.json` must be produced through the atomic bundle publication path so reviewers never rely on partial output.
+- Campaign review records are internal decisions only. They must be generated from a verified `campaign-render/v2` bundle, bind to bundle and SVG checksums, and must not authorize external publication.
 - Never commit secrets, API keys, customer personal data, credentials, raw contracts, or payment details.
 - Archive access is local and restricted. Encrypt and replicate archives before real customer or financial data is introduced.
 - Retention: daily snapshots 30 days, weekly snapshots 12 months, milestone and legal/financial decision snapshots indefinitely unless a lawful deletion policy requires otherwise.
