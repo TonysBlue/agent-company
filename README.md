@@ -23,6 +23,7 @@ python3.11 -m agent_company.cli chairman-inbox
 python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
 python3.11 -m agent_company.cli report
 python3.11 -m agent_company.cli dashboard --host 0.0.0.0 --port 18080
+python3.11 -m agent_company.cli beta-product --host 127.0.0.1 --port 18112
 python3.11 -m agent_company.cli demo
 python3.11 -m agent_company.cli validate
 python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
@@ -57,6 +58,8 @@ Product-shot workflow manifests validate required source provenance, explicit co
 Visual QA scorecards calculate pass/fail/stop results from explicitly measured edit-fidelity and brand-consistency observations. These tools do not measure images directly and do not measure or claim actual image quality.
 Feedback capture rejects declared sensitive data and anti-abuse honeypots, requires explicit consent before retaining optional contact data, and binds submissions to product/workflow/artifact context. Feedback triage records acknowledgement-through-release states and requires backlog/release linkage for those claims; neither command authorizes outreach or publication.
 `beta-launch-readiness` evaluates a versioned internal readiness package with pinned evidence for product capability, feedback controls, risk review, onboarding, support ownership, observability, rollback, security/privacy, unit economics, and reserved-action approvals. It fails closed on malformed, missing, or tampered evidence and always records `launch_authorized: false`; it never authorizes production deployment, publication, pricing, payment, outreach, or launch.
+
+`beta-product` runs a local-only internal HTTP interface for campaign render, review, and feedback capture at `http://127.0.0.1:18112/beta` by default. It composes the existing validated campaign, render, review, and feedback domain functions, writes only local artifacts under `data/artifacts/local-beta/`, shows draft/no-publish controls, and records no production deployment, publication, pricing, payment, outreach, or legal authorization.
 
 ## Read-only dashboard
 

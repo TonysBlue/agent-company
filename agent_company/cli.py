@@ -51,6 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard = sub.add_parser("dashboard", help="Run read-only operations dashboard")
     dashboard.add_argument("--host", default="0.0.0.0")
     dashboard.add_argument("--port", type=int, default=18080)
+    beta_product = sub.add_parser("beta-product", help="Run local-only internal beta product interface")
+    beta_product.add_argument("--host", default="127.0.0.1")
+    beta_product.add_argument("--port", type=int, default=18112)
     sub.add_parser("demo", help="Run a demo cycle")
     sub.add_parser("validate", help="Validate state and governance")
     validate_brand = sub.add_parser("validate-brand-kit", help="Validate a brand-kit JSON file")
@@ -127,6 +130,10 @@ def main(argv: list[str] | None = None) -> int:
             print(osys.report(), end="")
         elif args.command == "dashboard":
             from .dashboard import serve
+
+            serve(osys.config, args.host, args.port)
+        elif args.command == "beta-product":
+            from .beta_product import serve
 
             serve(osys.config, args.host, args.port)
         elif args.command == "demo":
