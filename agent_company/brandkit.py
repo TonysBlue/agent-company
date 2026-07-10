@@ -13,8 +13,11 @@ from typing import Any
 
 BRAND_KIT_SCHEMA_VERSION = "brand-kit/v1"
 CAMPAIGN_MANIFEST_SCHEMA_VERSION = "campaign-manifest/v1"
+PROVENANCE_SCHEMA_VERSION = "provenance/v1"
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
+SOURCE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+PROVENANCE_DECISIONS = {"pending", "approved_internal", "rejected"}
 
 
 class BrandKitError(ValueError):
@@ -120,6 +123,17 @@ def validate_campaign_input(data: dict[str, Any]) -> list[str]:
         errors.append("assets must contain objects with string id")
     else:
         _reject_duplicate_values([item["id"] for item in assets], "assets[].id", errors)
+        for index, asset in enumerate(assets):
+            provenance = asset.get("provenance")
+            label = f"assets[{index}].provenance"
+            if not isinstance(provenance, dict):
+                errors.append(f"{label} must be an object")
+                continue
+            errors.extend(validate_provenance(provenance, label))
+            if provenance.get("source_id") != asset["id"]:
+                errors.append(f"{label}.source_id must match assets[{index}].id")
+            if provenance.get("review_decision") != "approved_internal":
+                errors.append(f"{label}.review_decision must be approved_internal before manifest generation")
 
     copy_variants = data.get("copy_variants")
     if not isinstance(copy_variants, list) or not copy_variants:
@@ -152,6 +166,34 @@ def validate_campaign_input(data: dict[str, Any]) -> list[str]:
         ]
         if len(valid_ids) == len(formats):
             _reject_duplicate_values(valid_ids, "formats[].id", errors)
+    return errors
+
+
+def validate_provenance(provenance: dict[str, Any], label: str = "provenance") -> list[str]:
+    """Validate the non-sensitive provenance control record for one source."""
+    errors: list[str] = []
+    if provenance.get("schema_version") != PROVENANCE_SCHEMA_VERSION:
+        errors.append(f"{label}.schema_version must be {PROVENANCE_SCHEMA_VERSION}")
+    source_id = _require_string(provenance, "source_id", errors, f"{label}.source_id")
+    if source_id and not SOURCE_ID.match(source_id):
+        errors.append(f"{label}.source_id contains unsupported characters")
+    for field in (
+        "source_category", "origin", "rights_basis", "rights_evidence_ref",
+        "likeness_status", "trademark_review_status", "data_classification",
+        "retention_class", "reviewer_ref",
+    ):
+        _require_string(provenance, field, errors, f"{label}.{field}")
+    lineage = provenance.get("parent_lineage")
+    if not isinstance(lineage, list) or not all(
+        isinstance(item, str) and SOURCE_ID.match(item) for item in lineage
+    ):
+        errors.append(f"{label}.parent_lineage must be a list of valid source identifiers")
+    flags = provenance.get("policy_flags")
+    if not isinstance(flags, list) or not all(isinstance(item, str) and item.strip() for item in flags):
+        errors.append(f"{label}.policy_flags must be a string list")
+    decision = provenance.get("review_decision")
+    if decision not in PROVENANCE_DECISIONS:
+        errors.append(f"{label}.review_decision must be one of {', '.join(sorted(PROVENANCE_DECISIONS))}")
     return errors
 
 
@@ -190,6 +232,22 @@ def build_campaign_manifest(data: dict[str, Any]) -> dict[str, Any]:
                             "format": {"id": fmt["id"], "width": fmt["width"], "height": fmt["height"]},
                             "headline": copy["headline"],
                             "review_state": "draft",
+                            "provenance": {
+                                "schema_version": PROVENANCE_SCHEMA_VERSION,
+                                "source_id": variant_id,
+                                "parent_lineage": [asset["id"]],
+                                "source_category": "derived_campaign_variant",
+                                "origin": "pixweave_campaign_manifest",
+                                "rights_basis": asset["provenance"]["rights_basis"],
+                                "rights_evidence_ref": asset["provenance"]["rights_evidence_ref"],
+                                "likeness_status": asset["provenance"]["likeness_status"],
+                                "trademark_review_status": asset["provenance"]["trademark_review_status"],
+                                "data_classification": asset["provenance"]["data_classification"],
+                                "retention_class": asset["provenance"]["retention_class"],
+                                "policy_flags": list(asset["provenance"]["policy_flags"]),
+                                "reviewer_ref": asset["provenance"]["reviewer_ref"],
+                                "review_decision": "approved_internal",
+                            },
                             "brand_controls": {
                                 "brand_version": brand_kit["brand_version"],
                                 "primary_color": brand_kit["colors"]["primary"].lower(),

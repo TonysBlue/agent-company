@@ -17,6 +17,25 @@ from agent_company.unit_economics import UnitEconomicsError, calculate_scenarios
 
 
 class TempWorkspaceTest(unittest.TestCase):
+    @staticmethod
+    def provenance(source_id: str, decision: str = "approved_internal") -> dict[str, object]:
+        return {
+            "schema_version": "provenance/v1",
+            "source_id": source_id,
+            "parent_lineage": [],
+            "source_category": "synthetic_test",
+            "origin": "unit test fixture",
+            "rights_basis": "company-created synthetic fixture",
+            "rights_evidence_ref": "tests/test_company_os.py",
+            "likeness_status": "no_real_person",
+            "trademark_review_status": "no_third_party_mark",
+            "data_classification": "synthetic",
+            "retention_class": "test_lifetime",
+            "policy_flags": ["synthetic_fixture"],
+            "reviewer_ref": "test-reviewer",
+            "review_decision": decision,
+        }
+
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.old_cwd = Path.cwd()
@@ -219,7 +238,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         campaign_input = {
             "brand_kit": brand_kit,
             "campaign": {"name": "Launch", "objective": "Internal review", "channels": ["web", "social"]},
-            "assets": [{"id": "product-a"}],
+            "assets": [{"id": "product-a", "provenance": self.provenance("product-a")}],
             "copy_variants": [{"id": "copy-a", "headline": "Controlled creative"}],
             "formats": [
                 {"id": "square", "width": 1080, "height": 1080},
@@ -232,6 +251,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(first, build_campaign_manifest(campaign_input))
         self.assertEqual(first["variant_count"], 4)
         self.assertEqual(len({item["id"] for item in first["variants"]}), 4)
+        self.assertTrue(all(item["provenance"]["parent_lineage"] == ["product-a"] for item in first["variants"]))
 
         input_path = self.root / "campaign.json"
         input_path.write_text(json.dumps(campaign_input), encoding="utf-8")
@@ -261,7 +281,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         invalid_campaign = {
             "brand_kit": valid_brand,
             "campaign": {"name": "Launch", "objective": "Review", "channels": ["web"]},
-            "assets": [{"id": "asset"}],
+            "assets": [{"id": "asset", "provenance": self.provenance("asset")}],
             "copy_variants": [{"id": "copy", "headline": "Headline"}],
             "formats": [{"id": "bad", "width": 0, "height": 100}],
         }
@@ -289,6 +309,25 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(first["variant_count"], 16)
         self.assertEqual(len({item["id"] for item in first["variants"]}), 16)
         self.assertEqual(first["manifest_sha256"], second["manifest_sha256"])
+
+    def test_campaign_manifest_fails_closed_on_provenance(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+
+        missing = json.loads(json.dumps(campaign))
+        del missing["assets"][0]["provenance"]
+        with self.assertRaisesRegex(BrandKitError, r"assets\[0\]\.provenance must be an object"):
+            build_campaign_manifest(missing)
+
+        pending = json.loads(json.dumps(campaign))
+        pending["assets"][0]["provenance"]["review_decision"] = "pending"
+        with self.assertRaisesRegex(BrandKitError, "must be approved_internal"):
+            build_campaign_manifest(pending)
+
+        mismatched = json.loads(json.dumps(campaign))
+        mismatched["assets"][0]["provenance"]["source_id"] = "different-source"
+        with self.assertRaisesRegex(BrandKitError, "source_id must match"):
+            build_campaign_manifest(mismatched)
 
     def test_json_artifact_write_preserves_existing_file_when_replace_fails(self) -> None:
         output = self.root / "artifacts" / "manifest.json"
