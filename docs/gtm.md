@@ -11,7 +11,8 @@ Offer:
 
 Experiments:
 
-- Interview 20 design/marketing operators.
-- Test three positioning messages.
-- Pilot with 3 teams after Chairman approval.
-- Compare subscription vs usage-tier willingness to pay.
+- Do not require pre-launch user interviews or interview recruitment.
+- Ship low-friction contextual feedback channels in the product before beta launch.
+- Link feedback to product version, workflow, and artifact context with user consent and privacy controls.
+- Triage real feedback into an auditable improvement backlog and measure acknowledgement, resolution, and release outcomes after launch.
+- Test positioning, packaging, and willingness to pay through observed product usage and voluntary in-product feedback; any external publication, outreach, pricing, or commercial commitment remains Chairman-controlled.

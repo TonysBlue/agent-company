@@ -11,7 +11,7 @@ Days 1-30:
 Days 31-60:
 
 - Add configurable workflow templates and prompt packs.
-- Run Chairman-approved customer discovery and pricing tests.
+- Build in-product feedback capture, triage, acknowledgement, and improvement tracking before beta launch; no pre-launch interview program is required.
 - Build internal QA playbooks for brand consistency and edit fidelity.
 
 Days 61-90:
