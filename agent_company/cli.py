@@ -46,6 +46,9 @@ def build_parser() -> argparse.ArgumentParser:
     decide.add_argument("decision", choices=["approve", "deny"])
     decide.add_argument("--rationale", default="Chairman decision recorded.")
     sub.add_parser("report", help="Print operating report")
+    dashboard = sub.add_parser("dashboard", help="Run read-only operations dashboard")
+    dashboard.add_argument("--host", default="0.0.0.0")
+    dashboard.add_argument("--port", type=int, default=18080)
     sub.add_parser("demo", help="Run a demo cycle")
     sub.add_parser("validate", help="Validate state and governance")
     validate_brand = sub.add_parser("validate-brand-kit", help="Validate a brand-kit JSON file")
@@ -110,6 +113,10 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.decide(args.approval_id, args.decision, args.rationale), indent=2, sort_keys=True))
         elif args.command == "report":
             print(osys.report(), end="")
+        elif args.command == "dashboard":
+            from .dashboard import serve
+
+            serve(osys.config, args.host, args.port)
         elif args.command == "demo":
             print(json.dumps(osys.demo(), indent=2, sort_keys=True))
         elif args.command == "validate":

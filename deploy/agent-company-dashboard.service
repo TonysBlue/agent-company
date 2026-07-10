@@ -1,0 +1,15 @@
+[Unit]
+Description=Agent Company read-only operations dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/tony/agent-company
+ExecStart=/usr/bin/env python3.11 -m agent_company.dashboard --host 0.0.0.0 --port 18080
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

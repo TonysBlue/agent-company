@@ -22,6 +22,7 @@ python3.11 -m agent_company.cli task-cancel 1 --actor CEO --reason "Superseded b
 python3.11 -m agent_company.cli chairman-inbox
 python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
 python3.11 -m agent_company.cli report
+python3.11 -m agent_company.cli dashboard --host 0.0.0.0 --port 18080
 python3.11 -m agent_company.cli demo
 python3.11 -m agent_company.cli validate
 python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
@@ -51,6 +52,28 @@ Prompt-pack expansion validates a versioned template and variable matrix, then w
 The unit-economics command calculates internal low/base/high cost sensitivity from explicit assumptions. It does not set or authorize a price.
 Product-shot workflow manifests validate required source provenance, explicit controls, ordered stages, and acceptance checks across at least three scenario inputs before writing deterministic internal workflow metadata.
 Visual QA scorecards calculate pass/fail/stop results from explicitly measured edit-fidelity and brand-consistency observations. These tools do not measure images directly and do not measure or claim actual image quality.
+
+## Read-only dashboard
+
+The operations dashboard is a stdlib-only HTTP service that reads `data/company.sqlite3`, Git metadata, project docs, and local artifact files without mutating company state. It exposes three separate Chinese-labeled pages:
+
+- `http://127.0.0.1:18080/management` for company daily management, tasks, approvals, cycles, audit, and human dependencies.
+- `http://127.0.0.1:18080/project` for product/project status, Git version, roadmap, current tasks, experiments, artifacts, and validation evidence.
+- `http://127.0.0.1:18080/operations` for pre-launch product operations placeholders. Unknown fields are shown as unavailable placeholders, not zeroes.
+
+JSON endpoints:
+
+- `http://127.0.0.1:18080/healthz`
+- `http://127.0.0.1:18080/api/status`
+
+Durable user service:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp deploy/agent-company-dashboard.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now agent-company-dashboard.service
+```
 
 ## Files
 

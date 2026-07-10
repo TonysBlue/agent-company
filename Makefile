@@ -1,4 +1,4 @@
-.PHONY: init status cycle inbox report demo validate test archive clean
+.PHONY: init status cycle inbox report dashboard demo validate test archive clean
 
 PYTHON ?= python3.11
 
@@ -16,6 +16,9 @@ inbox:
 
 report:
 	$(PYTHON) -m agent_company.cli report
+
+dashboard:
+	$(PYTHON) -m agent_company.dashboard --host 0.0.0.0 --port 18080
 
 demo:
 	$(PYTHON) -m agent_company.cli demo
