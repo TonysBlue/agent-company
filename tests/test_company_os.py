@@ -262,6 +262,28 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         with self.assertRaisesRegex(BrandKitError, "width must be a positive integer"):
             build_campaign_manifest(invalid_campaign)
 
+    def test_campaign_manifest_rejects_duplicate_identity_dimensions(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        duplicates = {
+            r"campaign\.channels": lambda data: data["campaign"]["channels"].append(data["campaign"]["channels"][0]),
+            r"assets\[\]\.id": lambda data: data["assets"].append(dict(data["assets"][0])),
+            r"copy_variants\[\]\.id": lambda data: data["copy_variants"].append(dict(data["copy_variants"][0])),
+            r"formats\[\]\.id": lambda data: data["formats"].append(dict(data["formats"][0])),
+        }
+        for expected, mutate in duplicates.items():
+            with self.subTest(field=expected):
+                invalid = json.loads(json.dumps(campaign))
+                mutate(invalid)
+                with self.assertRaisesRegex(BrandKitError, expected):
+                    build_campaign_manifest(invalid)
+
+        first = build_campaign_manifest(campaign)
+        second = build_campaign_manifest(campaign)
+        self.assertEqual(first["variant_count"], 16)
+        self.assertEqual(len({item["id"] for item in first["variants"]}), 16)
+        self.assertEqual(first["manifest_sha256"], second["manifest_sha256"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -108,18 +108,24 @@ def validate_campaign_input(data: dict[str, Any]) -> list[str]:
             errors.append("campaign.channels must be a non-empty list")
         elif not all(isinstance(item, str) and item.strip() for item in channels):
             errors.append("campaign.channels must contain only strings")
+        else:
+            _reject_duplicate_values(channels, "campaign.channels", errors)
 
     assets = data.get("assets")
     if not isinstance(assets, list) or not assets:
         errors.append("assets must be a non-empty list")
     elif not all(isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"].strip() for item in assets):
         errors.append("assets must contain objects with string id")
+    else:
+        _reject_duplicate_values([item["id"] for item in assets], "assets[].id", errors)
 
     copy_variants = data.get("copy_variants")
     if not isinstance(copy_variants, list) or not copy_variants:
         errors.append("copy_variants must be a non-empty list")
     elif not all(isinstance(item, dict) and isinstance(item.get("id"), str) and isinstance(item.get("headline"), str) for item in copy_variants):
         errors.append("copy_variants must contain objects with id and headline strings")
+    else:
+        _reject_duplicate_values([item["id"] for item in copy_variants], "copy_variants[].id", errors)
 
     formats = data.get("formats")
     if not isinstance(formats, list) or not formats:
@@ -137,6 +143,13 @@ def validate_campaign_input(data: dict[str, Any]) -> list[str]:
                 errors.append(f"formats[{index}].width must be a positive integer")
             if not isinstance(height, int) or height <= 0:
                 errors.append(f"formats[{index}].height must be a positive integer")
+        valid_ids = [
+            item["id"]
+            for item in formats
+            if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"].strip()
+        ]
+        if len(valid_ids) == len(formats):
+            _reject_duplicate_values(valid_ids, "formats[].id", errors)
     return errors
 
 
@@ -219,3 +232,14 @@ def _validate_color_list(values: list[Any], label: str, errors: list[str]) -> No
     for index, value in enumerate(values):
         if not isinstance(value, str) or not HEX_COLOR.match(value):
             errors.append(f"{label}[{index}] must be a #RRGGBB color")
+
+
+def _reject_duplicate_values(values: list[str], label: str, errors: list[str]) -> None:
+    seen: set[str] = set()
+    duplicates: list[str] = []
+    for value in values:
+        if value in seen and value not in duplicates:
+            duplicates.append(value)
+        seen.add(value)
+    if duplicates:
+        errors.append(f"{label} contains duplicate values: {', '.join(duplicates)}")
