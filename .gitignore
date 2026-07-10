@@ -6,6 +6,7 @@ venv/
 data/*.sqlite3
 data/*.sqlite3-*
 data/artifacts/*.json
+data/artifacts/campaign-render-*/
 data/chairman/inbox/*.json
 data/chairman/outbox/*.json
 logs/*

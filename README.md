@@ -26,11 +26,14 @@ python3.11 -m agent_company.cli demo
 python3.11 -m agent_company.cli validate
 python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
 python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
+python3.11 -m agent_company.cli campaign-render examples/campaign.json
 python3.11 -m agent_company.cli prompt-pack examples/prompt-pack.json
 python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
 python3.11 -m agent_company.cli product-shot-workflow examples/product-shot-workflow.json
 python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard.json
 ```
+
+`campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives with checksums. It does not authorize publishing or claim measured visual quality.
 
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
 claims that work is complete. Agents must use `task-claim` for still-open work and

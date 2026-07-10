@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from agent_company.backend import LocalBackend
 from agent_company.brandkit import BrandKitError, build_campaign_manifest, validate_brand_kit, write_json
+from agent_company.campaign_render import CampaignRenderError, render_campaign_bundle
 from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
@@ -366,6 +367,50 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         mismatched["assets"][0]["provenance"]["source_id"] = "different-source"
         with self.assertRaisesRegex(BrandKitError, "source_id must match"):
             build_campaign_manifest(mismatched)
+
+    def test_campaign_render_writes_deterministic_escaped_svg_bundle(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        campaign["copy_variants"][0]["headline"] = '<script>alert("x")</script> & controlled'
+        first_dir = self.root / "first-render"
+        second_dir = self.root / "second-render"
+
+        first = render_campaign_bundle(campaign, first_dir)
+        second = render_campaign_bundle(campaign, second_dir)
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["asset_count"], 16)
+        self.assertFalse(first["external_publish_authorized"])
+        for asset in first["assets"]:
+            first_bytes = (first_dir / asset["file"]).read_bytes()
+            self.assertEqual(first_bytes, (second_dir / asset["file"]).read_bytes())
+            self.assertEqual(asset["sha256"], __import__("hashlib").sha256(first_bytes).hexdigest())
+        injected = [asset for asset in first["assets"] if asset["variant_id"] in {
+            item["id"] for item in build_campaign_manifest(campaign)["variants"] if item["copy_id"] == "control"
+        }]
+        self.assertTrue(injected)
+        for asset in injected:
+            first_bytes = (first_dir / asset["file"]).read_bytes()
+            self.assertNotIn(b"<script>", first_bytes)
+            self.assertIn(b"&lt;script&gt;", first_bytes)
+
+    def test_campaign_render_rejects_malformed_input_and_preserves_existing_output(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        del campaign["assets"][0]["provenance"]
+        output = self.root / "render"
+        output.mkdir()
+        marker = output / "keep.txt"
+        marker.write_text("unchanged", encoding="utf-8")
+
+        with self.assertRaisesRegex(BrandKitError, "provenance"):
+            render_campaign_bundle(campaign, output)
+        self.assertEqual(marker.read_text(encoding="utf-8"), "unchanged")
+
+        valid = json.loads(campaign_path.read_text(encoding="utf-8"))
+        with self.assertRaisesRegex(CampaignRenderError, "already exists"):
+            render_campaign_bundle(valid, output)
+        self.assertEqual(marker.read_text(encoding="utf-8"), "unchanged")
 
     def test_json_artifact_write_preserves_existing_file_when_replace_fails(self) -> None:
         output = self.root / "artifacts" / "manifest.json"
