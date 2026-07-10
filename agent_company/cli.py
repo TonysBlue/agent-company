@@ -19,6 +19,15 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("init", help="Initialize state")
     sub.add_parser("status", help="Show company status")
     sub.add_parser("run-cycle", help="Run one operating cycle")
+    sub.add_parser("task-list", help="List active tasks")
+    claim = sub.add_parser("task-claim", help="Claim one open task for bounded execution")
+    claim.add_argument("task_id", type=int)
+    claim.add_argument("--actor", required=True)
+    complete = sub.add_parser("task-complete", help="Complete a claimed task with reviewable evidence")
+    complete.add_argument("task_id", type=int)
+    complete.add_argument("--actor", required=True)
+    complete.add_argument("--summary", required=True)
+    complete.add_argument("--evidence", type=Path, action="append", required=True)
     sub.add_parser("chairman-inbox", help="List pending Chairman decisions")
     decide = sub.add_parser("decide", help="Record a Chairman decision")
     decide.add_argument("approval_id", type=int)
@@ -46,6 +55,12 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.status(), indent=2, sort_keys=True))
         elif args.command == "run-cycle":
             print(json.dumps(osys.run_cycle(), indent=2, sort_keys=True))
+        elif args.command == "task-list":
+            print(json.dumps(osys.task_list(), indent=2, sort_keys=True))
+        elif args.command == "task-claim":
+            print(json.dumps(osys.claim_task(args.task_id, args.actor), indent=2, sort_keys=True))
+        elif args.command == "task-complete":
+            print(json.dumps(osys.complete_task(args.task_id, args.actor, args.summary, args.evidence), indent=2, sort_keys=True))
         elif args.command == "chairman-inbox":
             print(json.dumps(osys.chairman_inbox(), indent=2, sort_keys=True))
         elif args.command == "decide":

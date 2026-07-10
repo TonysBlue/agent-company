@@ -14,6 +14,9 @@ This repository operates a real commercial venture rather than a business simula
 python3.11 -m agent_company.cli init
 python3.11 -m agent_company.cli status
 python3.11 -m agent_company.cli run-cycle
+python3.11 -m agent_company.cli task-list
+python3.11 -m agent_company.cli task-claim 1 --actor CPO
+python3.11 -m agent_company.cli task-complete 1 --actor CPO --summary "Acceptance criteria met" --evidence path/to/reviewable-evidence
 python3.11 -m agent_company.cli chairman-inbox
 python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
 python3.11 -m agent_company.cli report
@@ -22,6 +25,10 @@ python3.11 -m agent_company.cli validate
 python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
 python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
 ```
+
+`run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
+claims that work is complete. Agents must use `task-claim` for still-open work and
+`task-complete` only after producing one or more existing, reviewable evidence files.
 
 The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
 

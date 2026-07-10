@@ -78,8 +78,8 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertGreaterEqual(status["cycles"], 1)
         metrics = Store(self.config.db_path).fetch_all("SELECT * FROM metrics")
         self.assertGreaterEqual(len(metrics), 3)
-        artifacts = list(self.config.artifacts_dir.glob("*.json"))
-        self.assertGreaterEqual(len(artifacts), 1)
+        active = Store(self.config.db_path).fetch_all("SELECT * FROM tasks WHERE status='in_progress'")
+        self.assertGreaterEqual(len(active), 1)
 
     def test_reserved_action_blocks_and_writes_chairman_inbox(self) -> None:
         self.osys.init()
@@ -136,7 +136,22 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         ]
         self.assertEqual(duplicate, [])
         task = Store(self.config.db_path).fetch_one("SELECT status FROM tasks WHERE title='Change price tier'")
-        self.assertEqual(task["status"], "done")
+        self.assertEqual(task["status"], "in_progress")
+
+    def test_task_completion_requires_existing_evidence(self) -> None:
+        self.osys.init()
+        task_id = self.osys.run_cycle()["progressed"][0]
+        task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE id=?", (task_id,))
+        with self.assertRaisesRegex(ValueError, "evidence files do not exist"):
+            self.osys.complete_task(task_id, task["owner"], "done", [self.root / "missing.md"])
+
+        evidence = self.root / "evidence.md"
+        evidence.write_text("reviewable result\n", encoding="utf-8")
+        result = self.osys.complete_task(task_id, task["owner"], "Acceptance criteria verified.", [evidence])
+        self.assertEqual(result["status"], "done")
+        stored = Store(self.config.db_path).fetch_one("SELECT status,result FROM tasks WHERE id=?", (task_id,))
+        self.assertEqual(stored["status"], "done")
+        self.assertEqual(json.loads(stored["result"])["evidence"], [str(evidence.resolve())])
 
     def test_validate_passes(self) -> None:
         self.assertEqual(self.osys.validate(), [])
@@ -147,11 +162,15 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
 
     def test_cycle_replenishes_distinct_backlog_with_acceptance_criteria(self) -> None:
         self.osys.init()
-        for _ in range(3):
-            self.osys.run_cycle()
+        cycle = self.osys.run_cycle()
+        for task_id in cycle["progressed"]:
+            task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE id=?", (task_id,))
+            evidence = self.root / f"replenish-{task_id}.md"
+            evidence.write_text("verified\n", encoding="utf-8")
+            self.osys.complete_task(task_id, task["owner"], "Verified bounded result.", [evidence])
         store = Store(self.config.db_path)
         active = store.fetch_all(
-            "SELECT title, acceptance_criteria FROM tasks WHERE status IN ('open', 'blocked')"
+            "SELECT title, acceptance_criteria FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
         )
         self.assertGreaterEqual(len(active), self.config.cycle_task_limit)
         self.assertTrue(any(row["acceptance_criteria"] for row in active))
@@ -161,10 +180,15 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
     def test_backlog_continues_after_first_roadmap_batch(self) -> None:
         self.osys.init()
         for _ in range(12):
-            self.osys.run_cycle()
+            cycle = self.osys.run_cycle()
+            for task_id in cycle["progressed"]:
+                task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE id=?", (task_id,))
+                evidence = self.root / f"evidence-{task_id}.md"
+                evidence.write_text("verified\n", encoding="utf-8")
+                self.osys.complete_task(task_id, task["owner"], "Verified bounded result.", [evidence])
 
         active = Store(self.config.db_path).fetch_all(
-            "SELECT title, acceptance_criteria FROM tasks WHERE status IN ('open', 'blocked')"
+            "SELECT title, acceptance_criteria FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
         )
         self.assertGreaterEqual(len(active), self.config.cycle_task_limit)
         self.assertTrue(any(row["acceptance_criteria"] for row in active))

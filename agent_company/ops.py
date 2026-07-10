@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .backend import make_backend
 from .config import CompanyConfig
 from .db import Store, utcnow
 from .governance import DISCLAIMER, classify_reserved_action
@@ -38,7 +37,6 @@ class CompanyOS:
 
     def run_cycle(self) -> dict[str, object]:
         self.init()
-        backend = make_backend(self.config)
         with self.store.connect() as conn:
             started = utcnow()
             cur = conn.execute("INSERT INTO cycles(started_at, summary) VALUES (?, ?)", (started, "running"))
@@ -68,14 +66,12 @@ class CompanyOS:
                     )
                     escalated.append(task["id"])
                     continue
-                result = self._perform_task(backend, task)
                 conn.execute(
-                    "UPDATE tasks SET status='done', updated_at=?, result=? WHERE id=?",
-                    (utcnow(), json.dumps(result, sort_keys=True), task["id"]),
+                    "UPDATE tasks SET status='in_progress', updated_at=? WHERE id=?",
+                    (utcnow(), task["id"]),
                 )
-                self.store.audit(conn, task["owner"], "complete_task", "task", task["id"], result)
+                self.store.audit(conn, "CEO", "dispatch_task", "task", task["id"], {"owner": task["owner"]})
                 progressed.append(task["id"])
-                self._spawn_followups(conn, task, result)
             self._ensure_backlog(conn)
             self._record_metrics(conn)
             summary = {"progressed": progressed, "escalated": escalated, "processed": len(tasks)}
@@ -112,14 +108,25 @@ class CompanyOS:
             return
         now = utcnow()
         conn.execute(
-            "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority) VALUES (?, ?, ?, ?, ?, 'open', ?)",
-            (now, now, owner, title, domain, priority),
+            """INSERT INTO tasks(
+                   created_at, updated_at, owner, title, domain, status, priority,
+                   acceptance_criteria
+               ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?)""",
+            (
+                now,
+                now,
+                owner,
+                title,
+                domain,
+                priority,
+                "Produce a reviewable artifact, verify it against the parent task result, and attach the evidence path before completion.",
+            ),
         )
 
     def _ensure_backlog(self, conn) -> None:
         """Keep a bounded, non-repeating roadmap backlog with explicit done criteria."""
         active = conn.execute(
-            "SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'blocked')"
+            "SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
         ).fetchone()[0]
         target = max(self.config.cycle_task_limit, 6)
         now = utcnow()
@@ -282,6 +289,53 @@ class CompanyOS:
         ]
         now = utcnow()
         conn.executemany("INSERT INTO metrics(ts, name, value, unit, source) VALUES (?, ?, ?, ?, ?)", [(now, *row) for row in rows])
+
+    def task_list(self) -> list[dict[str, object]]:
+        self.init()
+        rows = self.store.fetch_all(
+            "SELECT * FROM tasks WHERE status IN ('open','in_progress','blocked') ORDER BY priority DESC,id"
+        )
+        return [dict(row) for row in rows]
+
+    def claim_task(self, task_id: int, actor: str) -> dict[str, object]:
+        self.init()
+        with self.store.connect() as conn:
+            task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if task is None:
+                raise ValueError(f"task not found: {task_id}")
+            if task["owner"] != actor:
+                raise ValueError(f"task {task_id} is owned by {task['owner']}, not {actor}")
+            if task["status"] != "open":
+                raise ValueError(f"task {task_id} is not open: {task['status']}")
+            conn.execute("UPDATE tasks SET status='in_progress',updated_at=? WHERE id=?", (utcnow(), task_id))
+            self.store.audit(conn, actor, "claim_task", "task", task_id, {"title": task["title"]})
+            return {"task_id": task_id, "status": "in_progress", "owner": actor}
+
+    def complete_task(self, task_id: int, actor: str, summary: str, evidence: list[Path]) -> dict[str, object]:
+        self.init()
+        if not summary.strip():
+            raise ValueError("summary must not be empty")
+        resolved = [path.expanduser().resolve() for path in evidence]
+        missing = [str(path) for path in resolved if not path.is_file()]
+        if missing:
+            raise ValueError(f"evidence files do not exist: {missing}")
+        with self.store.connect() as conn:
+            task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if task is None:
+                raise ValueError(f"task not found: {task_id}")
+            if task["owner"] != actor:
+                raise ValueError(f"task {task_id} is owned by {task['owner']}, not {actor}")
+            if task["status"] != "in_progress":
+                raise ValueError(f"task {task_id} is not in_progress: {task['status']}")
+            result = {"summary": summary.strip(), "evidence": [str(path) for path in resolved]}
+            conn.execute(
+                "UPDATE tasks SET status='done',updated_at=?,result=? WHERE id=?",
+                (utcnow(), json.dumps(result, sort_keys=True), task_id),
+            )
+            self.store.audit(conn, actor, "complete_task", "task", task_id, result)
+            self._spawn_followups(conn, task, result)
+            self._ensure_backlog(conn)
+            return {"task_id": task_id, "status": "done", **result}
 
     def chairman_inbox(self) -> list[dict[str, object]]:
         self.init()
