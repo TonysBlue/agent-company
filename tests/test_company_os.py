@@ -421,6 +421,8 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertFalse(first["external_publish_authorized"])
         self.assertEqual(first["review_gallery"]["file"], "review-gallery.html")
         self.assertEqual(first["schema_version"], "campaign-render/v2")
+        self.assertEqual(first["provider"], "local-svg")
+        self.assertEqual(first["provider_version"], "1.0.0")
         self.assertTrue((first_dir / "review-gallery.html").is_file())
         self.assertEqual(
             first["review_gallery"]["sha256"],
@@ -431,6 +433,12 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
             first_bytes = (first_dir / asset["file"]).read_bytes()
             self.assertEqual(first_bytes, (second_dir / asset["file"]).read_bytes())
             self.assertEqual(asset["sha256"], __import__("hashlib").sha256(first_bytes).hexdigest())
+            self.assertEqual(asset["media_type"], "image/svg+xml")
+            self.assertEqual(asset["provider"], "local-svg")
+            self.assertEqual(asset["provider_version"], "1.0.0")
+            self.assertEqual(asset["provenance"]["source_id"], asset["variant_id"])
+            self.assertEqual(asset["provenance"]["render_sha256"], asset["sha256"])
+            self.assertEqual(asset["provenance"]["origin"], "pixweave_local-svg_provider")
         gallery = (first_dir / "review-gallery.html").read_text(encoding="utf-8")
         self.assertEqual(gallery.count('<article class="variant">'), first["asset_count"])
         self.assertEqual(gallery.count("data:image/svg+xml;base64,"), first["asset_count"])
@@ -445,6 +453,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         for asset in first["assets"]:
             self.assertIn(asset["variant_id"], gallery)
             self.assertIn(asset["sha256"], gallery)
+            self.assertIn("local-svg", gallery)
         injected = [asset for asset in first["assets"] if asset["variant_id"] in {
             item["id"] for item in build_campaign_manifest(campaign)["variants"] if item["copy_id"] == "control"
         }]
@@ -536,6 +545,16 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
                 "external_publish_authorized must be false",
             ),
             (
+                "provider-control",
+                lambda path: self._mutate_render_manifest(path, lambda data: data.update({"provider": "remote"})),
+                "provider must be local-svg",
+            ),
+            (
+                "provenance-control",
+                lambda path: self._mutate_render_manifest(path, lambda data: data["assets"][0]["provenance"].update({"render_sha256": "0" * 64})),
+                "render_sha256 must match",
+            ),
+            (
                 "traversal",
                 lambda path: self._mutate_render_manifest(path, lambda data: data["assets"][0].update({"file": "../escape.svg"})),
                 "path traversal",
@@ -568,6 +587,14 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         (malformed / "render-manifest.json").write_text("{", encoding="utf-8")
         with self.assertRaisesRegex(CampaignRenderVerificationError, "invalid JSON"):
             verify_campaign_render_bundle(malformed)
+
+    def test_campaign_render_provider_rejects_unbounded_local_images(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        campaign["formats"] = [{"height": 2500, "id": "too-large", "width": 1200}]
+
+        with self.assertRaisesRegex(ValueError, "dimensions must be at most"):
+            render_campaign_bundle(campaign, self.root / "render")
 
     def test_campaign_review_records_complete_internal_decisions_through_cli(self) -> None:
         campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"

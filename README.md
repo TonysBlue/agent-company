@@ -40,8 +40,8 @@ python3.11 -m agent_company.cli feedback-triage data/artifacts/feedback-submissi
 python3.11 -m agent_company.cli beta-launch-readiness examples/beta-launch-package.json
 ```
 
-`campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives, per-variant checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
-`campaign-render-verify` fails closed unless a retained `campaign-render/v2` bundle has a valid manifest, gallery, exact SVG inventory, stable variant filenames, matching SHA-256 checksums, and draft/no-publish controls.
+`campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives through the dependency-free `local-svg` image rendering provider, with per-variant render provenance, media type, checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
+`campaign-render-verify` fails closed unless a retained `campaign-render/v2` bundle has a valid manifest, gallery, exact SVG inventory, stable variant filenames, matching SHA-256 checksums, provider/provenance binding, and draft/no-publish controls.
 `campaign-review` consumes a verified `campaign-render/v2` bundle plus complete per-variant approve/reject decisions, validates reviewer metadata and rejection reasons, and writes a deterministic internal review record bound to the bundle and SVG checksums. It explicitly records no external publication authorization.
 
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
@@ -59,7 +59,7 @@ Visual QA scorecards calculate pass/fail/stop results from explicitly measured e
 Feedback capture rejects declared sensitive data and anti-abuse honeypots, requires explicit consent before retaining optional contact data, and binds submissions to product/workflow/artifact context. Feedback triage records acknowledgement-through-release states and requires backlog/release linkage for those claims; neither command authorizes outreach or publication.
 `beta-launch-readiness` evaluates a versioned internal readiness package with pinned evidence for product capability, feedback controls, risk review, onboarding, support ownership, observability, rollback, security/privacy, unit economics, and reserved-action approvals. It fails closed on malformed, missing, or tampered evidence and always records `launch_authorized: false`; it never authorizes production deployment, publication, pricing, payment, outreach, or launch.
 
-`beta-product` runs a local-only internal HTTP interface for campaign render, review, and feedback capture at `http://127.0.0.1:18112/beta` by default. It composes the existing validated campaign, render, review, and feedback domain functions, writes only local artifacts under `data/artifacts/local-beta/`, shows draft/no-publish controls, and records no production deployment, publication, pricing, payment, outreach, or legal authorization.
+`beta-product` runs a local-only internal HTTP interface for campaign render, review, and feedback capture at `http://127.0.0.1:18112/beta` by default. It composes the existing validated campaign, dependency-free local SVG render provider, review, and feedback domain functions, writes only local artifacts under `data/artifacts/local-beta/`, rejects review paths outside that root, shows draft/no-publish controls, and records no production deployment, publication, pricing, payment, outreach, or legal authorization.
 
 ## Read-only dashboard
 

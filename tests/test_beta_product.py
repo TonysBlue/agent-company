@@ -54,6 +54,8 @@ logs = logs
         self.assertTrue(status["controls"]["internal_only"])
         self.assertFalse(status["controls"]["external_publish_authorized"])
         self.assertFalse(status["controls"]["production_deploy_authorized"])
+        self.assertEqual(status["render_provider"]["name"], "local-svg")
+        self.assertTrue(status["render_provider"]["dependency_free"])
 
     def test_render_review_and_feedback_flow_writes_bounded_local_artifacts(self) -> None:
         campaign = json.loads((self.repo / "examples" / "campaign.json").read_text(encoding="utf-8"))
@@ -64,7 +66,12 @@ logs = logs
         self.assertTrue(render_dir.is_dir())
         self.assertEqual(render["schema_version"], "campaign-render/v2")
         self.assertEqual(render["asset_count"], 16)
+        self.assertEqual(render["provider"], "local-svg")
         self.assertFalse(render["external_publish_authorized"])
+        manifest = json.loads(Path(render["render_manifest"]).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["provider"], "local-svg")
+        self.assertEqual(manifest["assets"][0]["media_type"], "image/svg+xml")
+        self.assertEqual(manifest["assets"][0]["provenance"]["render_sha256"], manifest["assets"][0]["sha256"])
         gallery = Path(render["review_gallery"]).read_text(encoding="utf-8")
         self.assertIn("review_state: draft", gallery)
         self.assertIn("external_publish_authorized: false", gallery)
@@ -128,6 +135,23 @@ logs = logs
 
         self.assertEqual(response.status, 400)
         self.assertIn("checksum mismatch", response.body)
+        after = sorted(path.relative_to(self.app.artifacts_dir) for path in self.app.artifacts_dir.rglob("*"))
+        self.assertEqual(before, after)
+
+    def test_review_rejects_bundle_path_outside_local_beta_root(self) -> None:
+        outside = self.root / "outside-render"
+        outside.mkdir()
+        before = sorted(path.relative_to(self.app.artifacts_dir) for path in self.app.artifacts_dir.rglob("*"))
+
+        decisions = json.loads((self.repo / "examples" / "campaign-review-decisions.json").read_text(encoding="utf-8"))
+        response = self.app.handle_post(
+            "/api/beta/review",
+            json.dumps({"bundle_path": str(outside), "decisions": decisions}).encode("utf-8"),
+            "application/json",
+        )
+
+        self.assertEqual(response.status, 400)
+        self.assertIn("local beta artifact root", response.body)
         after = sorted(path.relative_to(self.app.artifacts_dir) for path in self.app.artifacts_dir.rglob("*"))
         self.assertEqual(before, after)
 

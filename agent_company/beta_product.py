@@ -22,6 +22,7 @@ from .campaign_render import (
 from .campaign_review import CampaignReviewError, build_campaign_review_record, record_campaign_review
 from .config import CompanyConfig, load_config
 from .feedback import FeedbackError, capture_feedback
+from .local_image_render import LOCAL_IMAGE_RENDER_PROVIDER, LOCAL_IMAGE_RENDER_PROVIDER_VERSION
 
 
 MAX_JSON_BYTES = 256 * 1024
@@ -122,6 +123,12 @@ class LocalBetaProductApp:
                 "review": "/api/beta/review",
                 "feedback": "/api/beta/feedback",
             },
+            "render_provider": {
+                "name": LOCAL_IMAGE_RENDER_PROVIDER,
+                "version": LOCAL_IMAGE_RENDER_PROVIDER_VERSION,
+                "dependency_free": True,
+                "asset_type": "svg",
+            },
             "controls": {
                 "internal_only": True,
                 "external_publish_authorized": False,
@@ -146,6 +153,8 @@ class LocalBetaProductApp:
             "bundle_sha256": rendered["bundle_sha256"],
             "campaign_manifest_sha256": rendered["campaign_manifest_sha256"],
             "asset_count": rendered["asset_count"],
+            "provider": rendered["provider"],
+            "provider_version": rendered["provider_version"],
             "external_publish_authorized": False,
             "external_action_authorized": False,
             "capability_disclaimer": rendered["capability_disclaimer"],
@@ -158,7 +167,7 @@ class LocalBetaProductApp:
             raise CampaignReviewError("bundle_path must be a non-empty string")
         if not isinstance(decisions, dict):
             raise CampaignReviewError("decisions must be an object")
-        bundle_dir = Path(bundle_value)
+        bundle_dir = self._resolve_local_beta_bundle(bundle_value)
         verify_campaign_render_bundle(bundle_dir)
         render_manifest = json.loads((bundle_dir / CAMPAIGN_RENDER_MANIFEST_FILE).read_text(encoding="utf-8"))
         review_record = build_campaign_review_record(render_manifest, decisions)
@@ -176,6 +185,18 @@ class LocalBetaProductApp:
             "decisions_path": str(decisions_path),
             "external_action_authorized": False,
         }
+
+    def _resolve_local_beta_bundle(self, value: str) -> Path:
+        try:
+            root = self.artifacts_dir.resolve(strict=True)
+            bundle_dir = Path(value).expanduser().resolve(strict=True)
+        except OSError as exc:
+            raise CampaignReviewError(f"bundle_path is not a readable local beta bundle: {value}") from exc
+        if not bundle_dir.is_dir():
+            raise CampaignReviewError("bundle_path must be a directory")
+        if not bundle_dir.is_relative_to(root):
+            raise CampaignReviewError("bundle_path must stay under the local beta artifact root")
+        return bundle_dir
 
     def capture_feedback(self, payload: dict[str, Any]) -> dict[str, Any]:
         submission_id = payload.get("submission_id")
@@ -206,6 +227,7 @@ class LocalBetaProductApp:
             "render": "POST /api/beta/render with examples/campaign.json body",
             "review": "POST /api/beta/review with bundle_path and campaign-review-decisions/v1 decisions",
             "feedback": "POST /api/beta/feedback with feedback-submission/v1 body",
+            "provider": f"{LOCAL_IMAGE_RENDER_PROVIDER} {LOCAL_IMAGE_RENDER_PROVIDER_VERSION} dependency-free SVG",
         }, indent=2)
         return f"""<!doctype html>
 <html lang="en">
