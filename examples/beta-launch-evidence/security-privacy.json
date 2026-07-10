@@ -1,0 +1,9 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "security and privacy readiness",
+  "evidence": [
+    "Feedback capture rejects sensitive submissions and requires consent before retaining optional contact data.",
+    "Versioning policy forbids committing secrets, customer personal data, credentials, raw contracts, and payment details."
+  ],
+  "limits": "Security and privacy readiness is internal evidence and not a compliance certification."
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "reserved-action approval requests",
+  "approvals": [
+    {
+      "approval_ref": "chairman-approval-beta-external-publish-001",
+      "action_type": "external_publish",
+      "decision": "pending"
+    },
+    {
+      "approval_ref": "chairman-approval-beta-production-deploy-001",
+      "action_type": "production_deploy",
+      "decision": "pending"
+    },
+    {
+      "approval_ref": "chairman-approval-beta-pricing-change-001",
+      "action_type": "pricing_change",
+      "decision": "pending"
+    }
+  ],
+  "limits": "These are internal request examples, not Chairman decisions, and do not authorize launch."
+}

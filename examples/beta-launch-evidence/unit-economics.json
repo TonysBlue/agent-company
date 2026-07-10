@@ -1,0 +1,9 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "unit economics",
+  "evidence": [
+    "Unit-economics scenarios calculate internal low/base/high cost sensitivity from explicit assumptions.",
+    "The calculation output explicitly denies pricing authorization."
+  ],
+  "limits": "No pricing, payment, or revenue claim is authorized."
+}

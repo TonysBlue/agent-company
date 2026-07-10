@@ -1,0 +1,9 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "observability",
+  "evidence": [
+    "The read-only dashboard reports management, project, and operations state from local sources without mutating the ledger.",
+    "CLI validation reports governance/state errors as deterministic JSON."
+  ],
+  "limits": "Pre-launch operations fields remain placeholders until measured production data exists."
+}

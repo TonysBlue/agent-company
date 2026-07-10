@@ -1,0 +1,9 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "onboarding",
+  "evidence": [
+    "README documents the CLI workflow for initialization, task control, campaign artifacts, feedback, and validation.",
+    "Documentation distinguishes drafts, deterministic metadata, and evidence from customer proof."
+  ],
+  "limits": "Onboarding is internal and does not invite customers into a live beta."
+}

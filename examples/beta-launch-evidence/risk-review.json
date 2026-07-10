@@ -1,0 +1,9 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "risk review",
+  "evidence": [
+    "The constitution reserves external publication, production deployment, pricing, payment, data export, and legal commitments to Chairman control.",
+    "Campaign render and campaign review records explicitly deny external publication authorization."
+  ],
+  "limits": "Risk review is an internal readiness input and not legal advice."
+}

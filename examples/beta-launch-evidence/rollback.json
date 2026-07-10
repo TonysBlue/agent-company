@@ -1,0 +1,9 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "rollback",
+  "evidence": [
+    "Versioning policy separates Git definitions from operating archives.",
+    "Archive verification requires manifest checksums and SQLite integrity checks."
+  ],
+  "limits": "Rollback evidence does not deploy, restore, or modify runtime state."
+}

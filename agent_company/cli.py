@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from .backend import LocalBackend
+from .beta_launch import evaluate_beta_launch_package_file
 from .config import load_config
 from .feedback import capture_feedback_file, triage_feedback_file
 from .ops import CompanyOS
@@ -84,6 +85,9 @@ def build_parser() -> argparse.ArgumentParser:
     triage.add_argument("submission", type=Path)
     triage.add_argument("decision", type=Path)
     triage.add_argument("--output", type=Path, required=True)
+    beta = sub.add_parser("beta-launch-readiness", help="Evaluate an internal beta launch readiness package")
+    beta.add_argument("input", type=Path)
+    beta.add_argument("--output", type=Path, default=None)
     return parser
 
 
@@ -166,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(capture_feedback_file(args.input, args.output), indent=2, sort_keys=True))
         elif args.command == "feedback-triage":
             print(json.dumps(triage_feedback_file(args.submission, args.decision, args.output), indent=2, sort_keys=True))
+        elif args.command == "beta-launch-readiness":
+            print(json.dumps(evaluate_beta_launch_package_file(args.input, args.output), indent=2, sort_keys=True))
         else:
             raise AssertionError(args.command)
     except Exception as exc:

@@ -1,0 +1,10 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "product capability",
+  "evidence": [
+    "Campaign render bundles produce deterministic SVG drafts and an offline review gallery.",
+    "Campaign review records bind reviewer decisions to verified render-bundle checksums.",
+    "Product-shot workflow manifests validate source provenance, controls, stages, and acceptance checks."
+  ],
+  "limits": "Internal capability evidence only; no claim of production deployment or customer adoption."
+}

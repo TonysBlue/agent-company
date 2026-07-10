@@ -1,0 +1,175 @@
+{
+  "schema_version": "beta-launch-package/v1",
+  "package_id": "pixweave-beta-0.13.0-readiness",
+  "product": "织象 PixWeave",
+  "beta_version": "0.13.0-beta.1",
+  "gates": {
+    "product_capability_evidence": {
+      "owner": "CPO",
+      "status": "pass",
+      "summary": "Deterministic internal product workflow evidence exists for campaign rendering, review, and product-shot controls.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/product-capability.json",
+          "sha256": "805f0ff2304ee978d4d97af2363e96f38eb8baead16a4bcf272a6a6088ed78b7",
+          "evidence_type": "internal_capability_record",
+          "description": "Bounded product capability evidence with explicit limits."
+        }
+      ]
+    },
+    "feedback_controls": {
+      "owner": "CPO",
+      "status": "pass",
+      "summary": "Feedback capture and triage controls are documented as privacy-bounded internal workflows.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/feedback-controls.json",
+          "sha256": "a9dfaea0f551fe85bf71b4f78f67e60bcd76062d85bd3c839cb2641a82f94b70",
+          "evidence_type": "feedback_control_record",
+          "description": "Feedback control evidence with no outreach authorization."
+        }
+      ]
+    },
+    "risk_review": {
+      "owner": "Counsel",
+      "status": "pass",
+      "summary": "Reserved actions remain under Chairman control and the evidence records no legal autonomy.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/risk-review.json",
+          "sha256": "319c3ec1a2daf628f64815bdf6bdb6392a613e7b28ee99b9d78aa1d93aacf855",
+          "evidence_type": "risk_review_record",
+          "description": "Internal risk review evidence."
+        }
+      ]
+    },
+    "onboarding": {
+      "owner": "COO",
+      "status": "pass",
+      "summary": "Internal CLI and operating workflow onboarding material exists.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/onboarding.json",
+          "sha256": "7584664a74a14e12ab4a8dcbd82a2909347c91176b5a152aa7682553909df977",
+          "evidence_type": "onboarding_record",
+          "description": "Internal onboarding evidence."
+        }
+      ]
+    },
+    "support_ownership": {
+      "owner": "COO",
+      "status": "pass",
+      "summary": "Support and triage ownership is assigned to internal roles.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/support-ownership.json",
+          "sha256": "8be8ea3ca6f33c0664d560c40331f0011f4b76a7c3b99ae35c8ca10ff540c7d5",
+          "evidence_type": "ownership_record",
+          "description": "Support ownership map."
+        }
+      ]
+    },
+    "observability": {
+      "owner": "CTO",
+      "status": "pass",
+      "summary": "Read-only dashboard and validation commands provide internal observability without mutating state.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/observability.json",
+          "sha256": "bd35e7623325dfa39e115fea16276e805c93e3304cf503c8b71c58487af6c290",
+          "evidence_type": "observability_record",
+          "description": "Internal observability evidence."
+        }
+      ]
+    },
+    "rollback": {
+      "owner": "CTO",
+      "status": "pass",
+      "summary": "Versioning and archive policy defines recovery evidence and checksum verification.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/rollback.json",
+          "sha256": "5ebe3333395a9642081ba16fed31d6fd64e7a7e1c1774df8390fb8abdbc31f92",
+          "evidence_type": "rollback_record",
+          "description": "Rollback and recovery evidence."
+        }
+      ]
+    },
+    "security_privacy_readiness": {
+      "owner": "Counsel",
+      "status": "pass",
+      "summary": "Security/privacy controls reject sensitive feedback and forbid secret or customer-data commits.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/security-privacy.json",
+          "sha256": "7061f2a49cbcd2dd4544590d6643f4eff02a2d4eaed3f0b96f7f263af07ee1a7",
+          "evidence_type": "security_privacy_record",
+          "description": "Security and privacy readiness evidence."
+        }
+      ]
+    },
+    "unit_economics_evidence": {
+      "owner": "CFO",
+      "status": "pass",
+      "summary": "Internal cost sensitivity evidence exists and explicitly does not set price.",
+      "launch_authorized": false,
+      "artifacts": [
+        {
+          "path": "beta-launch-evidence/unit-economics.json",
+          "sha256": "70a58ad922fb90b1c36edad7ee638b359a48f050fb4765abb51c480b6e71347f",
+          "evidence_type": "unit_economics_record",
+          "description": "Unit-economics readiness evidence."
+        }
+      ]
+    }
+  },
+  "reserved_action_approvals": [
+    {
+      "action_type": "external_publish",
+      "approval_ref": "chairman-approval-beta-external-publish-001",
+      "decision": "pending",
+      "decided_by": null,
+      "launch_authorized": false,
+      "evidence": {
+        "path": "beta-launch-evidence/reserved-approvals.json",
+        "sha256": "90b112f940b72d97c95bb915e3bde112a584cfc4ed3509519596980d530a1d50",
+        "evidence_type": "chairman_reserved_action_record",
+        "description": "Repository example approval evidence for future Chairman-controlled external publication."
+      }
+    },
+    {
+      "action_type": "production_deploy",
+      "approval_ref": "chairman-approval-beta-production-deploy-001",
+      "decision": "pending",
+      "decided_by": null,
+      "launch_authorized": false,
+      "evidence": {
+        "path": "beta-launch-evidence/reserved-approvals.json",
+        "sha256": "90b112f940b72d97c95bb915e3bde112a584cfc4ed3509519596980d530a1d50",
+        "evidence_type": "chairman_reserved_action_record",
+        "description": "Repository example approval evidence for future Chairman-controlled production deployment."
+      }
+    },
+    {
+      "action_type": "pricing_change",
+      "approval_ref": "chairman-approval-beta-pricing-change-001",
+      "decision": "pending",
+      "decided_by": null,
+      "launch_authorized": false,
+      "evidence": {
+        "path": "beta-launch-evidence/reserved-approvals.json",
+        "sha256": "90b112f940b72d97c95bb915e3bde112a584cfc4ed3509519596980d530a1d50",
+        "evidence_type": "chairman_reserved_action_record",
+        "description": "Repository example approval evidence for future Chairman-controlled pricing change."
+      }
+    }
+  ]
+}

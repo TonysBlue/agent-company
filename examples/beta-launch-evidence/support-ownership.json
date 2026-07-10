@@ -1,0 +1,11 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "support ownership",
+  "owners": {
+    "feedback_intake": "CPO",
+    "technical_triage": "CTO",
+    "customer_risk": "Counsel",
+    "operating_decision": "CEO"
+  },
+  "limits": "Ownership map does not authorize external customer support outreach."
+}

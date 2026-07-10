@@ -11,6 +11,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent_company.backend import LocalBackend
+from agent_company.beta_launch import (
+    BetaLaunchReadinessError,
+    evaluate_beta_launch_package,
+    evaluate_beta_launch_package_file,
+)
 from agent_company.brandkit import BrandKitError, build_campaign_manifest, validate_brand_kit, write_json
 from agent_company.campaign_render import (
     CampaignRenderError,
@@ -685,6 +690,95 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
     def _quiet_cli(self, argv: list[str]) -> int:
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             return cli_main(argv)
+
+    def test_beta_launch_readiness_example_is_deterministic_and_never_authorizes_launch(self) -> None:
+        package_path = Path(__file__).parents[1] / "examples" / "beta-launch-package.json"
+
+        first = evaluate_beta_launch_package_file(package_path)
+        second = evaluate_beta_launch_package_file(package_path)
+
+        self.assertEqual(first, second)
+        self.assertEqual(first["schema_version"], "beta-launch-readiness-evidence/v1")
+        self.assertEqual(first["status"], "blocked_pending_chairman_approvals")
+        self.assertFalse(first["launch_authorized"])
+        self.assertFalse(first["external_action_authorized"])
+        self.assertIn("never authorizes launch", first["authorization_statement"])
+        self.assertEqual(len(first["gates"]), 9)
+        self.assertEqual(
+            {gate["gate"] for gate in first["gates"]},
+            {
+                "product_capability_evidence",
+                "feedback_controls",
+                "risk_review",
+                "onboarding",
+                "support_ownership",
+                "observability",
+                "rollback",
+                "security_privacy_readiness",
+                "unit_economics_evidence",
+            },
+        )
+        self.assertEqual(
+            [item["action_type"] for item in first["reserved_action_approvals"]],
+            ["external_publish", "pricing_change", "production_deploy"],
+        )
+        self.assertTrue(all(not item["launch_authorized"] for item in first["reserved_action_approvals"]))
+
+        output = self.root / "readiness.json"
+        result = evaluate_beta_launch_package_file(package_path, output)
+        self.assertEqual(result, json.loads(output.read_text(encoding="utf-8")))
+        self.assertEqual(self._quiet_cli(["beta-launch-readiness", str(package_path), "--output", str(self.root / "cli-readiness.json")]), 0)
+
+    def test_beta_launch_readiness_fails_closed_on_missing_and_tampered_evidence(self) -> None:
+        package_path = Path(__file__).parents[1] / "examples" / "beta-launch-package.json"
+        package = json.loads(package_path.read_text(encoding="utf-8"))
+        evidence_source = package_path.parent / "beta-launch-evidence"
+        evidence_target = self.root / "beta-launch-evidence"
+        shutil.copytree(evidence_source, evidence_target)
+
+        missing = json.loads(json.dumps(package))
+        missing["gates"]["rollback"]["artifacts"][0]["path"] = "beta-launch-evidence/missing.json"
+        with self.assertRaisesRegex(BetaLaunchReadinessError, "missing evidence file"):
+            evaluate_beta_launch_package(missing, self.root)
+
+        tampered = json.loads(json.dumps(package))
+        (evidence_target / "unit-economics.json").write_text('{"changed": true}\n', encoding="utf-8")
+        with self.assertRaisesRegex(BetaLaunchReadinessError, "checksum mismatch"):
+            evaluate_beta_launch_package(tampered, self.root)
+
+        traversal = json.loads(json.dumps(package))
+        traversal["gates"]["onboarding"]["artifacts"][0]["path"] = "../README.md"
+        with self.assertRaisesRegex(BetaLaunchReadinessError, "must not escape"):
+            evaluate_beta_launch_package(traversal, self.root)
+
+    def test_beta_launch_readiness_rejects_malformed_input_and_no_partial_cli_output(self) -> None:
+        package_path = Path(__file__).parents[1] / "examples" / "beta-launch-package.json"
+        package = json.loads(package_path.read_text(encoding="utf-8"))
+        evidence_source = package_path.parent / "beta-launch-evidence"
+        evidence_target = self.root / "beta-launch-evidence"
+        shutil.copytree(evidence_source, evidence_target)
+
+        malformed = json.loads(json.dumps(package))
+        del malformed["gates"]["security_privacy_readiness"]
+        with self.assertRaisesRegex(BetaLaunchReadinessError, "security_privacy_readiness"):
+            evaluate_beta_launch_package(malformed, self.root)
+
+        bad_approval = json.loads(json.dumps(package))
+        bad_approval["reserved_action_approvals"][0]["decided_by"] = "CEO"
+        with self.assertRaisesRegex(BetaLaunchReadinessError, "decided_by must be null while pending"):
+            evaluate_beta_launch_package(bad_approval, self.root)
+
+        invalid_json = self.root / "invalid-beta.json"
+        invalid_json.write_text("{", encoding="utf-8")
+        output = self.root / "should-not-exist.json"
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            code = cli_main(["beta-launch-readiness", str(invalid_json), "--output", str(output)])
+        self.assertEqual(code, 2)
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertIn("invalid JSON", stderr.getvalue())
+        self.assertFalse(output.exists())
 
     def test_json_artifact_write_preserves_existing_file_when_replace_fails(self) -> None:
         output = self.root / "artifacts" / "manifest.json"

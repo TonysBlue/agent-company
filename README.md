@@ -36,6 +36,7 @@ python3.11 -m agent_company.cli product-shot-workflow examples/product-shot-work
 python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard.json
 python3.11 -m agent_company.cli feedback-capture examples/feedback-submission.json --output data/artifacts/feedback-submission.json
 python3.11 -m agent_company.cli feedback-triage data/artifacts/feedback-submission.json examples/feedback-triage.json --output data/artifacts/feedback-triage.json
+python3.11 -m agent_company.cli beta-launch-readiness examples/beta-launch-package.json
 ```
 
 `campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives, per-variant checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
@@ -55,6 +56,7 @@ The unit-economics command calculates internal low/base/high cost sensitivity fr
 Product-shot workflow manifests validate required source provenance, explicit controls, ordered stages, and acceptance checks across at least three scenario inputs before writing deterministic internal workflow metadata.
 Visual QA scorecards calculate pass/fail/stop results from explicitly measured edit-fidelity and brand-consistency observations. These tools do not measure images directly and do not measure or claim actual image quality.
 Feedback capture rejects declared sensitive data and anti-abuse honeypots, requires explicit consent before retaining optional contact data, and binds submissions to product/workflow/artifact context. Feedback triage records acknowledgement-through-release states and requires backlog/release linkage for those claims; neither command authorizes outreach or publication.
+`beta-launch-readiness` evaluates a versioned internal readiness package with pinned evidence for product capability, feedback controls, risk review, onboarding, support ownership, observability, rollback, security/privacy, unit economics, and reserved-action approvals. It fails closed on malformed, missing, or tampered evidence and always records `launch_authorized: false`; it never authorizes production deployment, publication, pricing, payment, outreach, or launch.
 
 ## Read-only dashboard
 

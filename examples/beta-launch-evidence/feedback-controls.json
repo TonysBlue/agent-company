@@ -1,0 +1,9 @@
+{
+  "schema_version": "internal-evidence/v1",
+  "subject": "feedback controls",
+  "evidence": [
+    "Feedback capture rejects declared sensitive data and anti-abuse honeypots.",
+    "Feedback triage requires reviewer metadata and backlog linkage for planned or released states."
+  ],
+  "limits": "No external outreach or customer contact is authorized by this evidence."
+}
