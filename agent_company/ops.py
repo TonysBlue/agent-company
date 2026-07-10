@@ -23,12 +23,15 @@ class CompanyOS:
     def status(self) -> dict[str, object]:
         self.init()
         open_tasks = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='open'")["c"]
+        in_progress = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='in_progress'")["c"]
         blocked = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='blocked'")["c"]
         approvals = self.store.fetch_one("SELECT COUNT(*) AS c FROM approvals WHERE status='pending'")["c"]
         cycles = self.store.fetch_one("SELECT COUNT(*) AS c FROM cycles")["c"]
         return {
             "product": self.config.product_name,
             "open_tasks": open_tasks,
+            "in_progress_tasks": in_progress,
+            "active_tasks": open_tasks + in_progress + blocked,
             "blocked_tasks": blocked,
             "pending_approvals": approvals,
             "cycles": cycles,
@@ -306,6 +309,27 @@ class CompanyOS:
             self._ensure_backlog(conn)
             return {"task_id": task_id, "status": "done", **result}
 
+    def cancel_task(self, task_id: int, actor: str, reason: str) -> dict[str, object]:
+        """Close obsolete work without misrepresenting it as completed."""
+        self.init()
+        if not reason.strip():
+            raise ValueError("reason must not be empty")
+        with self.store.connect() as conn:
+            task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if task is None:
+                raise ValueError(f"task not found: {task_id}")
+            if actor not in {"CEO", task["owner"]}:
+                raise ValueError(f"task {task_id} may only be cancelled by CEO or {task['owner']}")
+            if task["status"] not in {"open", "in_progress"}:
+                raise ValueError(f"task {task_id} cannot be cancelled from status: {task['status']}")
+            result = {"reason": reason.strip(), "completed": False}
+            conn.execute(
+                "UPDATE tasks SET status='cancelled',updated_at=?,blocked_reason=NULL,result=? WHERE id=?",
+                (utcnow(), json.dumps(result, sort_keys=True), task_id),
+            )
+            self.store.audit(conn, actor, "cancel_task", "task", task_id, result)
+            return {"task_id": task_id, "status": "cancelled", **result}
+
     def chairman_inbox(self) -> list[dict[str, object]]:
         self.init()
         rows = self.store.fetch_all("SELECT * FROM approvals WHERE status='pending' ORDER BY id")
@@ -354,6 +378,7 @@ class CompanyOS:
             DISCLAIMER,
             "",
             f"- Open tasks: {status['open_tasks']}",
+            f"- In-progress tasks: {status['in_progress_tasks']}",
             f"- Blocked tasks: {status['blocked_tasks']}",
             f"- Pending Chairman approvals: {status['pending_approvals']}",
             f"- Completed cycles: {status['cycles']}",

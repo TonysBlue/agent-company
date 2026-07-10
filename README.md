@@ -17,6 +17,7 @@ python3.11 -m agent_company.cli run-cycle
 python3.11 -m agent_company.cli task-list
 python3.11 -m agent_company.cli task-claim 1 --actor CPO
 python3.11 -m agent_company.cli task-complete 1 --actor CPO --summary "Acceptance criteria met" --evidence path/to/reviewable-evidence
+python3.11 -m agent_company.cli task-cancel 1 --actor CEO --reason "Superseded by reviewed task 2."
 python3.11 -m agent_company.cli chairman-inbox
 python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
 python3.11 -m agent_company.cli report
@@ -30,6 +31,7 @@ python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
 claims that work is complete. Agents must use `task-claim` for still-open work and
 `task-complete` only after producing one or more existing, reviewable evidence files.
+Obsolete or duplicate work must use `task-cancel`, which records that no completion occurred.
 
 The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
 The unit-economics command calculates internal low/base/high cost sensitivity from explicit assumptions. It does not set or authorize a price.

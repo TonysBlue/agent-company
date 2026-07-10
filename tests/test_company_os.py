@@ -174,6 +174,22 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(stored["status"], "done")
         self.assertEqual(json.loads(stored["result"])["evidence"], [str(evidence.resolve())])
 
+    def test_task_cancel_closes_work_without_claiming_completion(self) -> None:
+        self.osys.init()
+        task_id = self.osys.run_cycle()["progressed"][0]
+        result = self.osys.cancel_task(task_id, "CEO", "Superseded by reviewed task 42.")
+        self.assertEqual(result["status"], "cancelled")
+        self.assertFalse(result["completed"])
+        stored = Store(self.config.db_path).fetch_one("SELECT status,result FROM tasks WHERE id=?", (task_id,))
+        self.assertEqual(stored["status"], "cancelled")
+        self.assertFalse(json.loads(stored["result"])["completed"])
+
+    def test_task_cancel_rejects_unrelated_actor(self) -> None:
+        self.osys.init()
+        task_id = self.osys.run_cycle()["progressed"][0]
+        with self.assertRaisesRegex(ValueError, "may only be cancelled"):
+            self.osys.cancel_task(task_id, "CFO", "Not my task.")
+
     def test_validate_passes(self) -> None:
         self.assertEqual(self.osys.validate(), [])
 

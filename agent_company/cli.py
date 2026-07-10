@@ -29,6 +29,10 @@ def build_parser() -> argparse.ArgumentParser:
     complete.add_argument("--actor", required=True)
     complete.add_argument("--summary", required=True)
     complete.add_argument("--evidence", type=Path, action="append", required=True)
+    cancel = sub.add_parser("task-cancel", help="Cancel obsolete or duplicate work with an audited reason")
+    cancel.add_argument("task_id", type=int)
+    cancel.add_argument("--actor", required=True)
+    cancel.add_argument("--reason", required=True)
     sub.add_parser("chairman-inbox", help="List pending Chairman decisions")
     decide = sub.add_parser("decide", help="Record a Chairman decision")
     decide.add_argument("approval_id", type=int)
@@ -64,6 +68,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.claim_task(args.task_id, args.actor), indent=2, sort_keys=True))
         elif args.command == "task-complete":
             print(json.dumps(osys.complete_task(args.task_id, args.actor, args.summary, args.evidence), indent=2, sort_keys=True))
+        elif args.command == "task-cancel":
+            print(json.dumps(osys.cancel_task(args.task_id, args.actor, args.reason), indent=2, sort_keys=True))
         elif args.command == "chairman-inbox":
             print(json.dumps(osys.chairman_inbox(), indent=2, sort_keys=True))
         elif args.command == "decide":
