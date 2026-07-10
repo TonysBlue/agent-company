@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .brandkit import build_campaign_manifest, load_json, validate_brand_kit, write_json
 from .config import CompanyConfig
+from .prompt_pack import build_prompt_manifest
 
 
 class BackendError(RuntimeError):
@@ -64,6 +65,20 @@ class LocalBackend:
             "manifest_sha256": manifest["manifest_sha256"],
             "variant_count": manifest["variant_count"],
             "brand_version": manifest["brand"]["version"],
+        }
+
+    def generate_prompt_manifest_file(self, input_path: Path, output_path: Path | None = None) -> dict[str, object]:
+        prompt_pack = load_json(input_path)
+        manifest = build_prompt_manifest(prompt_pack)
+        if output_path is None:
+            digest = manifest["manifest_sha256"][:12]
+            output_path = self.config.artifacts_dir / f"prompt-manifest-{digest}.json"
+        write_json(output_path, manifest)
+        return {
+            "path": str(output_path),
+            "manifest_sha256": manifest["manifest_sha256"],
+            "prompt_count": manifest["prompt_count"],
+            "pack_version": manifest["pack"]["version"],
         }
 
 

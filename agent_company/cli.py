@@ -46,6 +46,9 @@ def build_parser() -> argparse.ArgumentParser:
     campaign = sub.add_parser("campaign-manifest", help="Build a deterministic campaign manifest")
     campaign.add_argument("input", type=Path)
     campaign.add_argument("--output", type=Path, default=None)
+    prompt_pack = sub.add_parser("prompt-pack", help="Expand a deterministic versioned prompt pack")
+    prompt_pack.add_argument("input", type=Path)
+    prompt_pack.add_argument("--output", type=Path, default=None)
     economics = sub.add_parser("unit-economics", help="Calculate internal cost sensitivity scenarios")
     economics.add_argument("input", type=Path)
     return parser
@@ -91,6 +94,9 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
         elif args.command == "campaign-manifest":
             result = LocalBackend(osys.config).generate_campaign_manifest_file(args.input, args.output)
+            print(json.dumps(result, indent=2, sort_keys=True))
+        elif args.command == "prompt-pack":
+            result = LocalBackend(osys.config).generate_prompt_manifest_file(args.input, args.output)
             print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "unit-economics":
             result = calculate_scenarios(load_scenarios(args.input))

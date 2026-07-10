@@ -201,6 +201,8 @@ class CompanyOS:
              "Schema stores anonymized interview evidence, segment, pain, frequency, confidence, and consent status without collecting real customer data."),
             ("COO", "Define experiment lifecycle and stopping rules", "operations", 52,
              "Playbook defines draft, approved, running, analyzed, and stopped states with metric, guardrail, owner, and stopping criteria."),
+            ("CTO", "Implement configurable prompt-pack expansion", "engineering", 76,
+             "One CLI command validates a versioned prompt pack, deterministically expands its variable matrix into uniquely identified prompts, writes an atomic manifest, and has tests for repeatability and fail-closed input validation."),
         ]
         for owner, title, domain, priority, criteria in candidates:
             if active >= target:

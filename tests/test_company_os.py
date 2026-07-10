@@ -13,6 +13,7 @@ from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
 from agent_company.ops import CompanyOS
+from agent_company.prompt_pack import PromptPackError, build_prompt_manifest
 from agent_company.unit_economics import UnitEconomicsError, calculate_scenarios
 
 
@@ -356,6 +357,36 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
 
         self.assertEqual(output.read_bytes(), original)
         self.assertEqual(list(output.parent.glob(f".{output.name}.*.tmp")), [])
+
+    def test_prompt_pack_expands_deterministically_and_writes_manifest(self) -> None:
+        prompt_pack = {
+            "schema_version": "prompt-pack/v1",
+            "name": "product-shot",
+            "version": "1.0.0",
+            "template": "A {view} product shot on a {background} background",
+            "variables": {"view": ["front", "detail"], "background": ["white", "gray"]},
+        }
+        first = build_prompt_manifest(prompt_pack)
+        self.assertEqual(first, build_prompt_manifest(prompt_pack))
+        self.assertEqual(first["prompt_count"], 4)
+        self.assertEqual(len({item["id"] for item in first["prompts"]}), 4)
+
+        input_path = self.root / "prompt-pack.json"
+        input_path.write_text(json.dumps(prompt_pack), encoding="utf-8")
+        result = LocalBackend(self.config).generate_prompt_manifest_file(input_path)
+        self.assertTrue(Path(result["path"]).exists())
+        self.assertEqual(result["manifest_sha256"], first["manifest_sha256"])
+
+    def test_prompt_pack_fails_closed_on_invalid_variables(self) -> None:
+        invalid = {
+            "schema_version": "prompt-pack/v1",
+            "name": "product-shot",
+            "version": "1.0.0",
+            "template": "A {view} product shot with {missing}",
+            "variables": {"view": ["front", "front"], "unused": ["value"]},
+        }
+        with self.assertRaisesRegex(PromptPackError, "duplicate values"):
+            build_prompt_manifest(invalid)
 
     def test_unit_economics_calculates_cost_per_accepted_asset(self) -> None:
         result = calculate_scenarios(

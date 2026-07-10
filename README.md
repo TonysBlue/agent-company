@@ -25,6 +25,7 @@ python3.11 -m agent_company.cli demo
 python3.11 -m agent_company.cli validate
 python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
 python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
+python3.11 -m agent_company.cli prompt-pack examples/prompt-pack.json
 python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
 ```
 
@@ -34,6 +35,7 @@ claims that work is complete. Agents must use `task-claim` for still-open work a
 Obsolete or duplicate work must use `task-cancel`, which records that no completion occurred.
 
 The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
+Prompt-pack expansion validates a versioned template and variable matrix, then writes a deterministic manifest of uniquely identified rendered prompts. These are internal prompt artifacts, not generated images or evidence of visual quality.
 The unit-economics command calculates internal low/base/high cost sensitivity from explicit assumptions. It does not set or authorize a price.
 
 ## Files

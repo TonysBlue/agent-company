@@ -1,0 +1,11 @@
+{
+  "schema_version": "prompt-pack/v1",
+  "name": "pixweave-product-shot",
+  "version": "1.0.0",
+  "template": "Commercial product shot of a {product} from the {view} view on a {background} background; controlled studio lighting; internal review only",
+  "variables": {
+    "background": ["neutral white", "soft gray"],
+    "product": ["unbranded reusable bottle"],
+    "view": ["front", "three-quarter"]
+  }
+}
