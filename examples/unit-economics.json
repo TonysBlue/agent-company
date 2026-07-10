@@ -1,0 +1,30 @@
+{
+  "currency": "USD",
+  "scenarios": [
+    {
+      "acceptance_rate": 0.85,
+      "inference_cost_per_attempt": 0.03,
+      "name": "low",
+      "qa_hourly_cost": 18,
+      "qa_minutes_per_attempt": 0.5,
+      "storage_cost_per_attempt": 0.002
+    },
+    {
+      "acceptance_rate": 0.7,
+      "inference_cost_per_attempt": 0.12,
+      "name": "base",
+      "qa_hourly_cost": 24,
+      "qa_minutes_per_attempt": 1.5,
+      "storage_cost_per_attempt": 0.005
+    },
+    {
+      "acceptance_rate": 0.45,
+      "inference_cost_per_attempt": 0.4,
+      "name": "high",
+      "qa_hourly_cost": 36,
+      "qa_minutes_per_attempt": 4,
+      "storage_cost_per_attempt": 0.015
+    }
+  ],
+  "schema_version": "unit-economics/v1"
+}

@@ -24,6 +24,7 @@ python3.11 -m agent_company.cli demo
 python3.11 -m agent_company.cli validate
 python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
 python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
+python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
 ```
 
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
@@ -31,6 +32,7 @@ claims that work is complete. Agents must use `task-claim` for still-open work a
 `task-complete` only after producing one or more existing, reviewable evidence files.
 
 The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
+The unit-economics command calculates internal low/base/high cost sensitivity from explicit assumptions. It does not set or authorize a price.
 
 ## Files
 

@@ -13,6 +13,7 @@ from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
 from agent_company.ops import CompanyOS
+from agent_company.unit_economics import UnitEconomicsError, calculate_scenarios
 
 
 class TempWorkspaceTest(unittest.TestCase):
@@ -296,6 +297,46 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
 
         self.assertEqual(output.read_bytes(), original)
         self.assertEqual(list(output.parent.glob(f".{output.name}.*.tmp")), [])
+
+    def test_unit_economics_calculates_cost_per_accepted_asset(self) -> None:
+        result = calculate_scenarios(
+            {
+                "schema_version": "unit-economics/v1",
+                "currency": "USD",
+                "scenarios": [
+                    {
+                        "name": "base",
+                        "inference_cost_per_attempt": 0.12,
+                        "storage_cost_per_attempt": 0.005,
+                        "qa_minutes_per_attempt": 1.5,
+                        "qa_hourly_cost": 24,
+                        "acceptance_rate": 0.70,
+                    }
+                ],
+            }
+        )
+
+        self.assertFalse(result["pricing_authorized"])
+        self.assertEqual(result["scenarios"][0]["cost_per_attempt"], 0.725)
+        self.assertEqual(result["scenarios"][0]["cost_per_accepted_asset"], 1.035714)
+
+    def test_unit_economics_rejects_invalid_acceptance_rate(self) -> None:
+        invalid = {
+            "schema_version": "unit-economics/v1",
+            "currency": "USD",
+            "scenarios": [
+                {
+                    "name": "invalid",
+                    "inference_cost_per_attempt": 0.1,
+                    "storage_cost_per_attempt": 0,
+                    "qa_minutes_per_attempt": 0,
+                    "qa_hourly_cost": 0,
+                    "acceptance_rate": 0,
+                }
+            ],
+        }
+        with self.assertRaisesRegex(UnitEconomicsError, "acceptance_rate"):
+            calculate_scenarios(invalid)
 
 
 if __name__ == "__main__":
