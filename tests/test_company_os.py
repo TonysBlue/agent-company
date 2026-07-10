@@ -371,6 +371,8 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
     def test_campaign_render_writes_deterministic_escaped_svg_bundle(self) -> None:
         campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
         campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        campaign["campaign"]["name"] = 'Launch <iframe src="x"></iframe>'
+        campaign["brand_kit"]["brand_name"] = "Pix <b>Weave</b>"
         campaign["copy_variants"][0]["headline"] = '<script>alert("x")</script> & controlled'
         first_dir = self.root / "first-render"
         second_dir = self.root / "second-render"
@@ -381,10 +383,32 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(first, second)
         self.assertEqual(first["asset_count"], 16)
         self.assertFalse(first["external_publish_authorized"])
+        self.assertEqual(first["review_gallery"]["file"], "review-gallery.html")
+        self.assertEqual(first["schema_version"], "campaign-render/v2")
+        self.assertTrue((first_dir / "review-gallery.html").is_file())
+        self.assertEqual(
+            first["review_gallery"]["sha256"],
+            __import__("hashlib").sha256((first_dir / "review-gallery.html").read_bytes()).hexdigest(),
+        )
+        self.assertEqual((first_dir / "review-gallery.html").read_bytes(), (second_dir / "review-gallery.html").read_bytes())
         for asset in first["assets"]:
             first_bytes = (first_dir / asset["file"]).read_bytes()
             self.assertEqual(first_bytes, (second_dir / asset["file"]).read_bytes())
             self.assertEqual(asset["sha256"], __import__("hashlib").sha256(first_bytes).hexdigest())
+        gallery = (first_dir / "review-gallery.html").read_text(encoding="utf-8")
+        self.assertEqual(gallery.count('<article class="variant">'), first["asset_count"])
+        self.assertEqual(gallery.count("data:image/svg+xml;base64,"), first["asset_count"])
+        self.assertIn("review_state: draft", gallery)
+        self.assertIn("external_publish_authorized: false", gallery)
+        self.assertNotIn("<script>", gallery)
+        self.assertNotIn("<iframe", gallery)
+        self.assertNotIn("<b>Weave</b>", gallery)
+        self.assertIn("&lt;script&gt;", gallery)
+        self.assertIn("&lt;iframe", gallery)
+        self.assertIn("Pix &lt;b&gt;Weave&lt;/b&gt;", gallery)
+        for asset in first["assets"]:
+            self.assertIn(asset["variant_id"], gallery)
+            self.assertIn(asset["sha256"], gallery)
         injected = [asset for asset in first["assets"] if asset["variant_id"] in {
             item["id"] for item in build_campaign_manifest(campaign)["variants"] if item["copy_id"] == "control"
         }]
@@ -411,6 +435,33 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         with self.assertRaisesRegex(CampaignRenderError, "already exists"):
             render_campaign_bundle(valid, output)
         self.assertEqual(marker.read_text(encoding="utf-8"), "unchanged")
+
+        partial = self.root / "partial-render"
+        manifest = render_campaign_bundle(valid, partial)
+        (partial / manifest["review_gallery"]["file"]).unlink()
+        with self.assertRaisesRegex(CampaignRenderError, "already exists"):
+            render_campaign_bundle(valid, partial)
+
+        traversal = self.root / "traversal-render"
+        traversal_manifest = render_campaign_bundle(valid, traversal)
+        manifest_path = traversal / "render-manifest.json"
+        stored = json.loads(manifest_path.read_text(encoding="utf-8"))
+        stored["review_gallery"]["file"] = "../review-gallery.html"
+        manifest_path.write_text(json.dumps(stored), encoding="utf-8")
+        with self.assertRaisesRegex(CampaignRenderError, "already exists"):
+            render_campaign_bundle(valid, traversal)
+
+    def test_campaign_render_publication_failure_leaves_no_partial_output(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        output = self.root / "render"
+
+        with patch("agent_company.campaign_render.os.replace", side_effect=OSError("simulated publish failure")):
+            with self.assertRaisesRegex(OSError, "simulated publish failure"):
+                render_campaign_bundle(campaign, output)
+
+        self.assertFalse(output.exists())
+        self.assertEqual(list(self.root.glob(".render.*")), [])
 
     def test_json_artifact_write_preserves_existing_file_when_replace_fails(self) -> None:
         output = self.root / "artifacts" / "manifest.json"

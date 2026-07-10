@@ -33,7 +33,7 @@ python3.11 -m agent_company.cli product-shot-workflow examples/product-shot-work
 python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard.json
 ```
 
-`campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives with checksums. It does not authorize publishing or claim measured visual quality.
+`campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives, per-variant checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
 
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
 claims that work is complete. Agents must use `task-claim` for still-open work and

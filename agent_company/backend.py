@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from .brandkit import build_campaign_manifest, load_json, validate_brand_kit, write_json
-from .campaign_render import render_campaign_bundle
+from .campaign_render import CAMPAIGN_RENDER_SCHEMA_VERSION, render_campaign_bundle
 from .config import CompanyConfig
 from .product_shot import build_product_shot_manifest
 from .prompt_pack import build_prompt_manifest
@@ -74,7 +74,8 @@ class LocalBackend:
         campaign_input = load_json(input_path)
         if output_dir is None:
             manifest = build_campaign_manifest(campaign_input)
-            output_dir = self.config.artifacts_dir / f"campaign-render-{manifest['manifest_sha256'][:12]}"
+            render_version = CAMPAIGN_RENDER_SCHEMA_VERSION.rsplit("/", 1)[-1]
+            output_dir = self.config.artifacts_dir / f"campaign-render-{render_version}-{manifest['manifest_sha256'][:12]}"
         rendered = render_campaign_bundle(campaign_input, output_dir)
         return {
             "path": str(output_dir),
