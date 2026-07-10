@@ -1,0 +1,13 @@
+{
+  "schema_version": "feedback-submission/v1",
+  "submission_id": "synthetic-feedback-001",
+  "product_version": "0.12.0",
+  "entry_point": "workflow-result",
+  "category": "workflow",
+  "severity": "medium",
+  "message": "Synthetic fixture: the export control was difficult to locate.",
+  "context": {"workflow_id": "synthetic-workflow", "artifact_ref": "synthetic-artifact"},
+  "contact_consent": false,
+  "contains_sensitive_data": false,
+  "honeypot": ""
+}

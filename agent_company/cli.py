@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .backend import LocalBackend
 from .config import load_config
+from .feedback import capture_feedback_file, triage_feedback_file
 from .ops import CompanyOS
 from .unit_economics import calculate_scenarios, load_scenarios
 
@@ -76,6 +77,13 @@ def build_parser() -> argparse.ArgumentParser:
     visual_qa = sub.add_parser("visual-qa-scorecard", help="Score explicit visual QA observations")
     visual_qa.add_argument("input", type=Path)
     visual_qa.add_argument("--output", type=Path, default=None)
+    feedback = sub.add_parser("feedback-capture", help="Validate and retain a privacy-bounded feedback submission")
+    feedback.add_argument("input", type=Path)
+    feedback.add_argument("--output", type=Path, required=True)
+    triage = sub.add_parser("feedback-triage", help="Bind an auditable triage decision to a feedback submission")
+    triage.add_argument("submission", type=Path)
+    triage.add_argument("decision", type=Path)
+    triage.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -154,6 +162,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "visual-qa-scorecard":
             result = LocalBackend(osys.config).generate_visual_qa_scorecard_file(args.input, args.output)
             print(json.dumps(result, indent=2, sort_keys=True))
+        elif args.command == "feedback-capture":
+            print(json.dumps(capture_feedback_file(args.input, args.output), indent=2, sort_keys=True))
+        elif args.command == "feedback-triage":
+            print(json.dumps(triage_feedback_file(args.submission, args.decision, args.output), indent=2, sort_keys=True))
         else:
             raise AssertionError(args.command)
     except Exception as exc:

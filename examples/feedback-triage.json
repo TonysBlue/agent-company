@@ -1,0 +1,7 @@
+{
+  "schema_version": "feedback-triage/v1",
+  "reviewer_ref": "CPO",
+  "decision_at": "2026-07-11T00:00:00Z",
+  "state": "triaged",
+  "rationale": "Synthetic fixture accepted for workflow usability review."
+}

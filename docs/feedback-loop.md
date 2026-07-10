@@ -1,0 +1,9 @@
+# In-product feedback loop
+
+PixWeave exposes feedback at workflow setup, result review, export, and error surfaces. Submissions use `feedback-submission/v1`, with category `bug`, `quality`, `workflow`, `usability`, `performance`, `privacy`, or `other`; severity is `low`, `medium`, `high`, or `critical`.
+
+Product version and entry point are mandatory. Workflow and artifact references are optional bounded identifiers. Contact is optional and retained only with explicit consent. The capture gate rejects submissions declaring sensitive data and non-empty honeypots; rate limiting and authentication remain deployment-layer requirements before beta. Raw text must remain access-restricted and must not be committed.
+
+Lifecycle states are `received`, `acknowledged`, `triaged`, `planned`, `released`, `closed`, and `rejected`. Critical privacy/security reports require immediate internal escalation; high severity should be acknowledged within one business day, medium within three, and low within five. These are operating targets, not claims of measured performance.
+
+`feedback-triage/v1` binds each decision to the retained submission checksum, reviewer, timestamp, and rationale. Planned/released records require a task ID, and released records also require a release version. Analytics may be computed only from retained records: submission count, acknowledgement/resolution duration, category/severity distribution, and accepted-feedback-to-release conversion. Before instrumentation, values are unknown—not zero. External contact, publication, production release, pricing, and customer-data export remain Chairman-reserved.

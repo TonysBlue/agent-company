@@ -34,6 +34,8 @@ python3.11 -m agent_company.cli prompt-pack examples/prompt-pack.json
 python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
 python3.11 -m agent_company.cli product-shot-workflow examples/product-shot-workflow.json
 python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard.json
+python3.11 -m agent_company.cli feedback-capture examples/feedback-submission.json --output data/artifacts/feedback-submission.json
+python3.11 -m agent_company.cli feedback-triage data/artifacts/feedback-submission.json examples/feedback-triage.json --output data/artifacts/feedback-triage.json
 ```
 
 `campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives, per-variant checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
@@ -52,6 +54,7 @@ Prompt-pack expansion validates a versioned template and variable matrix, then w
 The unit-economics command calculates internal low/base/high cost sensitivity from explicit assumptions. It does not set or authorize a price.
 Product-shot workflow manifests validate required source provenance, explicit controls, ordered stages, and acceptance checks across at least three scenario inputs before writing deterministic internal workflow metadata.
 Visual QA scorecards calculate pass/fail/stop results from explicitly measured edit-fidelity and brand-consistency observations. These tools do not measure images directly and do not measure or claim actual image quality.
+Feedback capture rejects declared sensitive data and anti-abuse honeypots, requires explicit consent before retaining optional contact data, and binds submissions to product/workflow/artifact context. Feedback triage records acknowledgement-through-release states and requires backlog/release linkage for those claims; neither command authorizes outreach or publication.
 
 ## Read-only dashboard
 

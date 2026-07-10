@@ -23,6 +23,7 @@ from agent_company.cli import main as cli_main
 from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
+from agent_company.feedback import FeedbackError, capture_feedback, triage_feedback
 from agent_company.ops import CompanyOS
 from agent_company.product_shot import ProductShotWorkflowError, build_product_shot_manifest
 from agent_company.prompt_pack import PromptPackError, build_prompt_manifest
@@ -31,6 +32,26 @@ from agent_company.visual_qa import VisualQAScorecardError, build_scorecard
 
 
 class TempWorkspaceTest(unittest.TestCase):
+    def test_feedback_capture_and_triage_are_bounded_and_auditable(self) -> None:
+        submission = {
+            "schema_version": "feedback-submission/v1", "submission_id": "f-1",
+            "product_version": "0.12.0", "entry_point": "result", "category": "bug",
+            "severity": "high", "message": "Synthetic failure report", "context": {},
+            "contact_consent": False, "contains_sensitive_data": False, "honeypot": ""
+        }
+        captured_path = self.root / "captured.json"
+        captured = capture_feedback(submission, captured_path)
+        self.assertEqual(captured["state"], "received")
+        decision = {"schema_version": "feedback-triage/v1", "reviewer_ref": "CPO",
+                    "decision_at": "2026-07-11T00:00:00Z", "state": "planned",
+                    "rationale": "Accepted", "backlog_task_id": 7}
+        triaged = triage_feedback(captured_path, decision, self.root / "triage.json")
+        self.assertEqual(triaged["backlog_task_id"], 7)
+        with self.assertRaises(FeedbackError):
+            capture_feedback({**submission, "contact": "person@example.test"}, self.root / "bad.json")
+        with self.assertRaises(FeedbackError):
+            capture_feedback({**submission, "contains_sensitive_data": True}, self.root / "sensitive.json")
+
     @staticmethod
     def provenance(source_id: str, decision: str = "approved_internal") -> dict[str, object]:
         return {
