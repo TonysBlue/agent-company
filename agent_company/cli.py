@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
+from .backend import LocalBackend
 from .config import load_config
 from .ops import CompanyOS
 
@@ -25,6 +27,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("report", help="Print operating report")
     sub.add_parser("demo", help="Run a demo cycle")
     sub.add_parser("validate", help="Validate state and governance")
+    validate_brand = sub.add_parser("validate-brand-kit", help="Validate a brand-kit JSON file")
+    validate_brand.add_argument("path", type=Path)
+    campaign = sub.add_parser("campaign-manifest", help="Build a deterministic campaign manifest")
+    campaign.add_argument("input", type=Path)
+    campaign.add_argument("--output", type=Path, default=None)
     return parser
 
 
@@ -53,6 +60,14 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps({"ok": False, "errors": errors}, indent=2, sort_keys=True))
                 return 1
             print(json.dumps({"ok": True, "errors": []}, indent=2, sort_keys=True))
+        elif args.command == "validate-brand-kit":
+            result = LocalBackend(osys.config).validate_brand_kit_file(args.path)
+            print(json.dumps(result, indent=2, sort_keys=True))
+            if not result["ok"]:
+                return 1
+        elif args.command == "campaign-manifest":
+            result = LocalBackend(osys.config).generate_campaign_manifest_file(args.input, args.output)
+            print(json.dumps(result, indent=2, sort_keys=True))
         else:
             raise AssertionError(args.command)
     except Exception as exc:

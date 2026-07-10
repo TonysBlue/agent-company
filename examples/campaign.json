@@ -1,0 +1,35 @@
+{
+  "assets": [
+    {"id": "product-front"},
+    {"id": "product-detail"}
+  ],
+  "brand_kit": {
+    "brand_name": "PixWeave Demo Brand",
+    "brand_version": "1.0.0",
+    "colors": {
+      "neutrals": ["#111827", "#F9FAFB"],
+      "primary": "#6D28D9",
+      "secondary": ["#14B8A6", "#F59E0B"]
+    },
+    "forbidden_elements": ["competitor logos", "unapproved claims"],
+    "logo": {
+      "allowed_placements": ["top-left", "bottom-right"],
+      "clearspace_px": 24
+    },
+    "schema_version": "brand-kit/v1",
+    "typography": {"body": "Noto Sans", "heading": "Inter"}
+  },
+  "campaign": {
+    "channels": ["web", "social"],
+    "name": "Controlled launch demo",
+    "objective": "Create internal-review variants"
+  },
+  "copy_variants": [
+    {"headline": "Stable commercial visuals", "id": "control"},
+    {"headline": "Batch creative, under control", "id": "batch"}
+  ],
+  "formats": [
+    {"height": 1080, "id": "square", "width": 1080},
+    {"height": 628, "id": "landscape", "width": 1200}
+  ]
+}

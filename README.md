@@ -19,9 +19,11 @@ python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally
 python3.11 -m agent_company.cli report
 python3.11 -m agent_company.cli demo
 python3.11 -m agent_company.cli validate
+python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
+python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
 ```
 
-The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`.
+The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
 
 ## Files
 

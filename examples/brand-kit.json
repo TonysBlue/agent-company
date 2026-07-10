@@ -1,0 +1,19 @@
+{
+  "brand_name": "PixWeave Demo Brand",
+  "brand_version": "1.0.0",
+  "colors": {
+    "neutrals": ["#111827", "#F9FAFB"],
+    "primary": "#6D28D9",
+    "secondary": ["#14B8A6", "#F59E0B"]
+  },
+  "forbidden_elements": ["competitor logos", "unapproved claims"],
+  "logo": {
+    "allowed_placements": ["top-left", "bottom-right"],
+    "clearspace_px": 24
+  },
+  "schema_version": "brand-kit/v1",
+  "typography": {
+    "body": "Noto Sans",
+    "heading": "Inter"
+  }
+}

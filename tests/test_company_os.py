@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from agent_company.backend import LocalBackend
+from agent_company.brandkit import BrandKitError, build_campaign_manifest, validate_brand_kit
 from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
@@ -173,6 +175,68 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         experiments = Store(self.config.db_path).fetch_all("SELECT * FROM experiments")
         self.assertEqual(len(experiments), 1)
         self.assertEqual(experiments[0]["status"], "draft")
+
+    def test_brand_kit_validation_and_deterministic_campaign_manifest(self) -> None:
+        brand_kit = {
+            "schema_version": "brand-kit/v1",
+            "brand_name": "Test Brand",
+            "brand_version": "1.2.0",
+            "colors": {"primary": "#123ABC", "secondary": ["#FFFFFF"], "neutrals": ["#111111"]},
+            "typography": {"heading": "Inter", "body": "Noto Sans"},
+            "logo": {"clearspace_px": 16, "allowed_placements": ["top-left"]},
+            "forbidden_elements": ["competitor logos"],
+        }
+        campaign_input = {
+            "brand_kit": brand_kit,
+            "campaign": {"name": "Launch", "objective": "Internal review", "channels": ["web", "social"]},
+            "assets": [{"id": "product-a"}],
+            "copy_variants": [{"id": "copy-a", "headline": "Controlled creative"}],
+            "formats": [
+                {"id": "square", "width": 1080, "height": 1080},
+                {"id": "banner", "width": 1200, "height": 628},
+            ],
+        }
+
+        self.assertEqual(validate_brand_kit(brand_kit), [])
+        first = build_campaign_manifest(campaign_input)
+        self.assertEqual(first, build_campaign_manifest(campaign_input))
+        self.assertEqual(first["variant_count"], 4)
+        self.assertEqual(len({item["id"] for item in first["variants"]}), 4)
+
+        input_path = self.root / "campaign.json"
+        input_path.write_text(json.dumps(campaign_input), encoding="utf-8")
+        result = LocalBackend(self.config).generate_campaign_manifest_file(input_path)
+        self.assertTrue(Path(result["path"]).exists())
+        self.assertEqual(result["manifest_sha256"], first["manifest_sha256"])
+
+    def test_brand_kit_rejects_invalid_palette_version_and_dimensions(self) -> None:
+        invalid_brand = {
+            "schema_version": "brand-kit/v1",
+            "brand_name": "Test Brand",
+            "brand_version": "v1",
+            "colors": {"primary": "blue", "secondary": []},
+            "typography": {"heading": "Inter", "body": "Inter"},
+            "logo": {"clearspace_px": 0, "allowed_placements": ["top-left"]},
+            "forbidden_elements": [],
+        }
+        errors = validate_brand_kit(invalid_brand)
+        self.assertIn("brand_version must use MAJOR.MINOR.PATCH", errors)
+        self.assertIn("colors.primary must be a #RRGGBB color", errors)
+
+        valid_brand = {
+            **invalid_brand,
+            "brand_version": "1.0.0",
+            "colors": {"primary": "#000000", "secondary": ["#FFFFFF"]},
+        }
+        invalid_campaign = {
+            "brand_kit": valid_brand,
+            "campaign": {"name": "Launch", "objective": "Review", "channels": ["web"]},
+            "assets": [{"id": "asset"}],
+            "copy_variants": [{"id": "copy", "headline": "Headline"}],
+            "formats": [{"id": "bad", "width": 0, "height": 100}],
+        }
+        with self.assertRaisesRegex(BrandKitError, "width must be a positive integer"):
+            build_campaign_manifest(invalid_campaign)
 
 
 if __name__ == "__main__":

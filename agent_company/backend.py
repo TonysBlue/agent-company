@@ -6,6 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from .brandkit import build_campaign_manifest, load_json, validate_brand_kit, write_json
 from .config import CompanyConfig
 
 
@@ -45,6 +46,25 @@ class LocalBackend:
         }
         path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         return {"path": str(path), "seed": digest[:16], "summary": payload["artifact"]["description"]}
+
+    def validate_brand_kit_file(self, path: Path) -> dict[str, object]:
+        brand_kit = load_json(path)
+        errors = validate_brand_kit(brand_kit)
+        return {"ok": not errors, "errors": errors, "path": str(path)}
+
+    def generate_campaign_manifest_file(self, input_path: Path, output_path: Path | None = None) -> dict[str, object]:
+        campaign_input = load_json(input_path)
+        manifest = build_campaign_manifest(campaign_input)
+        if output_path is None:
+            digest = manifest["manifest_sha256"][:12]
+            output_path = self.config.artifacts_dir / f"campaign-manifest-{digest}.json"
+        write_json(output_path, manifest)
+        return {
+            "path": str(output_path),
+            "manifest_sha256": manifest["manifest_sha256"],
+            "variant_count": manifest["variant_count"],
+            "brand_version": manifest["brand"]["version"],
+        }
 
 
 class GuardedCodexBackend:
