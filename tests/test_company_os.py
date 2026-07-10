@@ -13,8 +13,10 @@ from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
 from agent_company.ops import CompanyOS
+from agent_company.product_shot import ProductShotWorkflowError, build_product_shot_manifest
 from agent_company.prompt_pack import PromptPackError, build_prompt_manifest
 from agent_company.unit_economics import UnitEconomicsError, calculate_scenarios
+from agent_company.visual_qa import VisualQAScorecardError, build_scorecard
 
 
 class TempWorkspaceTest(unittest.TestCase):
@@ -446,6 +448,121 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         }
         with self.assertRaisesRegex(UnitEconomicsError, "acceptance_rate"):
             calculate_scenarios(invalid)
+
+    def test_product_shot_workflow_manifest_is_deterministic_and_atomic(self) -> None:
+        workflow_path = Path(__file__).parents[1] / "examples" / "product-shot-workflow.json"
+        workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+
+        first = build_product_shot_manifest(workflow)
+        self.assertEqual(first, build_product_shot_manifest(workflow))
+        self.assertEqual(first["scenario_count"], 3)
+        self.assertEqual([stage["id"] for stage in first["scenarios"][0]["ordered_stages"]], [
+            "source-review",
+            "shot-plan",
+            "internal-qa",
+        ])
+        self.assertIn("does not measure", first["capability_disclaimer"])
+
+        result = LocalBackend(self.config).generate_product_shot_workflow_file(workflow_path)
+        self.assertTrue(Path(result["path"]).exists())
+        self.assertEqual(result["manifest_sha256"], first["manifest_sha256"])
+
+    def test_product_shot_workflow_fails_closed_on_provenance_and_scenario_count(self) -> None:
+        workflow_path = Path(__file__).parents[1] / "examples" / "product-shot-workflow.json"
+        workflow = json.loads(workflow_path.read_text(encoding="utf-8"))
+
+        too_few = json.loads(json.dumps(workflow))
+        too_few["scenarios"] = too_few["scenarios"][:2]
+        with self.assertRaisesRegex(ProductShotWorkflowError, "at least three"):
+            build_product_shot_manifest(too_few)
+
+        missing = json.loads(json.dumps(workflow))
+        del missing["scenarios"][0]["source"]["provenance"]
+        with self.assertRaisesRegex(ProductShotWorkflowError, r"scenarios\[0\]\.source\.provenance must be an object"):
+            build_product_shot_manifest(missing)
+
+        pending = json.loads(json.dumps(workflow))
+        pending["scenarios"][0]["source"]["provenance"]["review_decision"] = "pending"
+        with self.assertRaisesRegex(ProductShotWorkflowError, "must be approved_internal"):
+            build_product_shot_manifest(pending)
+
+    def test_visual_qa_scorecard_repeatability_and_thresholds(self) -> None:
+        scorecard_input = {
+            "schema_version": "visual-qa-observations/v1",
+            "subject": {"id": "internal-test-shot", "version": "1.0.0"},
+            "observations": [
+                {
+                    "type": "edit_fidelity",
+                    "value": 90,
+                    "method": "explicit measurement fixture",
+                    "observer_ref": "qa-a",
+                    "severity": "normal",
+                },
+                {
+                    "type": "brand_consistency",
+                    "value": 90,
+                    "method": "explicit measurement fixture",
+                    "observer_ref": "brand-a",
+                    "severity": "normal",
+                },
+            ],
+        }
+        first = build_scorecard(scorecard_input)
+        self.assertEqual(first, build_scorecard(scorecard_input))
+        self.assertEqual(first["decision"], "pass")
+        self.assertEqual(first["measurements"]["composite_score"], 90.0)
+        self.assertIn("does not measure", first["capability_disclaimer"])
+
+        input_path = self.root / "visual-qa.json"
+        input_path.write_text(json.dumps(scorecard_input), encoding="utf-8")
+        result = LocalBackend(self.config).generate_visual_qa_scorecard_file(input_path)
+        self.assertTrue(Path(result["path"]).exists())
+        self.assertEqual(result["scorecard_sha256"], first["scorecard_sha256"])
+
+    def test_visual_qa_rejects_invalid_measurements_and_stop_thresholds(self) -> None:
+        invalid = {
+            "schema_version": "visual-qa-observations/v1",
+            "subject": {"id": "internal-test-shot", "version": "1.0.0"},
+            "observations": [
+                {
+                    "type": "edit_fidelity",
+                    "value": 101,
+                    "method": "invalid fixture",
+                    "observer_ref": "qa-a",
+                },
+                {
+                    "type": "brand_consistency",
+                    "value": 80,
+                    "method": "fixture",
+                    "observer_ref": "brand-a",
+                },
+            ],
+        }
+        with self.assertRaisesRegex(VisualQAScorecardError, "from 0 to 100"):
+            build_scorecard(invalid)
+
+        stop_input = {
+            **invalid,
+            "observations": [
+                {
+                    "type": "edit_fidelity",
+                    "value": 49,
+                    "method": "explicit measurement fixture",
+                    "observer_ref": "qa-a",
+                    "severity": "normal",
+                },
+                {
+                    "type": "brand_consistency",
+                    "value": 95,
+                    "method": "explicit measurement fixture",
+                    "observer_ref": "brand-a",
+                    "severity": "normal",
+                },
+            ],
+        }
+        stop = build_scorecard(stop_input)
+        self.assertEqual(stop["decision"], "stop")
+        self.assertIn("edit_fidelity below stop threshold", stop["stop_reasons"])
 
 
 if __name__ == "__main__":

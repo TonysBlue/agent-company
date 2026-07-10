@@ -1,0 +1,23 @@
+{
+  "schema_version": "visual-qa-observations/v1",
+  "subject": {
+    "id": "internal-synthetic-product-shot-a",
+    "version": "1.0.0"
+  },
+  "observations": [
+    {
+      "type": "edit_fidelity",
+      "value": 88,
+      "method": "explicit internal checklist observation",
+      "observer_ref": "qa-reviewer-a",
+      "severity": "normal"
+    },
+    {
+      "type": "brand_consistency",
+      "value": 91,
+      "method": "explicit internal brand checklist observation",
+      "observer_ref": "brand-reviewer-a",
+      "severity": "normal"
+    }
+  ]
+}

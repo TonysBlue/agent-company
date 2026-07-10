@@ -1,0 +1,137 @@
+{
+  "schema_version": "product-shot-workflow/v1",
+  "workflow": {
+    "id": "standard-packshot",
+    "version": "1.0.0",
+    "controls": {
+      "background": "warm-gray",
+      "camera_angle": "front-three-quarter",
+      "lighting": "softbox",
+      "preserve_logo": true,
+      "shadow_strength": 0.35
+    },
+    "stages": [
+      {
+        "id": "source-review",
+        "name": "Source provenance review",
+        "purpose": "Confirm source controls before any internal workflow expansion."
+      },
+      {
+        "id": "shot-plan",
+        "name": "Shot plan",
+        "purpose": "Apply explicit product-shot controls and scenario overrides."
+      },
+      {
+        "id": "internal-qa",
+        "name": "Internal QA checklist",
+        "purpose": "Evaluate only recorded acceptance checks before downstream review."
+      }
+    ],
+    "acceptance_checks": [
+      {
+        "id": "identity-preserved",
+        "description": "Recorded review confirms product identity and markings are preserved.",
+        "severity": "stop"
+      },
+      {
+        "id": "brand-controls-applied",
+        "description": "Recorded review confirms requested background, angle, and lighting controls are represented.",
+        "severity": "warn"
+      },
+      {
+        "id": "no-extra-claims",
+        "description": "Artifact metadata makes no claim that image quality was measured by this manifest.",
+        "severity": "stop"
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "bottle-front",
+      "shot_type": "front packshot",
+      "controls": {
+        "camera_angle": "straight-on",
+        "crop": "square"
+      },
+      "source": {
+        "id": "synthetic-bottle-source",
+        "provenance": {
+          "schema_version": "provenance/v1",
+          "source_id": "synthetic-bottle-source",
+          "parent_lineage": [],
+          "source_category": "synthetic_repository_fixture",
+          "origin": "examples/product-shot-workflow.json",
+          "rights_basis": "company-created synthetic fixture",
+          "rights_evidence_ref": "docs/provenance-gate.md#demo-fixtures",
+          "likeness_status": "no_real_person",
+          "trademark_review_status": "no_third_party_mark",
+          "data_classification": "synthetic",
+          "retention_class": "repository_fixture",
+          "policy_flags": [
+            "synthetic_fixture"
+          ],
+          "reviewer_ref": "internal-example-review",
+          "review_decision": "approved_internal"
+        }
+      }
+    },
+    {
+      "id": "box-hero",
+      "shot_type": "commerce hero",
+      "controls": {
+        "background": "off-white",
+        "crop": "banner"
+      },
+      "source": {
+        "id": "synthetic-box-source",
+        "provenance": {
+          "schema_version": "provenance/v1",
+          "source_id": "synthetic-box-source",
+          "parent_lineage": [],
+          "source_category": "synthetic_repository_fixture",
+          "origin": "examples/product-shot-workflow.json",
+          "rights_basis": "company-created synthetic fixture",
+          "rights_evidence_ref": "docs/provenance-gate.md#demo-fixtures",
+          "likeness_status": "no_real_person",
+          "trademark_review_status": "no_third_party_mark",
+          "data_classification": "synthetic",
+          "retention_class": "repository_fixture",
+          "policy_flags": [
+            "synthetic_fixture"
+          ],
+          "reviewer_ref": "internal-example-review",
+          "review_decision": "approved_internal"
+        }
+      }
+    },
+    {
+      "id": "device-detail",
+      "shot_type": "detail macro",
+      "controls": {
+        "camera_angle": "macro-detail",
+        "shadow_strength": 0.2
+      },
+      "source": {
+        "id": "synthetic-device-source",
+        "provenance": {
+          "schema_version": "provenance/v1",
+          "source_id": "synthetic-device-source",
+          "parent_lineage": [],
+          "source_category": "synthetic_repository_fixture",
+          "origin": "examples/product-shot-workflow.json",
+          "rights_basis": "company-created synthetic fixture",
+          "rights_evidence_ref": "docs/provenance-gate.md#demo-fixtures",
+          "likeness_status": "no_real_person",
+          "trademark_review_status": "no_third_party_mark",
+          "data_classification": "synthetic",
+          "retention_class": "repository_fixture",
+          "policy_flags": [
+            "synthetic_fixture"
+          ],
+          "reviewer_ref": "internal-example-review",
+          "review_decision": "approved_internal"
+        }
+      }
+    }
+  ]
+}

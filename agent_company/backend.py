@@ -8,7 +8,9 @@ from pathlib import Path
 
 from .brandkit import build_campaign_manifest, load_json, validate_brand_kit, write_json
 from .config import CompanyConfig
+from .product_shot import build_product_shot_manifest
 from .prompt_pack import build_prompt_manifest
+from .visual_qa import build_scorecard
 
 
 class BackendError(RuntimeError):
@@ -79,6 +81,34 @@ class LocalBackend:
             "manifest_sha256": manifest["manifest_sha256"],
             "prompt_count": manifest["prompt_count"],
             "pack_version": manifest["pack"]["version"],
+        }
+
+    def generate_product_shot_workflow_file(self, input_path: Path, output_path: Path | None = None) -> dict[str, object]:
+        workflow_input = load_json(input_path)
+        manifest = build_product_shot_manifest(workflow_input)
+        if output_path is None:
+            digest = manifest["manifest_sha256"][:12]
+            output_path = self.config.artifacts_dir / f"product-shot-manifest-{digest}.json"
+        write_json(output_path, manifest)
+        return {
+            "path": str(output_path),
+            "manifest_sha256": manifest["manifest_sha256"],
+            "scenario_count": manifest["scenario_count"],
+            "workflow_version": manifest["workflow"]["version"],
+        }
+
+    def generate_visual_qa_scorecard_file(self, input_path: Path, output_path: Path | None = None) -> dict[str, object]:
+        scorecard_input = load_json(input_path)
+        scorecard = build_scorecard(scorecard_input)
+        if output_path is None:
+            digest = scorecard["scorecard_sha256"][:12]
+            output_path = self.config.artifacts_dir / f"visual-qa-scorecard-{digest}.json"
+        write_json(output_path, scorecard)
+        return {
+            "path": str(output_path),
+            "scorecard_sha256": scorecard["scorecard_sha256"],
+            "decision": scorecard["decision"],
+            "composite_score": scorecard["measurements"]["composite_score"],
         }
 
 

@@ -28,6 +28,8 @@ python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
 python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
 python3.11 -m agent_company.cli prompt-pack examples/prompt-pack.json
 python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
+python3.11 -m agent_company.cli product-shot-workflow examples/product-shot-workflow.json
+python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard.json
 ```
 
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
@@ -40,6 +42,8 @@ bounded priority, explicit acceptance criteria, and records the new work in the 
 The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
 Prompt-pack expansion validates a versioned template and variable matrix, then writes a deterministic manifest of uniquely identified rendered prompts. These are internal prompt artifacts, not generated images or evidence of visual quality.
 The unit-economics command calculates internal low/base/high cost sensitivity from explicit assumptions. It does not set or authorize a price.
+Product-shot workflow manifests validate required source provenance, explicit controls, ordered stages, and acceptance checks across at least three scenario inputs before writing deterministic internal workflow metadata.
+Visual QA scorecards calculate pass/fail/stop results from explicitly measured edit-fidelity and brand-consistency observations. These tools do not measure images directly and do not measure or claim actual image quality.
 
 ## Files
 

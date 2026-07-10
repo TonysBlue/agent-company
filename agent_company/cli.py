@@ -58,6 +58,12 @@ def build_parser() -> argparse.ArgumentParser:
     prompt_pack.add_argument("--output", type=Path, default=None)
     economics = sub.add_parser("unit-economics", help="Calculate internal cost sensitivity scenarios")
     economics.add_argument("input", type=Path)
+    product_shot = sub.add_parser("product-shot-workflow", help="Build a deterministic product-shot workflow manifest")
+    product_shot.add_argument("input", type=Path)
+    product_shot.add_argument("--output", type=Path, default=None)
+    visual_qa = sub.add_parser("visual-qa-scorecard", help="Score explicit visual QA observations")
+    visual_qa.add_argument("input", type=Path)
+    visual_qa.add_argument("--output", type=Path, default=None)
     return parser
 
 
@@ -116,6 +122,12 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "unit-economics":
             result = calculate_scenarios(load_scenarios(args.input))
+            print(json.dumps(result, indent=2, sort_keys=True))
+        elif args.command == "product-shot-workflow":
+            result = LocalBackend(osys.config).generate_product_shot_workflow_file(args.input, args.output)
+            print(json.dumps(result, indent=2, sort_keys=True))
+        elif args.command == "visual-qa-scorecard":
+            result = LocalBackend(osys.config).generate_visual_qa_scorecard_file(args.input, args.output)
             print(json.dumps(result, indent=2, sort_keys=True))
         else:
             raise AssertionError(args.command)
