@@ -118,15 +118,56 @@ logs = logs
         management = app.render_path("/management")
         project = app.render_path("/project")
         operations = app.render_path("/operations")
+        company = app.render_path("/company")
 
         self.assertIn("公司日常管理", management.body)
+        self.assertIn('href="/company"', management.body)
         self.assertIn("任务状态", management.body)
         self.assertIn("产品 / 项目状态", project.body)
         self.assertIn("Git 版本", project.body)
         self.assertIn("产品运营", operations.body)
         self.assertIn("尚未上线", operations.body)
+        self.assertEqual(company.status, 200)
+        self.assertIn("公司介绍", company.body)
+        self.assertIn("使命", company.body)
+        self.assertIn("真实商业运营原则", company.body)
+        self.assertIn("PixWeave", company.body)
+        self.assertIn("组织图", company.body)
+        self.assertIn("CEO 10 分钟节奏", company.body)
+        self.assertIn("08:00", company.body)
+        self.assertIn("13:00", company.body)
+        self.assertIn("20:00", company.body)
+        self.assertIn("Chairman 保留决策", company.body)
+        self.assertIn("Codex 异步资源", company.body)
+        self.assertIn("证据 / 版本 / 归档治理", company.body)
         self.assertNotEqual(management.body, project.body)
         self.assertNotEqual(project.body, operations.body)
+        self.assertNotEqual(company.body, management.body)
+
+    def test_company_page_derives_roles_and_raci_from_live_sqlite(self) -> None:
+        with self.store.connect() as conn:
+            conn.execute(
+                "INSERT INTO roles(name, kind, mandate) VALUES (?, ?, ?)",
+                ("Live Test Role", "agent", "Live-only mandate from SQLite."),
+            )
+            conn.execute(
+                "INSERT INTO raci(domain, responsible, accountable, consulted, informed) VALUES (?, ?, ?, ?, ?)",
+                ("live-domain", "Live Test Role", "CEO", "CTO", "Chairman"),
+            )
+        app = DashboardApp(self.config)
+
+        company = app.render_path("/company")
+
+        self.assertIn("Live Test Role", company.body)
+        self.assertIn("Live-only mandate from SQLite.", company.body)
+        self.assertIn("live-domain", company.body)
+        self.assertIn("CEO", company.body)
+        self.assertIn("来源: SQLite roles", company.body)
+        self.assertIn("来源: SQLite raci", company.body)
+        self.assertIn("来源: docs/strategy.md", company.body)
+        self.assertIn("来源: docs/org.md", company.body)
+        self.assertIn("来源: docs/cadence.md", company.body)
+        self.assertIn("来源: docs/versioning-and-records.md", company.body)
 
     def test_json_endpoints_and_health(self) -> None:
         app = DashboardApp(self.config)
@@ -141,6 +182,10 @@ logs = logs
         self.assertIn("management", payload)
         self.assertIn("project", payload)
         self.assertIn("operations", payload)
+        self.assertIn("company", payload)
+        self.assertEqual(payload["company"]["roles"][0]["source"], "SQLite roles")
+        self.assertEqual(payload["company"]["raci"][0]["source"], "SQLite raci")
+        self.assertIn("docs/strategy.md", payload["company"]["static_sources"])
 
     def test_missing_database_is_reported_without_creating_it(self) -> None:
         missing_config = load_config()

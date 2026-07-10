@@ -63,16 +63,17 @@ Feedback capture rejects declared sensitive data and anti-abuse honeypots, requi
 
 ## Read-only dashboard
 
-The operations dashboard is a stdlib-only HTTP service that reads `data/company.sqlite3`, Git metadata, project docs, and local artifact files without mutating company state. It exposes three separate Chinese-labeled pages:
+The operations dashboard is a stdlib-only HTTP service that reads `data/company.sqlite3`, Git metadata, project docs, and local artifact files without mutating company state. It exposes four separate Chinese-labeled pages:
 
 - `http://127.0.0.1:18080/management` for company daily management, tasks, approvals, cycles, audit, and human dependencies.
 - `http://127.0.0.1:18080/project` for product/project status, Git version, roadmap, current tasks, experiments, artifacts, and validation evidence.
 - `http://127.0.0.1:18080/operations` for pre-launch product operations placeholders. Unknown fields are shown as unavailable placeholders, not zeroes.
+- `http://127.0.0.1:18080/company` for company introduction, mission, real-business operating principles, PixWeave product status, org chart, live SQLite roles/RACI, cadence, Chairman reserved decisions, Codex async-resource policy, and evidence/version/archive governance.
 
 JSON endpoints:
 
 - `http://127.0.0.1:18080/healthz`
-- `http://127.0.0.1:18080/api/status`
+- `http://127.0.0.1:18080/api/status`, including `company.roles` and `company.raci` derived from live SQLite.
 
 Durable user service:
 

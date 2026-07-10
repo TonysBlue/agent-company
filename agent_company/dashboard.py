@@ -23,6 +23,7 @@ PAGES = {
     "/management": "公司日常管理",
     "/project": "产品 / 项目状态",
     "/operations": "产品运营",
+    "/company": "公司介绍",
 }
 
 
@@ -124,6 +125,8 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         "cycles": [],
         "audit": [],
         "experiments": [],
+        "roles": [],
+        "raci": [],
     }
     if not config.db_path.exists():
         empty["database"]["error"] = "database file not found"
@@ -146,6 +149,10 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "cycles": _row_dicts(list(conn.execute("SELECT * FROM cycles ORDER BY id DESC LIMIT 12"))),
                 "audit": _row_dicts(list(conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 20"))),
                 "experiments": _row_dicts(list(conn.execute("SELECT * FROM experiments ORDER BY id DESC LIMIT 12"))),
+                "roles": _row_dicts(list(conn.execute("SELECT name, kind, mandate FROM roles ORDER BY name ASC"))),
+                "raci": _row_dicts(list(conn.execute(
+                    "SELECT domain, responsible, accountable, consulted, informed FROM raci ORDER BY domain ASC"
+                ))),
             }
     except sqlite3.Error as exc:
         empty["database"]["error"] = str(exc)
@@ -171,6 +178,13 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
         "roadmap": _read_doc(config.workspace / "docs" / "roadmap.md"),
         "kpis": _read_doc(config.workspace / "docs" / "kpis.md"),
         "architecture": _read_doc(config.workspace / "docs" / "architecture.md", max_lines=10),
+        "strategy": _read_doc(config.workspace / "docs" / "strategy.md", max_lines=20),
+        "org": _read_doc(config.workspace / "docs" / "org.md", max_lines=28),
+        "raci": _read_doc(config.workspace / "docs" / "raci.md", max_lines=14),
+        "cadence": _read_doc(config.workspace / "docs" / "cadence.md", max_lines=22),
+        "local_beta_product": _read_doc(config.workspace / "docs" / "local-beta-product.md", max_lines=24),
+        "versioning_records": _read_doc(config.workspace / "docs" / "versioning-and-records.md", max_lines=28),
+        "constitution": _read_doc(config.workspace / "docs" / "constitution.md", max_lines=18),
     }
     git_head = _git(["rev-parse", "--short", "HEAD"], config.workspace)
     git_branch = _git(["branch", "--show-current"], config.workspace)
@@ -278,6 +292,52 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
                 },
             ],
             "kpi_definitions": docs["kpis"],
+        },
+        "company": {
+            "static_sources": [
+                "README.md",
+                "docs/strategy.md",
+                "docs/org.md",
+                "docs/raci.md",
+                "docs/cadence.md",
+                "docs/local-beta-product.md",
+                "docs/versioning-and-records.md",
+                "docs/constitution.md",
+            ],
+            "mission": {
+                "source": "docs/strategy.md",
+                "lines": docs["strategy"]["lines"],
+            },
+            "operating_principles": {
+                "source": "docs/constitution.md",
+                "lines": docs["constitution"]["lines"],
+            },
+            "product": {
+                "source": "docs/local-beta-product.md",
+                "name": "织象 PixWeave",
+                "lines": docs["local_beta_product"]["lines"],
+                "status": "internal_local_beta",
+            },
+            "organization": {
+                "source": "docs/org.md",
+                "lines": docs["org"]["lines"],
+            },
+            "roles": [
+                {**row, "source": "SQLite roles"}
+                for row in sqlite_data["roles"]
+            ],
+            "raci": [
+                {**row, "source": "SQLite raci"}
+                for row in sqlite_data["raci"]
+            ],
+            "cadence": {
+                "source": "docs/cadence.md",
+                "lines": docs["cadence"]["lines"],
+            },
+            "governance": {
+                "source": "docs/versioning-and-records.md",
+                "lines": docs["versioning_records"]["lines"],
+            },
         },
     }
 
@@ -418,6 +478,108 @@ def _operations(snapshot: dict[str, Any]) -> str:
     """
 
 
+def _doc_list(section: dict[str, Any], fallback: str) -> str:
+    items = section.get("lines") or [fallback]
+    return "".join(f"<li>{_escape(line)}</li>" for line in items)
+
+
+def _source_label(source: str) -> str:
+    return f'<p class="source">来源: {_escape(source)}</p>'
+
+
+def _company(snapshot: dict[str, Any]) -> str:
+    company = snapshot["company"]
+    mission = _doc_list(company["mission"], "使命说明缺失；请补充 docs/strategy.md。")
+    principles = _doc_list(company["operating_principles"], "运营原则缺失；请补充 docs/constitution.md。")
+    product = _doc_list(company["product"], "产品说明缺失；请补充 docs/local-beta-product.md。")
+    org_lines = _doc_list(company["organization"], "组织说明缺失；请补充 docs/org.md。")
+    cadence = _doc_list(
+        company["cadence"],
+        "CEO 每 10 分钟恢复运营；08:00、13:00、20:00 向 Chairman 汇报，详见 docs/cadence.md。",
+    )
+    governance = _doc_list(company["governance"], "治理说明缺失；请补充 docs/versioning-and-records.md。")
+    roles = _table(company["roles"], [
+        ("name", "角色"),
+        ("kind", "类型"),
+        ("mandate", "职责 / 授权边界"),
+        ("source", "来源"),
+    ])
+    raci = _table(company["raci"], [
+        ("domain", "领域"),
+        ("responsible", "R"),
+        ("accountable", "A"),
+        ("consulted", "C"),
+        ("informed", "I"),
+        ("source", "来源"),
+    ])
+    sources = "".join(f"<li>{_escape(source)}</li>" for source in company["static_sources"])
+    return f"""
+    <section class="band">
+      <h2>使命</h2>
+      <ul class="roadmap">{mission}</ul>
+      {_source_label(company["mission"]["source"])}
+    </section>
+    <section class="band">
+      <h2>真实商业运营原则</h2>
+      <ul class="roadmap">{principles}</ul>
+      {_source_label(company["operating_principles"]["source"])}
+    </section>
+    <section class="band">
+      <h2>当前产品 PixWeave</h2>
+      <p class="lede">状态: {_escape(company["product"]["status"])}。本区只汇总仓库文档描述，不声明外部上线、收入或客户结果。</p>
+      <ul class="roadmap">{product}</ul>
+      {_source_label(company["product"]["source"])}
+    </section>
+    <section class="band">
+      <h2>组织图</h2>
+      <div class="org-chart">
+        <div class="org-node human">Chairman<br><small>唯一人类 / 保留决策</small></div>
+        <div class="org-node">CEO<br><small>执行协调 / 决策流</small></div>
+        <div class="org-row">
+          <div class="org-node">CPO</div>
+          <div class="org-node cto">CTO<br><small>紧凑 CTO 组</small></div>
+          <div class="org-node">CRO</div>
+          <div class="org-node">COO</div>
+          <div class="org-node">CFO</div>
+          <div class="org-node">Counsel</div>
+        </div>
+        <div class="org-row compact">
+          <div class="org-node">Product Engineer</div>
+          <div class="org-node">AI Platform &amp; Quality Engineer</div>
+        </div>
+      </div>
+      <ul class="roadmap">{org_lines}</ul>
+      {_source_label(company["organization"]["source"])}
+    </section>
+    <section class="band"><h2>Live SQLite 角色与职责</h2>{roles}<p class="source">来源: SQLite roles</p></section>
+    <section class="band"><h2>RACI / 协作关系</h2>{raci}<p class="source">来源: SQLite raci</p></section>
+    <section class="band">
+      <h2>CEO 10 分钟节奏与 08/13/20 汇报</h2>
+      <ul class="roadmap">{cadence}</ul>
+      {_source_label(company["cadence"]["source"])}
+    </section>
+    <section class="band">
+      <h2>Chairman 保留决策 / 人类依赖</h2>
+      <p class="lede">外部发布、外部支出、法律承诺、合同签署、生产部署、客户数据导出和定价变更必须等待 Chairman 决策；人类阻塞项从 live approvals/tasks 在管理页展示。</p>
+      {_source_label("docs/org.md")}
+    </section>
+    <section class="band">
+      <h2>Codex 异步资源</h2>
+      <p class="lede">Codex 是 CEO 可分配给各职能的异步执行资源，条件是工作有边界、可审查、可验证；它不是部门，也不是决策者。</p>
+      {_source_label("docs/org.md")}
+    </section>
+    <section class="band">
+      <h2>证据 / 版本 / 归档治理</h2>
+      <ul class="roadmap">{governance}</ul>
+      {_source_label(company["governance"]["source"])}
+    </section>
+    <section class="band">
+      <h2>静态说明来源</h2>
+      <ul class="roadmap">{sources}</ul>
+    </section>
+    """
+
+
 class DashboardApp:
     def __init__(self, config: CompanyConfig):
         self.config = config
@@ -442,6 +604,8 @@ class DashboardApp:
             return Response(200, "text/html; charset=utf-8", _layout(PAGES[route], route, _project(snapshot), snapshot))
         if route == "/operations":
             return Response(200, "text/html; charset=utf-8", _layout(PAGES[route], route, _operations(snapshot), snapshot))
+        if route == "/company":
+            return Response(200, "text/html; charset=utf-8", _layout(PAGES[route], route, _company(snapshot), snapshot))
         return Response(404, "text/plain; charset=utf-8", "not found\n")
 
 
@@ -582,9 +746,23 @@ tr:last-child td { border-bottom: 0; }
   border-radius: 8px;
 }
 .placeholder strong { color: var(--accent-2); font-size: 18px; }
-.placeholder p, .launch p, .provenance p { color: var(--muted); margin: 8px 0 0; }
+.placeholder p, .launch p, .provenance p, .lede, .source { color: var(--muted); margin: 8px 0 0; }
 .provenance ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .provenance li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
+.source { font-size: 12px; }
+.org-chart { display: grid; gap: 10px; margin-bottom: 16px; }
+.org-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.org-row.compact { max-width: 520px; margin: 0 auto; }
+.org-node {
+  text-align: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+.org-node.human { border-color: var(--accent-2); }
+.org-node.cto { border-color: var(--accent); }
+.org-node small { color: var(--muted); }
 code { color: var(--accent); overflow-wrap: anywhere; }
 @media (max-width: 820px) {
   body { display: block; }
