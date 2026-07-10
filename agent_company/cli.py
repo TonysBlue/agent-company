@@ -21,6 +21,13 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("status", help="Show company status")
     sub.add_parser("run-cycle", help="Run one operating cycle")
     sub.add_parser("task-list", help="List active tasks")
+    create = sub.add_parser("task-create", help="Create one reviewed backlog task")
+    create.add_argument("--actor", required=True)
+    create.add_argument("--owner", required=True)
+    create.add_argument("--title", required=True)
+    create.add_argument("--domain", required=True)
+    create.add_argument("--priority", type=int, required=True)
+    create.add_argument("--acceptance-criteria", required=True)
     claim = sub.add_parser("task-claim", help="Claim one open task for bounded execution")
     claim.add_argument("task_id", type=int)
     claim.add_argument("--actor", required=True)
@@ -67,6 +74,15 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.run_cycle(), indent=2, sort_keys=True))
         elif args.command == "task-list":
             print(json.dumps(osys.task_list(), indent=2, sort_keys=True))
+        elif args.command == "task-create":
+            print(json.dumps(osys.create_task(
+                args.actor,
+                args.owner,
+                args.title,
+                args.domain,
+                args.priority,
+                args.acceptance_criteria,
+            ), indent=2, sort_keys=True))
         elif args.command == "task-claim":
             print(json.dumps(osys.claim_task(args.task_id, args.actor), indent=2, sort_keys=True))
         elif args.command == "task-complete":

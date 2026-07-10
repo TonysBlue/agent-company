@@ -271,6 +271,48 @@ class CompanyOS:
         )
         return [dict(row) for row in rows]
 
+    def create_task(
+        self,
+        actor: str,
+        owner: str,
+        title: str,
+        domain: str,
+        priority: int,
+        acceptance_criteria: str,
+    ) -> dict[str, object]:
+        """Add reviewed, finite work without bypassing the operating audit trail."""
+        self.init()
+        if actor != "CEO":
+            raise ValueError("only CEO may create reviewed backlog tasks")
+        if not title.strip() or not domain.strip() or not acceptance_criteria.strip():
+            raise ValueError("title, domain, and acceptance criteria must not be empty")
+        if priority < 1 or priority > 100:
+            raise ValueError("priority must be between 1 and 100")
+        with self.store.connect() as conn:
+            role = conn.execute("SELECT kind FROM roles WHERE name=?", (owner,)).fetchone()
+            if role is None or role["kind"] != "agent":
+                raise ValueError(f"owner must be a registered agent: {owner}")
+            if conn.execute("SELECT 1 FROM tasks WHERE title=?", (title.strip(),)).fetchone():
+                raise ValueError(f"task title already exists: {title.strip()}")
+            now = utcnow()
+            cur = conn.execute(
+                """INSERT INTO tasks(
+                       created_at, updated_at, owner, title, domain, status,
+                       priority, acceptance_criteria
+                   ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?)""",
+                (now, now, owner, title.strip(), domain.strip(), priority, acceptance_criteria.strip()),
+            )
+            task_id = cur.lastrowid
+            details = {
+                "owner": owner,
+                "title": title.strip(),
+                "domain": domain.strip(),
+                "priority": priority,
+                "acceptance_criteria": acceptance_criteria.strip(),
+            }
+            self.store.audit(conn, actor, "create_task", "task", task_id, details)
+            return {"task_id": task_id, "status": "open", **details}
+
     def claim_task(self, task_id: int, actor: str) -> dict[str, object]:
         self.init()
         with self.store.connect() as conn:

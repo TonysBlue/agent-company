@@ -175,6 +175,25 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(stored["status"], "done")
         self.assertEqual(json.loads(stored["result"])["evidence"], [str(evidence.resolve())])
 
+    def test_ceo_creates_audited_reviewed_task(self) -> None:
+        created = self.osys.create_task(
+            "CEO", "CTO", "Implement bounded capability", "engineering", 80,
+            "A runnable command and regression test pass.",
+        )
+        self.assertEqual(created["status"], "open")
+        task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE id=?", (created["task_id"],))
+        self.assertEqual(task["acceptance_criteria"], "A runnable command and regression test pass.")
+        audit = Store(self.config.db_path).fetch_one(
+            "SELECT * FROM audit_log WHERE action='create_task' AND entity_id=?", (str(created["task_id"]),)
+        )
+        self.assertIsNotNone(audit)
+        with self.assertRaisesRegex(ValueError, "only CEO"):
+            self.osys.create_task("CTO", "CTO", "Unauthorized", "engineering", 50, "Must fail.")
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            self.osys.create_task(
+                "CEO", "CTO", "Implement bounded capability", "engineering", 80, "Duplicate must fail."
+            )
+
     def test_task_cancel_closes_work_without_claiming_completion(self) -> None:
         self.osys.init()
         task_id = self.osys.run_cycle()["progressed"][0]

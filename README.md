@@ -15,6 +15,7 @@ python3.11 -m agent_company.cli init
 python3.11 -m agent_company.cli status
 python3.11 -m agent_company.cli run-cycle
 python3.11 -m agent_company.cli task-list
+python3.11 -m agent_company.cli task-create --actor CEO --owner CTO --title "Implement bounded capability" --domain engineering --priority 80 --acceptance-criteria "Runnable implementation and regression evidence pass."
 python3.11 -m agent_company.cli task-claim 1 --actor CPO
 python3.11 -m agent_company.cli task-complete 1 --actor CPO --summary "Acceptance criteria met" --evidence path/to/reviewable-evidence
 python3.11 -m agent_company.cli task-cancel 1 --actor CEO --reason "Superseded by reviewed task 2."
@@ -33,6 +34,8 @@ python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
 claims that work is complete. Agents must use `task-claim` for still-open work and
 `task-complete` only after producing one or more existing, reviewable evidence files.
 Obsolete or duplicate work must use `task-cancel`, which records that no completion occurred.
+Only the CEO may use `task-create`; it requires a registered agent owner, a unique title,
+bounded priority, explicit acceptance criteria, and records the new work in the audit trail.
 
 The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
 Prompt-pack expansion validates a versioned template and variable matrix, then writes a deterministic manifest of uniquely identified rendered prompts. These are internal prompt artifacts, not generated images or evidence of visual quality.
