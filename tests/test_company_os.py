@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,7 +12,13 @@ from unittest.mock import patch
 
 from agent_company.backend import LocalBackend
 from agent_company.brandkit import BrandKitError, build_campaign_manifest, validate_brand_kit, write_json
-from agent_company.campaign_render import CampaignRenderError, render_campaign_bundle
+from agent_company.campaign_render import (
+    CampaignRenderError,
+    CampaignRenderVerificationError,
+    render_campaign_bundle,
+    verify_campaign_render_bundle,
+)
+from agent_company.cli import main as cli_main
 from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.governance import DISCLAIMER, classify_reserved_action
@@ -462,6 +471,86 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
 
         self.assertFalse(output.exists())
         self.assertEqual(list(self.root.glob(".render.*")), [])
+
+    def test_campaign_render_verify_accepts_complete_bundle_through_cli(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        output = self.root / "render"
+        manifest = render_campaign_bundle(campaign, output)
+
+        result = verify_campaign_render_bundle(output)
+
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["schema_version"], "campaign-render/v2")
+        self.assertEqual(result["bundle_sha256"], manifest["bundle_sha256"])
+        self.assertEqual(result["asset_count"], 16)
+        self.assertFalse(result["external_publish_authorized"])
+        self.assertEqual(self._quiet_cli(["campaign-render-verify", str(output)]), 0)
+
+    def test_campaign_render_verify_fails_closed_on_tampering(self) -> None:
+        campaign_path = Path(__file__).parents[1] / "examples" / "campaign.json"
+        campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
+        source = self.root / "render-source"
+        manifest = render_campaign_bundle(campaign, source)
+        first_asset = manifest["assets"][0]["file"]
+
+        def copied_bundle(name: str) -> Path:
+            target = self.root / name
+            shutil.copytree(source, target)
+            return target
+
+        cases = [
+            ("tampered-svg", lambda path: (path / first_asset).write_text("changed", encoding="utf-8"), "checksum mismatch"),
+            ("missing-svg", lambda path: (path / first_asset).unlink(), "missing expected files"),
+            ("extra-svg", lambda path: (path / "extra.svg").write_text("<svg />", encoding="utf-8"), "unexpected files"),
+            (
+                "publish-control",
+                lambda path: self._mutate_render_manifest(path, lambda data: data.update({"external_publish_authorized": True})),
+                "external_publish_authorized must be false",
+            ),
+            (
+                "traversal",
+                lambda path: self._mutate_render_manifest(path, lambda data: data["assets"][0].update({"file": "../escape.svg"})),
+                "path traversal",
+            ),
+            (
+                "unstable-filename",
+                lambda path: self._mutate_render_manifest(path, lambda data: data["assets"][0].update({"file": "creative.svg"})),
+                "must be",
+            ),
+            (
+                "duplicate-asset",
+                lambda path: self._mutate_render_manifest(path, lambda data: data["assets"].append(dict(data["assets"][0]))),
+                "asset_count must match",
+            ),
+            (
+                "gallery-control",
+                lambda path: (path / "review-gallery.html").write_text("external_publish_authorized: true", encoding="utf-8"),
+                "checksum mismatch",
+            ),
+        ]
+        for name, mutate, expected in cases:
+            with self.subTest(name=name):
+                bundle = copied_bundle(name)
+                mutate(bundle)
+                with self.assertRaisesRegex(CampaignRenderVerificationError, expected):
+                    verify_campaign_render_bundle(bundle)
+                self.assertEqual(self._quiet_cli(["campaign-render-verify", str(bundle)]), 2)
+
+        malformed = copied_bundle("malformed")
+        (malformed / "render-manifest.json").write_text("{", encoding="utf-8")
+        with self.assertRaisesRegex(CampaignRenderVerificationError, "invalid JSON"):
+            verify_campaign_render_bundle(malformed)
+
+    def _mutate_render_manifest(self, bundle: Path, mutate: object) -> None:
+        manifest_path = bundle / "render-manifest.json"
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        mutate(data)  # type: ignore[operator]
+        manifest_path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    def _quiet_cli(self, argv: list[str]) -> int:
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            return cli_main(argv)
 
     def test_json_artifact_write_preserves_existing_file_when_replace_fails(self) -> None:
         output = self.root / "artifacts" / "manifest.json"

@@ -17,10 +17,16 @@ from .brandkit import build_campaign_manifest, stable_sha256, write_json
 
 CAMPAIGN_RENDER_SCHEMA_VERSION = "campaign-render/v2"
 CAMPAIGN_GALLERY_FILE = "review-gallery.html"
+CAMPAIGN_RENDER_MANIFEST_FILE = "render-manifest.json"
+VARIANT_ID_LENGTH = 16
 
 
 class CampaignRenderError(ValueError):
     """Raised when a campaign render bundle cannot be produced safely."""
+
+
+class CampaignRenderVerificationError(ValueError):
+    """Raised when a campaign render bundle fails integrity verification."""
 
 
 def build_svg(variant: dict[str, Any], brand_kit: dict[str, Any], brand_name: str) -> str:
@@ -196,7 +202,7 @@ def render_campaign_bundle(data: dict[str, Any], output_dir: Path) -> dict[str, 
     }
     bundle_id = stable_sha256(bundle_basis)
     if output_dir.exists():
-        existing_manifest = output_dir / "render-manifest.json"
+        existing_manifest = output_dir / CAMPAIGN_RENDER_MANIFEST_FILE
         if existing_manifest.is_file():
             try:
                 existing = json.loads(existing_manifest.read_text(encoding="utf-8"))
@@ -244,10 +250,177 @@ def render_campaign_bundle(data: dict[str, Any], output_dir: Path) -> dict[str, 
             "file": CAMPAIGN_GALLERY_FILE,
             "sha256": hashlib.sha256(gallery.encode("utf-8")).hexdigest(),
         }
-        write_json(staging / "render-manifest.json", render_manifest)
+        write_json(staging / CAMPAIGN_RENDER_MANIFEST_FILE, render_manifest)
         os.replace(staging, output_dir)
         staging = None
         return render_manifest
     finally:
         if staging is not None:
             shutil.rmtree(staging, ignore_errors=True)
+
+
+def verify_campaign_render_bundle(bundle_dir: Path) -> dict[str, Any]:
+    """Verify a campaign-render/v2 bundle without trusting its manifest claims."""
+    errors: list[str] = []
+    if not bundle_dir.is_dir():
+        raise CampaignRenderVerificationError(f"{bundle_dir}: bundle directory does not exist")
+
+    manifest_path = bundle_dir / CAMPAIGN_RENDER_MANIFEST_FILE
+    manifest = _load_render_manifest(manifest_path)
+    _verify_manifest_shape(manifest, errors)
+    if errors:
+        raise CampaignRenderVerificationError("; ".join(errors))
+
+    assets = manifest["assets"]
+    expected_files = {CAMPAIGN_RENDER_MANIFEST_FILE, manifest["review_gallery"]["file"]}
+    expected_files.update(asset["file"] for asset in assets)
+    actual_files = {path.name for path in bundle_dir.iterdir() if path.is_file()}
+    directories = sorted(path.name for path in bundle_dir.iterdir() if path.is_dir())
+    if directories:
+        errors.append(f"bundle contains unexpected directories: {', '.join(directories)}")
+    missing = sorted(expected_files - actual_files)
+    extra = sorted(actual_files - expected_files)
+    if missing:
+        errors.append(f"bundle is missing expected files: {', '.join(missing)}")
+    if extra:
+        errors.append(f"bundle contains unexpected files: {', '.join(extra)}")
+
+    gallery = manifest["review_gallery"]
+    gallery_path = bundle_dir / gallery["file"]
+    if gallery_path.is_file():
+        gallery_sha256 = _sha256_file(gallery_path)
+        if gallery_sha256 != gallery["sha256"]:
+            errors.append(f"{gallery['file']} checksum mismatch")
+        gallery_text = gallery_path.read_text(encoding="utf-8", errors="replace")
+        if "review_state: draft" not in gallery_text:
+            errors.append("review gallery missing draft review control")
+        if "external_publish_authorized: false" not in gallery_text:
+            errors.append("review gallery missing no-publish control")
+
+    for asset in assets:
+        path = bundle_dir / asset["file"]
+        if path.is_file() and _sha256_file(path) != asset["sha256"]:
+            errors.append(f"{asset['file']} checksum mismatch")
+
+    if errors:
+        raise CampaignRenderVerificationError("; ".join(errors))
+    return {
+        "ok": True,
+        "path": str(bundle_dir),
+        "schema_version": manifest["schema_version"],
+        "bundle_sha256": manifest["bundle_sha256"],
+        "asset_count": manifest["asset_count"],
+        "review_gallery": gallery["file"],
+        "external_publish_authorized": manifest["external_publish_authorized"],
+    }
+
+
+def _load_render_manifest(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise CampaignRenderVerificationError(f"{path}: missing render manifest") from exc
+    except json.JSONDecodeError as exc:
+        raise CampaignRenderVerificationError(f"{path}: invalid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise CampaignRenderVerificationError(f"{path}: top-level JSON value must be an object")
+    return data
+
+
+def _verify_manifest_shape(manifest: dict[str, Any], errors: list[str]) -> None:
+    if manifest.get("schema_version") != CAMPAIGN_RENDER_SCHEMA_VERSION:
+        errors.append(f"schema_version must be {CAMPAIGN_RENDER_SCHEMA_VERSION}")
+    campaign_sha = manifest.get("campaign_manifest_sha256")
+    if not _is_sha256(campaign_sha):
+        errors.append("campaign_manifest_sha256 must be a SHA-256 hex digest")
+    bundle_sha = manifest.get("bundle_sha256")
+    if not _is_sha256(bundle_sha):
+        errors.append("bundle_sha256 must be a SHA-256 hex digest")
+    elif _is_sha256(campaign_sha):
+        expected_bundle = stable_sha256({
+            "schema_version": CAMPAIGN_RENDER_SCHEMA_VERSION,
+            "campaign_manifest_sha256": campaign_sha,
+        })
+        if bundle_sha != expected_bundle:
+            errors.append("bundle_sha256 does not match schema and campaign manifest digest")
+    if manifest.get("external_publish_authorized") is not False:
+        errors.append("external_publish_authorized must be false")
+    disclaimer = manifest.get("capability_disclaimer")
+    if not isinstance(disclaimer, str) or "internal draft" not in disclaimer or "not published" not in disclaimer:
+        errors.append("capability_disclaimer must describe internal draft/no-publish scope")
+
+    gallery = manifest.get("review_gallery")
+    if not isinstance(gallery, dict):
+        errors.append("review_gallery must be an object")
+    else:
+        _verify_safe_file(gallery.get("file"), CAMPAIGN_GALLERY_FILE, "review_gallery.file", errors)
+        if not _is_sha256(gallery.get("sha256")):
+            errors.append("review_gallery.sha256 must be a SHA-256 hex digest")
+
+    assets = manifest.get("assets")
+    asset_count = manifest.get("asset_count")
+    if not isinstance(asset_count, int) or asset_count < 1:
+        errors.append("asset_count must be a positive integer")
+    if not isinstance(assets, list):
+        errors.append("assets must be a list")
+        return
+    if isinstance(asset_count, int) and asset_count != len(assets):
+        errors.append("asset_count must match assets length")
+
+    files: set[str] = set()
+    variant_ids: set[str] = set()
+    for index, asset in enumerate(assets):
+        label = f"assets[{index}]"
+        if not isinstance(asset, dict):
+            errors.append(f"{label} must be an object")
+            continue
+        variant_id = asset.get("variant_id")
+        if not _is_variant_id(variant_id):
+            errors.append(f"{label}.variant_id must be a stable 16-character lowercase hex id")
+        elif variant_id in variant_ids:
+            errors.append(f"{label}.variant_id duplicates another asset")
+        else:
+            variant_ids.add(variant_id)
+        expected_file = f"{variant_id}.svg" if isinstance(variant_id, str) else None
+        _verify_safe_file(asset.get("file"), expected_file, f"{label}.file", errors)
+        file_name = asset.get("file")
+        if isinstance(file_name, str):
+            if file_name in files:
+                errors.append(f"{label}.file duplicates another asset")
+            files.add(file_name)
+        if not _is_sha256(asset.get("sha256")):
+            errors.append(f"{label}.sha256 must be a SHA-256 hex digest")
+        if asset.get("review_state") != "draft":
+            errors.append(f"{label}.review_state must be draft")
+        if not isinstance(asset.get("width"), int) or asset["width"] <= 0:
+            errors.append(f"{label}.width must be a positive integer")
+        if not isinstance(asset.get("height"), int) or asset["height"] <= 0:
+            errors.append(f"{label}.height must be a positive integer")
+
+
+def _verify_safe_file(value: Any, expected: str | None, label: str, errors: list[str]) -> None:
+    if not isinstance(value, str) or not value:
+        errors.append(f"{label} must be a file name")
+        return
+    path = Path(value)
+    if path.name != value or path.is_absolute() or ".." in path.parts:
+        errors.append(f"{label} must not contain path traversal")
+        return
+    if expected is not None and value != expected:
+        errors.append(f"{label} must be {expected}")
+
+
+def _is_sha256(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+
+def _is_variant_id(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == VARIANT_ID_LENGTH
+        and all(char in "0123456789abcdef" for char in value)
+    )
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()

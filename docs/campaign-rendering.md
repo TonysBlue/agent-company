@@ -10,4 +10,12 @@ The full bundle is staged in a temporary directory and atomically renamed only a
 python3 -m agent_company campaign-render examples/campaign.json
 ```
 
+Verify a retained bundle before review or handoff:
+
+```bash
+python3 -m agent_company campaign-render-verify data/artifacts/campaign-render-v2-95ca21758bde
+```
+
+`campaign-render-verify` independently checks `render-manifest.json`, `review-gallery.html`, the exact SVG inventory, stable `{variant_id}.svg` filenames, per-file SHA-256 checksums, and the required draft/no-publish controls. It exits non-zero on malformed input, tampering, missing files, extra files, path traversal, checksum mismatches, or any publish authorization flag.
+
 The bundle remains `draft`, records `external_publish_authorized: false`, and is not evidence of visual quality. External publishing still requires Chairman approval.

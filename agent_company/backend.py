@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from .brandkit import build_campaign_manifest, load_json, validate_brand_kit, write_json
-from .campaign_render import CAMPAIGN_RENDER_SCHEMA_VERSION, render_campaign_bundle
+from .campaign_render import CAMPAIGN_RENDER_SCHEMA_VERSION, render_campaign_bundle, verify_campaign_render_bundle
 from .config import CompanyConfig
 from .product_shot import build_product_shot_manifest
 from .prompt_pack import build_prompt_manifest
@@ -83,6 +83,9 @@ class LocalBackend:
             "asset_count": rendered["asset_count"],
             "external_publish_authorized": False,
         }
+
+    def verify_campaign_render_bundle_dir(self, bundle_dir: Path) -> dict[str, object]:
+        return verify_campaign_render_bundle(bundle_dir)
 
     def generate_prompt_manifest_file(self, input_path: Path, output_path: Path | None = None) -> dict[str, object]:
         prompt_pack = load_json(input_path)

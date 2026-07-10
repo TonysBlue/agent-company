@@ -56,6 +56,8 @@ def build_parser() -> argparse.ArgumentParser:
     render = sub.add_parser("campaign-render", help="Render provenance-gated campaign drafts as SVG")
     render.add_argument("input", type=Path)
     render.add_argument("--output-dir", type=Path, default=None)
+    render_verify = sub.add_parser("campaign-render-verify", help="Verify a campaign-render/v2 bundle")
+    render_verify.add_argument("bundle_dir", type=Path)
     prompt_pack = sub.add_parser("prompt-pack", help="Expand a deterministic versioned prompt pack")
     prompt_pack.add_argument("input", type=Path)
     prompt_pack.add_argument("--output", type=Path, default=None)
@@ -122,6 +124,9 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "campaign-render":
             result = LocalBackend(osys.config).render_campaign_file(args.input, args.output_dir)
+            print(json.dumps(result, indent=2, sort_keys=True))
+        elif args.command == "campaign-render-verify":
+            result = LocalBackend(osys.config).verify_campaign_render_bundle_dir(args.bundle_dir)
             print(json.dumps(result, indent=2, sort_keys=True))
         elif args.command == "prompt-pack":
             result = LocalBackend(osys.config).generate_prompt_manifest_file(args.input, args.output)
