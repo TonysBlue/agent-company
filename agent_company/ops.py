@@ -124,7 +124,12 @@ class CompanyOS:
         )
 
     def _ensure_backlog(self, conn) -> None:
-        """Keep a bounded, non-repeating roadmap backlog with explicit done criteria."""
+        """Keep a bounded, finite roadmap backlog with explicit done criteria.
+
+        Exhausting the reviewed roadmap is a valid operating state.  The scheduler
+        must not manufacture numbered repetitions merely to keep the queue non-empty;
+        new work should come from evidence, a decision, or a reviewed roadmap change.
+        """
         active = conn.execute(
             "SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
         ).fetchone()[0]
@@ -209,44 +214,8 @@ class CompanyOS:
             )
             active += 1
 
-        # The finite 90-day list eventually completes. Continue with bounded,
-        # measurable improvement iterations so hourly cycles never drain the
-        # operating queue while preserving title uniqueness and WIP limits.
-        iteration = 1
-        improvement_templates = [
-            ("CPO", "Prioritize next workflow evidence gap", "product", 65,
-             "Review current roadmap and KPI evidence, identify one unmet commercial workflow need, and document a scoped requirement with a measurable acceptance check."),
-            ("CTO", "Harden local workflow reliability", "engineering", 64,
-             "Identify one reproducible reliability gap in the local workflow, implement or specify the bounded fix, and record a passing regression check."),
-            ("CRO", "Refresh internal ICP evidence hypotheses", "gtm", 61,
-             "Compare current positioning assumptions with recorded evidence, rank three testable gaps, and define an internal-only experiment metric without outreach."),
-            ("CFO", "Refresh unit-economics sensitivity", "finance", 60,
-             "Update one low/base/high inference-cost scenario, state all assumptions, and quantify the effect on cost per accepted asset without setting a price."),
-            ("COO", "Audit KPI and QA coverage", "operations", 59,
-             "Review current KPI and QA definitions, identify one missing signal or threshold, and document its formula, owner, cadence, and data source."),
-            ("Counsel", "Review product risk controls", "risk", 58,
-             "Review current provenance, IP, privacy, and human-control safeguards; document one control gap and a non-legal-advice mitigation with escalation criteria."),
-        ]
-        while active < target:
-            inserted = False
-            for owner, base_title, domain, priority, criteria in improvement_templates:
-                if active >= target:
-                    break
-                title = f"{base_title} - iteration {iteration}"
-                exists = conn.execute("SELECT 1 FROM tasks WHERE title=?", (title,)).fetchone()
-                if exists:
-                    continue
-                conn.execute(
-                    """INSERT INTO tasks(
-                           created_at, updated_at, owner, title, domain, status,
-                           priority, acceptance_criteria
-                       ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?)""",
-                    (now, now, owner, title, domain, priority, criteria),
-                )
-                active += 1
-                inserted = True
-            if not inserted:
-                iteration += 1
+        # Do not synthesize recurring/numbered work after these reviewed candidates
+        # are exhausted.  An empty queue is preferable to false operating progress.
 
     def _has_approved_action(self, conn, task_id: int, action_type: str) -> bool:
         summary_prefix = f"Task {task_id} requires Chairman decision before continuing:"

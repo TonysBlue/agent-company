@@ -179,7 +179,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         titles = store.fetch_all("SELECT title, COUNT(*) AS c FROM tasks GROUP BY title")
         self.assertTrue(all(row["c"] == 1 for row in titles))
 
-    def test_backlog_continues_after_first_roadmap_batch(self) -> None:
+    def test_backlog_stops_after_reviewed_roadmap_is_exhausted(self) -> None:
         self.osys.init()
         for _ in range(12):
             cycle = self.osys.run_cycle()
@@ -189,12 +189,16 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
                 evidence.write_text("verified\n", encoding="utf-8")
                 self.osys.complete_task(task_id, task["owner"], "Verified bounded result.", [evidence])
 
-        active = Store(self.config.db_path).fetch_all(
-            "SELECT title, acceptance_criteria FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
-        )
-        self.assertGreaterEqual(len(active), self.config.cycle_task_limit)
-        self.assertTrue(any(row["acceptance_criteria"] for row in active))
-        self.assertTrue(any("iteration" in row["title"] for row in active))
+        store = Store(self.config.db_path)
+        titles = store.fetch_all("SELECT title FROM tasks")
+        self.assertFalse(any("iteration" in row["title"] for row in titles))
+        task_count = len(titles)
+
+        # Further dispatches may leave a legitimate reserved task blocked, but they
+        # must not manufacture replacement work after the finite list is consumed.
+        for _ in range(3):
+            self.osys.run_cycle()
+        self.assertEqual(len(store.fetch_all("SELECT id FROM tasks")), task_count)
 
     def test_cycle_seeds_internal_draft_experiment(self) -> None:
         self.osys.run_cycle()

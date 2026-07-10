@@ -8,6 +8,7 @@
 - Record real evidence, metrics, and audit entries. Plans and placeholders are not results.
 - Use guarded asynchronous Codex execution for bounded, reviewable work when useful, across any function.
 - Keep work in progress small and aligned to the critical path.
+- Never create numbered or otherwise repetitive work merely to keep the queue non-empty. An exhausted reviewed backlog is valid; replenish it only from new evidence, a decision, or a reviewed roadmap change.
 
 ## Chairman reporting
 
