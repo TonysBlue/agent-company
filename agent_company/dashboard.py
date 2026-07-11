@@ -335,6 +335,114 @@ def _agent_workload(tasks: list[dict[str, Any]], executions: list[dict[str, Any]
     return workload
 
 
+def _execution_timing(
+    rows: list[dict[str, Any]], cycles: list[dict[str, Any]], agents: list[str]
+) -> tuple[dict[str, Any], dict[str, float | None]]:
+    now = datetime.now(timezone.utc)
+    intervals: list[dict[str, Any]] = []
+    cycle_durations: dict[str, dict[int, float]] = {agent: {} for agent in agents}
+    parsed_cycles: list[tuple[int, datetime]] = []
+    for cycle in cycles:
+        try:
+            parsed_cycles.append((int(cycle["id"]), datetime.fromisoformat(str(cycle["started_at"]))))
+        except (KeyError, TypeError, ValueError):
+            continue
+    parsed_cycles.sort(key=lambda item: item[1])
+
+    for row in rows:
+        role = str(row.get("task_owner") or "")
+        if role not in cycle_durations:
+            continue
+        try:
+            start = datetime.fromisoformat(str(row["claimed_at"]))
+            end_value = now if row.get("recovery_status") == "running" else datetime.fromisoformat(str(row["updated_at"]))
+        except (KeyError, TypeError, ValueError):
+            continue
+        if end_value < start:
+            continue
+        duration = (end_value - start).total_seconds()
+        cycle_id = next(
+            (cycle_id for cycle_id, cycle_start in reversed(parsed_cycles) if cycle_start <= start),
+            None,
+        )
+        intervals.append({
+            "role": role,
+            "display_label": _role_label(role),
+            "task_id": row.get("task_id"),
+            "task_title": row.get("task_title"),
+            "start": start.isoformat(),
+            "end": end_value.isoformat(),
+            "duration_seconds": duration,
+            "cycle_id": cycle_id,
+        })
+        if cycle_id is not None:
+            cycle_durations[role][cycle_id] = cycle_durations[role].get(cycle_id, 0.0) + duration
+
+    averages: dict[str, float | None] = {}
+    for agent in agents:
+        values = list(cycle_durations[agent].values())
+        averages[agent] = (sum(values) / len(values)) if values else None
+    timestamps = [datetime.fromisoformat(item[key]) for item in intervals for key in ("start", "end")]
+    return {
+        "intervals": sorted(intervals, key=lambda item: (item["start"], item["role"])),
+        "range_start": min(timestamps).isoformat() if timestamps else None,
+        "range_end": max(timestamps).isoformat() if timestamps else None,
+    }, averages
+
+
+def _format_duration(seconds: float) -> str:
+    if seconds < 60:
+        return f"{seconds:.0f} 秒"
+    if seconds < 3600:
+        return f"{seconds / 60:.1f} 分钟"
+    return f"{seconds / 3600:.1f} 小时"
+
+
+def _timeline_html(timeline: dict[str, Any], agents: list[dict[str, Any]]) -> str:
+    intervals = timeline["intervals"]
+    if not intervals:
+        return '''<div class="timeline-controls">
+          <label>时间轴缩放 <input id="timeline-zoom" type="range" min="1" max="8" step="0.5" value="1" disabled></label>
+          <span>暂无可缩放时间范围</span>
+        </div>
+        <div class="timeline-viewport"><p class="empty">暂无任务执行时间记录</p></div>'''
+    start = datetime.fromisoformat(timeline["range_start"])
+    end = datetime.fromisoformat(timeline["range_end"])
+    span = max((end - start).total_seconds(), 1.0)
+    rows = []
+    for agent in agents:
+        role = agent["agent"]
+        bars = []
+        for item in intervals:
+            if item["role"] != role:
+                continue
+            item_start = datetime.fromisoformat(item["start"])
+            left = ((item_start - start).total_seconds() / span) * 100
+            width = max((float(item["duration_seconds"]) / span) * 100, 0.25)
+            title = f"任务 #{item['task_id']} · {_format_duration(float(item['duration_seconds']))} · {item['start']} 至 {item['end']}"
+            bars.append(
+                f'<span class="timeline-bar" style="left:{left:.4f}%;width:{width:.4f}%" title="{_escape(title)}"></span>'
+            )
+        rows.append(
+            f'<div class="timeline-label">{_escape(agent["display_label"])}</div>'
+            f'<div class="timeline-track">{"".join(bars)}</div>'
+        )
+    return f'''<div class="timeline-controls">
+      <label>时间轴缩放 <input id="timeline-zoom" type="range" min="1" max="8" step="0.5" value="1"></label>
+      <span>{_escape(timeline["range_start"])} 至 {_escape(timeline["range_end"])}</span>
+    </div>
+    <div class="timeline-viewport"><div class="timeline-canvas" id="timeline-canvas">
+      <div class="timeline-grid">{"".join(rows)}</div>
+    </div></div>
+    <script>
+      (() => {{
+        const slider = document.getElementById('timeline-zoom');
+        const canvas = document.getElementById('timeline-canvas');
+        slider.addEventListener('input', () => {{ canvas.style.width = `${{Number(slider.value) * 100}}%`; }});
+      }})();
+    </script>'''
+
+
 def _chart_svg(title: str, rows: list[dict[str, Any]], value_key: str, label_key: str) -> str:
     if not rows:
         return '<p class="empty">暂无记录</p>'
@@ -398,6 +506,9 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
         with _connect_readonly(config.db_path) as conn:
             token_usage = _token_usage_snapshot(conn, agents)
             workload = _agent_workload(tasks, sqlite_data["task_executions"], agents, token_usage)
+    execution_timeline, average_cycle_duration = _execution_timing(
+        sqlite_data["task_executions"], sqlite_data["cycles"], agents
+    )
     docs = {
         "roadmap": _read_doc(config.workspace / "docs" / "roadmap.md"),
         "kpis": _read_doc(config.workspace / "docs" / "kpis.md"),
@@ -461,6 +572,8 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "execution_health": execution_health,
             "agent_workload": workload,
             "token_usage": token_usage,
+            "role_execution_timeline": execution_timeline,
+            "average_execution_seconds_per_ceo_cycle": average_cycle_duration,
             "decisions": [row for row in approvals if row.get("status") in {"approved", "denied"}],
             "human_dependencies": [
                 {
@@ -678,6 +791,18 @@ def _management(snapshot: dict[str, Any]) -> str:
         for data in mgmt["agent_workload"].values()
         if data["token_usage"].get("status_label") == "已采集"
     ]
+    average_duration_rows = [
+        {
+            "label": data["display_label"],
+            "value": round(float(mgmt["average_execution_seconds_per_ceo_cycle"][agent]) / 60, 2),
+        }
+        for agent, data in mgmt["agent_workload"].items()
+        if mgmt["average_execution_seconds_per_ceo_cycle"].get(agent) is not None
+    ]
+    timeline_agents = [
+        {"agent": agent, "display_label": data["display_label"]}
+        for agent, data in mgmt["agent_workload"].items()
+    ]
     task_outcomes = _table(
         [
             {
@@ -769,6 +894,16 @@ def _management(snapshot: dict[str, Any]) -> str:
         <h3>Token 使用量图</h3>
         {_chart_svg("Token 使用量图", token_rows, "value", "label") if token_rows else '<p class="empty">Token 使用量未采集</p>'}
       </div>
+    </section>
+    <section class="band">
+      <h2>角色任务执行时间轴</h2>
+      <p class="legend">横轴为时间，纵轴为角色；拖动滑块可放大时间轴，横向滚动查看细节。</p>
+      {_timeline_html(mgmt["role_execution_timeline"], timeline_agents)}
+    </section>
+    <section class="band">
+      <h2>每个 CEO 周期平均执行时长</h2>
+      <p class="legend">按角色统计有执行记录的 CEO 周期内任务执行总时长平均值，单位：分钟。</p>
+      {_chart_svg("每个 CEO 周期平均执行时长", average_duration_rows, "value", "label") if average_duration_rows else '<p class="empty">暂无可归属到 CEO 周期的执行记录</p>'}
     </section>
     <section class="band">
       <h2>执行健康</h2>
@@ -1081,6 +1216,15 @@ h2 { margin: 0 0 14px; font-size: 16px; letter-spacing: 0; }
 .chart .label { fill: var(--muted); }
 .chart rect { fill: var(--accent); }
 .legend { color: var(--muted); margin: 8px 0 14px; }
+.timeline-controls { display: flex; justify-content: space-between; gap: 16px; align-items: center; color: var(--muted); margin-bottom: 12px; }
+.timeline-controls label { display: flex; align-items: center; gap: 10px; }
+.timeline-controls input { width: min(260px, 35vw); }
+.timeline-viewport { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+.timeline-canvas { min-width: 100%; padding: 10px 12px; transition: width 120ms ease; }
+.timeline-grid { display: grid; grid-template-columns: 190px minmax(600px, 1fr); gap: 7px 12px; align-items: center; }
+.timeline-label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-track { position: relative; height: 24px; border-radius: 5px; background: repeating-linear-gradient(90deg, var(--panel-2) 0, var(--panel-2) calc(10% - 1px), var(--line) 10%); }
+.timeline-bar { position: absolute; top: 4px; height: 16px; min-width: 3px; border-radius: 4px; background: var(--accent); cursor: help; }
 .health { border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; color: var(--accent); white-space: nowrap; }
 .grid { display: grid; gap: 12px; }
 .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }

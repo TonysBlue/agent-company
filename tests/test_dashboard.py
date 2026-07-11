@@ -241,6 +241,36 @@ logs = logs
             self.assertNotIn("Live SQLite", body)
             self.assertNotIn("pre_launch", body)
 
+    def test_dashboard_shows_zoomable_role_execution_timeline_and_cycle_average_duration(self) -> None:
+        with self.store.connect() as conn:
+            conn.execute("DELETE FROM task_executions")
+            conn.execute(
+                """INSERT INTO task_executions(
+                       task_id, executor_id, backend, claimed_at, heartbeat_at,
+                       lease_expires_at, attempt_count, max_attempts, evidence_paths,
+                       log_paths, recovery_status, created_at, updated_at
+                   ) VALUES (1, 'timeline-exec', 'codex',
+                       '2026-07-11T01:02:10+00:00', '2026-07-11T01:02:30+00:00',
+                       '2026-07-11T01:12:10+00:00', 0, 3, '[]', '[]',
+                       'completed', '2026-07-11T01:02:10+00:00',
+                       '2026-07-11T01:03:10+00:00')"""
+            )
+
+        snapshot = build_snapshot(self.config)
+        timeline = snapshot["management"]["role_execution_timeline"]
+        self.assertEqual(timeline["intervals"][0]["role"], "CTO")
+        self.assertEqual(timeline["intervals"][0]["duration_seconds"], 60.0)
+        averages = snapshot["management"]["average_execution_seconds_per_ceo_cycle"]
+        self.assertEqual(averages["CTO"], 60.0)
+        self.assertIsNone(averages["CEO"])
+
+        management = DashboardApp(self.config).render_path("/management").body
+        self.assertIn("角色任务执行时间轴", management)
+        self.assertIn("每个 CEO 周期平均执行时长", management)
+        self.assertIn('type="range"', management)
+        self.assertIn("timeline-viewport", management)
+        self.assertIn("首席技术官（CTO）", management)
+
 
 if __name__ == "__main__":
     unittest.main()
