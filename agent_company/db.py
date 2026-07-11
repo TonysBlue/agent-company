@@ -101,6 +101,52 @@ class Store:
                     finished_at TEXT,
                     summary TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS task_executions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    executor_id TEXT NOT NULL,
+                    backend TEXT NOT NULL,
+                    process_id INTEGER,
+                    process_started_at TEXT,
+                    session_ref TEXT,
+                    claimed_at TEXT NOT NULL,
+                    heartbeat_at TEXT NOT NULL,
+                    lease_expires_at TEXT NOT NULL,
+                    attempt_count INTEGER NOT NULL DEFAULT 0,
+                    max_attempts INTEGER NOT NULL DEFAULT 3,
+                    checkpoint TEXT,
+                    next_action TEXT,
+                    evidence_paths TEXT NOT NULL DEFAULT '[]',
+                    log_paths TEXT NOT NULL DEFAULT '[]',
+                    last_error TEXT,
+                    recovery_status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                    UNIQUE(task_id)
+                );
+                CREATE TABLE IF NOT EXISTS token_usage (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ts TEXT NOT NULL,
+                    agent TEXT NOT NULL,
+                    task_id INTEGER,
+                    execution_id INTEGER,
+                    session TEXT,
+                    model TEXT,
+                    provider TEXT,
+                    input_tokens INTEGER NOT NULL,
+                    output_tokens INTEGER NOT NULL,
+                    cache_tokens INTEGER NOT NULL,
+                    reasoning_tokens INTEGER NOT NULL,
+                    total_tokens INTEGER NOT NULL,
+                    cost REAL,
+                    currency TEXT,
+                    source TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(agent) REFERENCES roles(name),
+                    FOREIGN KEY(task_id) REFERENCES tasks(id),
+                    FOREIGN KEY(execution_id) REFERENCES task_executions(id)
+                );
                 """
             )
             task_columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}

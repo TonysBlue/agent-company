@@ -123,7 +123,7 @@ logs = logs
         self.assertIn("公司日常管理", management.body)
         self.assertIn('href="/company"', management.body)
         self.assertIn("任务状态", management.body)
-        self.assertIn("产品 / 项目状态", project.body)
+        self.assertIn("项目状态", project.body)
         self.assertIn("Git 版本", project.body)
         self.assertIn("产品运营", operations.body)
         self.assertIn("尚未上线", operations.body)
@@ -162,8 +162,8 @@ logs = logs
         self.assertIn("Live-only mandate from SQLite.", company.body)
         self.assertIn("live-domain", company.body)
         self.assertIn("CEO", company.body)
-        self.assertIn("来源: SQLite roles", company.body)
-        self.assertIn("来源: SQLite raci", company.body)
+        self.assertIn("来源：SQLite roles", company.body)
+        self.assertIn("来源：SQLite raci", company.body)
         self.assertIn("来源: docs/strategy.md", company.body)
         self.assertIn("来源: docs/org.md", company.body)
         self.assertIn("来源: docs/cadence.md", company.body)
@@ -196,6 +196,50 @@ logs = logs
         self.assertFalse(missing_config.db_path.exists())
         self.assertEqual(snapshot["database"]["available"], False)
         self.assertEqual(snapshot["management"]["tasks"], [])
+
+    def test_dashboard_aggregates_all_agents_and_token_usage_without_fabricating_zeroes(self) -> None:
+        with self.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO token_usage(
+                       ts, agent, task_id, execution_id, session, model, provider,
+                       input_tokens, output_tokens, cache_tokens, reasoning_tokens,
+                       total_tokens, cost, currency, source, created_at
+                   ) VALUES (?, 'CTO', 1, NULL, 's-1', 'gpt-test', 'openai',
+                   100, 25, 10, 5, 140, 0.12, 'USD', 'observed-test', ?)""",
+                ("2026-07-11T00:00:00+00:00", "2026-07-11T00:00:00+00:00"),
+            )
+        snapshot = build_snapshot(self.config)
+
+        workload = snapshot["management"]["agent_workload"]
+        self.assertIn("CEO", workload)
+        self.assertEqual(workload["CEO"]["status_label"], "未采集")
+        self.assertEqual(workload["CTO"]["task_outcomes"]["in_progress"], 1)
+        self.assertEqual(workload["CTO"]["token_usage"]["total_tokens"], 140)
+        self.assertEqual(workload["CTO"]["display_label"], "首席技术官（CTO）")
+
+        management = DashboardApp(self.config).render_path("/management").body
+        self.assertIn("<svg", management)
+        self.assertIn("任务状态图", management)
+        self.assertIn("Agent 工作负载", management)
+        self.assertIn("Token 使用量", management)
+        self.assertIn("未采集", management)
+        self.assertIn("首席执行官（CEO）", management)
+        self.assertIn('aria-label="Token 使用量图"', management)
+        self.assertIn("完成率", management)
+        self.assertIn("失败", management)
+
+    def test_dashboard_visible_copy_is_simplified_chinese_with_canonical_api_keys(self) -> None:
+        api = json.loads(DashboardApp(self.config).render_path("/api/status").body)
+        self.assertIn("task_counts_by_status", api["management"])
+        self.assertIn("display_labels", api["management"])
+        self.assertEqual(api["management"]["display_labels"]["task_counts_by_status"], "任务状态统计")
+
+        for path in ["/management", "/project", "/operations", "/company"]:
+            body = DashboardApp(self.config).render_path(path).body
+            self.assertIn('lang="zh-CN"', body)
+            self.assertNotIn(">JSON API<", body)
+            self.assertNotIn("Live SQLite", body)
+            self.assertNotIn("pre_launch", body)
 
 
 if __name__ == "__main__":

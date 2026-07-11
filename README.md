@@ -16,9 +16,17 @@ python3.11 -m agent_company.cli status
 python3.11 -m agent_company.cli run-cycle
 python3.11 -m agent_company.cli task-list
 python3.11 -m agent_company.cli task-create --actor CEO --owner CTO --title "Implement bounded capability" --domain engineering --priority 80 --acceptance-criteria "Runnable implementation and regression evidence pass."
-python3.11 -m agent_company.cli task-claim 1 --actor CPO
+python3.11 -m agent_company.cli task-claim 1 --actor CPO --executor-id cpo-local-1 --backend local
+python3.11 -m agent_company.cli task-heartbeat 1 --executor-id cpo-local-1
+python3.11 -m agent_company.cli task-checkpoint 1 --executor-id cpo-local-1 --checkpoint "Tests pass" --next-action "Attach evidence"
+python3.11 -m agent_company.cli task-inspect 1
+python3.11 -m agent_company.cli task-fail 1 --executor-id cpo-local-1 --error "Recoverable executor error"
+python3.11 -m agent_company.cli task-recover 1 --actor CEO --reason "Lease expired during executor restart"
 python3.11 -m agent_company.cli task-complete 1 --actor CPO --summary "Acceptance criteria met" --evidence path/to/reviewable-evidence
 python3.11 -m agent_company.cli task-cancel 1 --actor CEO --reason "Superseded by reviewed task 2."
+python3.11 -m agent_company.cli token-record --agent CTO --input-tokens 100 --output-tokens 25 --cache-tokens 10 --reasoning-tokens 5 --total-tokens 140 --source observed-log --model gpt-test --provider openai
+python3.11 -m agent_company.cli token-list --agent CTO
+python3.11 -m agent_company.cli token-summary
 python3.11 -m agent_company.cli chairman-inbox
 python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
 python3.11 -m agent_company.cli report
@@ -51,6 +59,26 @@ Obsolete or duplicate work must use `task-cancel`, which records that no complet
 Only the CEO may use `task-create`; it requires a registered agent owner, a unique title,
 bounded priority, explicit acceptance criteria, and records the new work in the audit trail.
 
+Task execution continuity is durable in SQLite. Each claimed task has an audited
+`task_executions` row with `executor_id`, backend, optional local PID/start identity,
+optional async session reference, claim/heartbeat/lease timestamps, attempt bounds,
+checkpoint, next action, evidence/log paths, last error, and recovery status. Claiming
+is atomic and prevents duplicate active ownership. CEO cycles inspect in-progress
+executions before dispatching new work: valid leases are left alone and audited as
+renewed observations, stale leases are requeued with bounded retry counts, and exhausted
+retries are blocked/escalated instead of looped. Local PID checks never kill processes
+and only treat a PID as alive when the recorded start identity still matches, protecting
+against PID reuse. Codex may be registered as `--backend codex` with `--session-ref`,
+but the core library records that reference only and does not launch Codex.
+
+Observed token usage is stored in an additive audited SQLite `token_usage` ledger.
+Records capture `agent`, optional `task_id`/`execution_id`/`session`/`model`/`provider`,
+`input_tokens`, `output_tokens`, `cache_tokens`, `reasoning_tokens`, `total_tokens`,
+optional `cost` and `currency`, `source`, and timestamp. Writes are validated as
+nonnegative, reference-checked, and total-consistent; `agent` must be a registered
+agent role. When no token records exist for an agent, the dashboard and summaries show
+`未采集` instead of fabricating zeroes.
+
 The default backend is deterministic and local. It writes reviewable JSON image-generation/editing artifacts under `data/artifacts/`. Brand-kit validation covers versioned palettes, typography, logo placement, and forbidden elements. Campaign manifest generation deterministically expands channel, format, asset, and copy combinations into draft variants with stable IDs and checksums.
 Prompt-pack expansion validates a versioned template and variable matrix, then writes a deterministic manifest of uniquely identified rendered prompts. These are internal prompt artifacts, not generated images or evidence of visual quality.
 The unit-economics command calculates internal low/base/high cost sensitivity from explicit assumptions. It does not set or authorize a price.
@@ -65,7 +93,7 @@ Feedback capture rejects declared sensitive data and anti-abuse honeypots, requi
 
 The operations dashboard is a stdlib-only HTTP service that reads `data/company.sqlite3`, Git metadata, project docs, and local artifact files without mutating company state. It exposes four separate Chinese-labeled pages:
 
-- `http://127.0.0.1:18080/management` for company daily management, tasks, approvals, cycles, audit, and human dependencies.
+- `http://127.0.0.1:18080/management` for company daily management, tasks, approvals, cycles, audit, human dependencies, execution health, per-agent outcomes, and token usage charts/tables.
 - `http://127.0.0.1:18080/project` for product/project status, Git version, roadmap, current tasks, experiments, artifacts, and validation evidence.
 - `http://127.0.0.1:18080/operations` for pre-launch product operations placeholders. Unknown fields are shown as unavailable placeholders, not zeroes.
 - `http://127.0.0.1:18080/company` for company introduction, mission, real-business operating principles, PixWeave product status, org chart, live SQLite roles/RACI, cadence, Chairman reserved decisions, Codex async-resource policy, and evidence/version/archive governance.
@@ -73,7 +101,7 @@ The operations dashboard is a stdlib-only HTTP service that reads `data/company.
 JSON endpoints:
 
 - `http://127.0.0.1:18080/healthz`
-- `http://127.0.0.1:18080/api/status`, including `company.roles` and `company.raci` derived from live SQLite.
+- `http://127.0.0.1:18080/api/status`, including `company.roles`, `company.raci`, and management execution health derived from live SQLite.
 
 Durable user service:
 

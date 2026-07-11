@@ -4,6 +4,7 @@
 
 - Git is the source of truth for code, configuration templates, governance, prompts, operating policies, and documentation.
 - `data/company.sqlite3` is the live operational ledger for tasks, approvals, metrics, experiments, cycles, roles, RACI, and audit events.
+- `data/company.sqlite3` also stores durable `task_executions` and `token_usage` ledgers with audited writes.
 - `data/chairman/` holds decision request and decision evidence.
 - `data/artifacts/` and `logs/` hold runtime evidence. They are archived, not committed by default.
 - `archives/` contains immutable operational snapshots with checksums and SQLite-consistent backups. It is excluded from Git because it may contain sensitive operational material.
@@ -39,6 +40,7 @@ Pre-revenue/internal milestones may use `v0.x.y`. The first working company base
 - Customer, revenue, contract, deployment, cost, and interview claims require linked evidence.
 - Campaign render bundles are internal review evidence only. Their SVG files, `review-gallery.html`, and `render-manifest.json` must be produced through the atomic bundle publication path so reviewers never rely on partial output. The manifest must bind the local rendering provider, per-asset media type, render provenance, and SVG checksums.
 - Campaign review records are internal decisions only. They must be generated from a verified `campaign-render/v2` bundle, bind to bundle and SVG checksums, and must not authorize external publication.
+- Token usage records are internal operational measurements only. They must be validated against real observed measurements, agent role membership, references, and token totals before write.
 - Never commit secrets, API keys, customer personal data, credentials, raw contracts, or payment details.
 - Archive access is local and restricted. Encrypt and replicate archives before real customer or financial data is introduced.
 - Retention: daily snapshots 30 days, weekly snapshots 12 months, milestone and legal/financial decision snapshots indefinitely unless a lawful deletion policy requires otherwise.

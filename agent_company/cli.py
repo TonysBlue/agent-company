@@ -33,6 +33,55 @@ def build_parser() -> argparse.ArgumentParser:
     claim = sub.add_parser("task-claim", help="Claim one open task for bounded execution")
     claim.add_argument("task_id", type=int)
     claim.add_argument("--actor", required=True)
+    claim.add_argument("--executor-id", default=None)
+    claim.add_argument("--backend", default=None)
+    claim.add_argument("--process-id", type=int, default=None)
+    claim.add_argument("--process-started-at", default=None)
+    claim.add_argument("--session-ref", default=None)
+    claim.add_argument("--lease-seconds", type=int, default=600)
+    claim.add_argument("--max-attempts", type=int, default=3)
+    claim.add_argument("--evidence-path", type=Path, action="append", default=[])
+    claim.add_argument("--log-path", type=Path, action="append", default=[])
+    heartbeat = sub.add_parser("task-heartbeat", help="Renew a task execution lease")
+    heartbeat.add_argument("task_id", type=int)
+    heartbeat.add_argument("--executor-id", required=True)
+    heartbeat.add_argument("--lease-seconds", type=int, default=600)
+    checkpoint = sub.add_parser("task-checkpoint", help="Record task execution checkpoint and next action")
+    checkpoint.add_argument("task_id", type=int)
+    checkpoint.add_argument("--executor-id", required=True)
+    checkpoint.add_argument("--checkpoint", required=True)
+    checkpoint.add_argument("--next-action", required=True)
+    inspect = sub.add_parser("task-inspect", help="Inspect task execution state")
+    inspect.add_argument("task_id", type=int)
+    recover = sub.add_parser("task-recover", help="Recover or requeue a task execution")
+    recover.add_argument("task_id", type=int)
+    recover.add_argument("--actor", required=True)
+    recover.add_argument("--reason", required=True)
+    fail = sub.add_parser("task-fail", help="Record task execution failure")
+    fail.add_argument("task_id", type=int)
+    fail.add_argument("--executor-id", required=True)
+    fail.add_argument("--error", required=True)
+    fail.add_argument("--permanent", action="store_true")
+    token_record = sub.add_parser("token-record", help="Record observed token usage")
+    token_record.add_argument("--agent", required=True)
+    token_record.add_argument("--task-id", type=int, default=None)
+    token_record.add_argument("--execution-id", type=int, default=None)
+    token_record.add_argument("--session", default=None)
+    token_record.add_argument("--model", default=None)
+    token_record.add_argument("--provider", default=None)
+    token_record.add_argument("--input-tokens", type=int, required=True)
+    token_record.add_argument("--output-tokens", type=int, required=True)
+    token_record.add_argument("--cache-tokens", type=int, required=True)
+    token_record.add_argument("--reasoning-tokens", type=int, required=True)
+    token_record.add_argument("--total-tokens", type=int, required=True)
+    token_record.add_argument("--cost", type=float, default=None)
+    token_record.add_argument("--currency", default=None)
+    token_record.add_argument("--source", required=True)
+    token_record.add_argument("--timestamp", default=None)
+    token_list = sub.add_parser("token-list", help="List observed token usage records")
+    token_list.add_argument("--agent", default=None)
+    token_list.add_argument("--limit", type=int, default=50)
+    sub.add_parser("token-summary", help="Summarize token usage by registered agent")
     complete = sub.add_parser("task-complete", help="Complete a claimed task with reviewable evidence")
     complete.add_argument("task_id", type=int)
     complete.add_argument("--actor", required=True)
@@ -117,7 +166,51 @@ def main(argv: list[str] | None = None) -> int:
                 args.acceptance_criteria,
             ), indent=2, sort_keys=True))
         elif args.command == "task-claim":
-            print(json.dumps(osys.claim_task(args.task_id, args.actor), indent=2, sort_keys=True))
+            print(json.dumps(osys.claim_task(
+                args.task_id,
+                args.actor,
+                executor_id=args.executor_id,
+                backend=args.backend,
+                process_id=args.process_id,
+                process_started_at=args.process_started_at,
+                session_ref=args.session_ref,
+                lease_seconds=args.lease_seconds,
+                max_attempts=args.max_attempts,
+                evidence_paths=args.evidence_path,
+                log_paths=args.log_path,
+            ), indent=2, sort_keys=True))
+        elif args.command == "task-heartbeat":
+            print(json.dumps(osys.heartbeat_task(args.task_id, args.executor_id, args.lease_seconds), indent=2, sort_keys=True))
+        elif args.command == "task-checkpoint":
+            print(json.dumps(osys.checkpoint_task(args.task_id, args.executor_id, args.checkpoint, args.next_action), indent=2, sort_keys=True))
+        elif args.command == "task-inspect":
+            print(json.dumps(osys.inspect_execution(args.task_id), indent=2, sort_keys=True))
+        elif args.command == "task-recover":
+            print(json.dumps(osys.recover_task(args.task_id, args.actor, args.reason), indent=2, sort_keys=True))
+        elif args.command == "task-fail":
+            print(json.dumps(osys.fail_task(args.task_id, args.executor_id, args.error, recoverable=not args.permanent), indent=2, sort_keys=True))
+        elif args.command == "token-record":
+            print(json.dumps(osys.record_token_usage(
+                agent=args.agent,
+                task_id=args.task_id,
+                execution_id=args.execution_id,
+                session=args.session,
+                model=args.model,
+                provider=args.provider,
+                input_tokens=args.input_tokens,
+                output_tokens=args.output_tokens,
+                cache_tokens=args.cache_tokens,
+                reasoning_tokens=args.reasoning_tokens,
+                total_tokens=args.total_tokens,
+                cost=args.cost,
+                currency=args.currency,
+                source=args.source,
+                timestamp=args.timestamp,
+            ), indent=2, sort_keys=True))
+        elif args.command == "token-list":
+            print(json.dumps(osys.list_token_usage(agent=args.agent, limit=args.limit), indent=2, sort_keys=True))
+        elif args.command == "token-summary":
+            print(json.dumps(osys.token_usage_summary(), indent=2, sort_keys=True, ensure_ascii=False))
         elif args.command == "task-complete":
             print(json.dumps(osys.complete_task(args.task_id, args.actor, args.summary, args.evidence), indent=2, sort_keys=True))
         elif args.command == "task-cancel":

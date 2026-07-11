@@ -21,9 +21,21 @@ from .config import CompanyConfig, load_config
 
 PAGES = {
     "/management": "公司日常管理",
-    "/project": "产品 / 项目状态",
+    "/project": "项目状态",
     "/operations": "产品运营",
     "/company": "公司介绍",
+}
+
+ROLE_LABELS = {
+    "CEO": "首席执行官（CEO）",
+    "CPO": "首席产品官（CPO）",
+    "CTO": "首席技术官（CTO）",
+    "CRO": "首席营收官（CRO）",
+    "COO": "首席运营官（COO）",
+    "CFO": "首席财务官（CFO）",
+    "Counsel": "法律顾问",
+    "Product Engineer": "产品工程师",
+    "AI Platform & Quality Engineer": "AI 平台与质量工程师",
 }
 
 
@@ -127,12 +139,20 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         "experiments": [],
         "roles": [],
         "raci": [],
+        "task_executions": [],
+        "token_usage": [],
     }
     if not config.db_path.exists():
         empty["database"]["error"] = "database file not found"
         return empty
     try:
         with _connect_readonly(config.db_path) as conn:
+            task_execution_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_executions'"
+            ).fetchone()
+            token_usage_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='token_usage'"
+            ).fetchone()
             return {
                 "database": {
                     "path": str(config.db_path),
@@ -153,6 +173,16 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "raci": _row_dicts(list(conn.execute(
                     "SELECT domain, responsible, accountable, consulted, informed FROM raci ORDER BY domain ASC"
                 ))),
+                "task_executions": _row_dicts(list(conn.execute(
+                    """SELECT e.*, t.status AS task_status, t.owner AS task_owner, t.title AS task_title
+                       FROM task_executions e
+                       JOIN tasks t ON t.id=e.task_id
+                       ORDER BY CASE e.recovery_status WHEN 'failed' THEN 0 WHEN 'running' THEN 1 WHEN 'requeued' THEN 2 ELSE 3 END,
+                                e.lease_expires_at ASC, e.task_id ASC"""
+                ))) if task_execution_table else [],
+                "token_usage": _row_dicts(list(conn.execute(
+                    "SELECT * FROM token_usage ORDER BY ts DESC, id DESC"
+                ))) if token_usage_table else [],
             }
     except sqlite3.Error as exc:
         empty["database"]["error"] = str(exc)
@@ -167,13 +197,207 @@ def _counts(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def _has_table(conn: sqlite3.Connection, name: str) -> bool:
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
+
+
+def _task_status_label(value: Any) -> str:
+    mapping = {
+        "open": "待处理",
+        "in_progress": "进行中",
+        "blocked": "阻塞",
+        "done": "完成",
+        "cancelled": "已取消",
+    }
+    return mapping.get(str(value), str(value))
+
+
+def _recovery_status_label(value: Any) -> str:
+    mapping = {
+        "running": "运行中",
+        "failed": "失败待恢复",
+        "requeued": "已重新排队",
+        "exhausted": "已耗尽",
+        "completed": "已完成",
+        "cancelled": "已取消",
+    }
+    return mapping.get(str(value), str(value))
+
+
+def _role_label(value: Any) -> str:
+    canonical = str(value)
+    return ROLE_LABELS.get(canonical, canonical)
+
+
+def _execution_health(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    executions: list[dict[str, Any]] = []
+    stale = 0
+    for row in rows:
+        enriched = dict(row)
+        try:
+            expires = datetime.fromisoformat(str(row.get("lease_expires_at")))
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            is_stale = expires <= now and row.get("recovery_status") in {"running", "failed"}
+        except ValueError:
+            is_stale = True
+        enriched["stale"] = is_stale
+        stale += 1 if is_stale else 0
+        executions.append(enriched)
+    return {
+        "executions": executions,
+        "counts_by_recovery_status": _counts(rows, "recovery_status"),
+        "stale_count": stale,
+        "retry_attention_count": sum(
+            1
+            for row in rows
+            if int(row.get("attempt_count") or 0) + 1 >= int(row.get("max_attempts") or 1)
+            and row.get("recovery_status") in {"running", "failed", "exhausted"}
+        ),
+    }
+
+
+def _token_usage_snapshot(conn: sqlite3.Connection, agents: list[str]) -> dict[str, Any]:
+    if not _has_table(conn, "token_usage"):
+        return {agent: {"agent": agent, "display_label": _role_label(agent), "status_label": "未采集"} for agent in agents}
+    rows = _row_dicts(list(conn.execute("SELECT * FROM token_usage ORDER BY ts DESC, id DESC")))
+    by_agent: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        by_agent.setdefault(str(row.get("agent")), []).append(row)
+    snapshot: dict[str, Any] = {}
+    for agent in agents:
+        rows_for_agent = by_agent.get(agent, [])
+        if not rows_for_agent:
+            snapshot[agent] = {"agent": agent, "display_label": _role_label(agent), "status_label": "未采集"}
+            continue
+        cost_values = [float(row.get("cost")) for row in rows_for_agent if row.get("cost") is not None]
+        totals = {
+            key: sum(int(row.get(key) or 0) for row in rows_for_agent)
+            for key in ["input_tokens", "output_tokens", "cache_tokens", "reasoning_tokens", "total_tokens"]
+        }
+        snapshot[agent] = {
+            "agent": agent,
+            "display_label": _role_label(agent),
+            "status_label": "已采集",
+            "record_count": len(rows_for_agent),
+            **totals,
+            "cost": sum(cost_values) if cost_values else None,
+            "currency": next((row.get("currency") for row in rows_for_agent if row.get("currency")), None),
+        }
+    return snapshot
+
+
+def _agent_workload(tasks: list[dict[str, Any]], executions: list[dict[str, Any]], agents: list[str], token_usage: dict[str, Any]) -> dict[str, Any]:
+    outcomes: dict[str, dict[str, int]] = {
+        agent: {"open": 0, "in_progress": 0, "blocked": 0, "done": 0, "cancelled": 0, "total": 0, "retries": 0, "failures": 0}
+        for agent in agents
+    }
+    for task in tasks:
+        owner = str(task.get("owner") or "")
+        if owner not in outcomes:
+            continue
+        bucket = outcomes[owner]
+        status = str(task.get("status") or "open")
+        bucket[status] = bucket.get(status, 0) + 1
+        bucket["total"] += 1
+    for execution in executions:
+        owner = str(execution.get("task_owner") or "")
+        if owner not in outcomes:
+            continue
+        bucket = outcomes[owner]
+        attempts = int(execution.get("attempt_count") or 0)
+        bucket["retries"] += attempts
+        if execution.get("recovery_status") in {"failed", "exhausted"}:
+            bucket["failures"] += 1
+    workload: dict[str, Any] = {}
+    for agent in agents:
+        bucket = outcomes[agent]
+        completed = bucket.get("done", 0)
+        total = bucket.get("total", 0)
+        workload[agent] = {
+            "agent": agent,
+            "display_label": _role_label(agent),
+            "status_label": "未采集" if total == 0 and not token_usage.get(agent, {}).get("record_count") else "已采集",
+            "task_outcomes": {
+                "open": bucket["open"],
+                "in_progress": bucket["in_progress"],
+                "blocked": bucket["blocked"],
+                "done": bucket["done"],
+                "cancelled": bucket["cancelled"],
+                "total": total,
+                "completion_rate": (completed / total) if total else None,
+                "retries": bucket["retries"],
+                "failures": bucket["failures"],
+            },
+            "token_usage": token_usage.get(agent, {"status_label": "未采集"}),
+        }
+    return workload
+
+
+def _chart_svg(title: str, rows: list[dict[str, Any]], value_key: str, label_key: str) -> str:
+    if not rows:
+        return '<p class="empty">暂无记录</p>'
+    width = 720
+    bar_height = 28
+    gap = 12
+    left = 180
+    top = 24
+    chart_width = width - left - 32
+    max_value = max(float(row.get(value_key) or 0) for row in rows) or 1.0
+    height = top + len(rows) * (bar_height + gap) + 18
+    bars = []
+    for index, row in enumerate(rows):
+        value = float(row.get(value_key) or 0)
+        y = top + index * (bar_height + gap)
+        bar_width = chart_width * (value / max_value)
+        bars.append(
+            f'<text x="0" y="{y + 19}" class="label">{_escape(row.get(label_key))}</text>'
+            f'<rect x="{left}" y="{y}" width="{bar_width:.1f}" height="{bar_height}" rx="6"></rect>'
+            f'<text x="{left + bar_width + 8:.1f}" y="{y + 19}" class="value">{_escape(int(value) if value.is_integer() else round(value, 2))}</text>'
+        )
+    return f"""
+    <svg class="chart" viewBox="0 0 {width} {height}" role="img" aria-label="{_escape(title)}">
+      <title>{_escape(title)}</title>
+      <g>{''.join(bars)}</g>
+    </svg>
+    """
+
+
 def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
     config = config or load_config()
     sqlite_data = _sqlite_snapshot(config)
     tasks = sqlite_data["tasks"]
     approvals = sqlite_data["approvals"]
+    agents = [row["name"] for row in sqlite_data["roles"] if row.get("kind") == "agent"]
     pending_approvals = [row for row in approvals if row.get("status") == "pending"]
     blocked_tasks = [row for row in tasks if row.get("status") == "blocked"]
+    execution_health = _execution_health(sqlite_data["task_executions"])
+    token_usage: dict[str, Any] = {agent: {"agent": agent, "display_label": _role_label(agent), "status_label": "未采集"} for agent in agents}
+    workload: dict[str, Any] = {
+        agent: {
+            "agent": agent,
+            "display_label": _role_label(agent),
+            "status_label": "未采集",
+            "task_outcomes": {
+                "open": 0,
+                "in_progress": 0,
+                "blocked": 0,
+                "done": 0,
+                "cancelled": 0,
+                "total": 0,
+                "completion_rate": None,
+                "retries": 0,
+                "failures": 0,
+            },
+            "token_usage": {"status_label": "未采集"},
+        }
+        for agent in agents
+    }
+    if config.db_path.exists():
+        with _connect_readonly(config.db_path) as conn:
+            token_usage = _token_usage_snapshot(conn, agents)
+            workload = _agent_workload(tasks, sqlite_data["task_executions"], agents, token_usage)
     docs = {
         "roadmap": _read_doc(config.workspace / "docs" / "roadmap.md"),
         "kpis": _read_doc(config.workspace / "docs" / "kpis.md"),
@@ -224,9 +448,19 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "tasks": tasks,
             "task_counts_by_status": _counts(tasks, "status"),
             "task_counts_by_owner": _counts(tasks, "owner"),
+            "display_labels": {
+                "task_counts_by_status": "任务状态统计",
+                "task_counts_by_owner": "负责人统计",
+                "execution_health": "执行健康",
+                "agent_workload": "Agent 工作负载",
+                "token_usage": "Token 使用量",
+            },
             "approvals": approvals,
             "cycles": sqlite_data["cycles"],
             "audit": sqlite_data["audit"],
+            "execution_health": execution_health,
+            "agent_workload": workload,
+            "token_usage": token_usage,
             "decisions": [row for row in approvals if row.get("status") in {"approved", "denied"}],
             "human_dependencies": [
                 {
@@ -371,10 +605,10 @@ def _layout(title: str, active: str, content: str, snapshot: dict[str, Any]) -> 
   <aside class="sidebar">
     <div class="brand">
       <span class="mark"></span>
-      <div><strong>{_escape(snapshot['product'])}</strong><small>只读运营仪表盘</small></div>
+      <div><strong>{_escape(snapshot['product'])}</strong><small>只读运营面板</small></div>
     </div>
     <nav>{nav}</nav>
-    <a class="api" href="/api/status">JSON API</a>
+    <a class="api" href="/api/status">状态接口</a>
   </aside>
   <main>
     <header class="topbar">
@@ -382,7 +616,7 @@ def _layout(title: str, active: str, content: str, snapshot: dict[str, Any]) -> 
         <p class="eyebrow">生成时间 {_escape(snapshot['generated_at'])}</p>
         <h1>{_escape(title)}</h1>
       </div>
-      <div class="health">数据源: {"可读" if snapshot["database"]["available"] else "不可用"}</div>
+      <div class="health">数据源：{"可读" if snapshot["database"]["available"] else "不可用"}</div>
     </header>
     {content}
     <section class="band provenance">
@@ -399,6 +633,11 @@ def _stat_cards(items: dict[str, int]) -> str:
     if not items:
         return '<p class="empty">暂无可读数据</p>'
     return "".join(f'<div class="stat"><span>{_escape(key)}</span><strong>{value}</strong></div>' for key, value in items.items())
+
+
+def _metric_card(label: str, value: Any, detail: str = "") -> str:
+    detail_html = f"<small>{_escape(detail)}</small>" if detail else ""
+    return f'<div class="stat"><span>{_escape(label)}</span><strong>{_escape(value)}</strong>{detail_html}</div>'
 
 
 def _table(rows: list[dict[str, Any]], columns: list[tuple[str, str]]) -> str:
@@ -422,20 +661,136 @@ def _management(snapshot: dict[str, Any]) -> str:
         ("summary", "说明"),
         ("blocked_reason", "阻塞原因"),
     ])
+    task_chart_data = [{"label": label, "value": count} for label, count in mgmt["task_counts_by_status"].items()]
+    workload_rows = [
+        {
+            "label": data["display_label"],
+            "value": int(data["task_outcomes"]["total"]),
+            "completion_rate": 0 if data["task_outcomes"]["completion_rate"] is None else round(data["task_outcomes"]["completion_rate"] * 100, 1),
+        }
+        for data in mgmt["agent_workload"].values()
+    ]
+    token_rows = [
+        {
+            "label": data["display_label"],
+            "value": int(data["token_usage"]["total_tokens"]),
+        }
+        for data in mgmt["agent_workload"].values()
+        if data["token_usage"].get("status_label") == "已采集"
+    ]
+    task_outcomes = _table(
+        [
+            {
+                "agent": agent,
+                "display_label": data["display_label"],
+                "task_total": data["task_outcomes"]["total"],
+                "completion_rate": "未采集" if data["task_outcomes"]["completion_rate"] is None else f"{round(data['task_outcomes']['completion_rate'] * 100, 1)}%",
+                "retries": data["task_outcomes"]["retries"],
+                "failures": data["task_outcomes"]["failures"],
+                "open": data["task_outcomes"]["open"],
+                "in_progress": data["task_outcomes"]["in_progress"],
+                "blocked": data["task_outcomes"]["blocked"],
+                "done": data["task_outcomes"]["done"],
+                "cancelled": data["task_outcomes"]["cancelled"],
+            }
+            for agent, data in mgmt["agent_workload"].items()
+        ],
+        [
+            ("agent", "ID"),
+            ("display_label", "名称"),
+            ("task_total", "任务总数"),
+            ("completion_rate", "完成率"),
+            ("retries", "重试"),
+            ("failures", "失败"),
+            ("open", "待处理"),
+            ("in_progress", "进行中"),
+            ("blocked", "阻塞"),
+            ("done", "完成"),
+            ("cancelled", "已取消"),
+        ],
+    )
+    tasks_table = _table(
+        [
+            {
+                **row,
+                "status": _task_status_label(row.get("status")),
+            }
+            for row in mgmt["tasks"]
+        ],
+        [("id", "ID"), ("status", "状态"), ("owner", "负责人"), ("domain", "领域"), ("priority", "优先级"), ("title", "任务")],
+    )
+    executions_table = _table(
+        [
+            {
+                **row,
+                "task_status": _task_status_label(row.get("task_status")),
+                "recovery_status": _recovery_status_label(row.get("recovery_status")),
+            }
+            for row in mgmt["execution_health"]["executions"]
+        ],
+        [("task_id", "任务"), ("task_status", "任务状态"), ("recovery_status", "恢复状态"), ("executor_id", "执行器"), ("backend", "后端"), ("lease_expires_at", "租约到期"), ("attempt_count", "尝试"), ("max_attempts", "上限"), ("checkpoint", "检查点"), ("next_action", "下一步"), ("last_error", "最后错误")],
+    )
+    workload_table = _table(
+        [
+            {
+                "agent": agent,
+                "display_label": data["display_label"],
+                "status_label": data["status_label"],
+                "total_tokens": "未采集" if data["token_usage"].get("status_label") == "未采集" else data["token_usage"].get("total_tokens"),
+                "input_tokens": "未采集" if data["token_usage"].get("status_label") == "未采集" else data["token_usage"].get("input_tokens"),
+                "output_tokens": "未采集" if data["token_usage"].get("status_label") == "未采集" else data["token_usage"].get("output_tokens"),
+                "cache_tokens": "未采集" if data["token_usage"].get("status_label") == "未采集" else data["token_usage"].get("cache_tokens"),
+                "reasoning_tokens": "未采集" if data["token_usage"].get("status_label") == "未采集" else data["token_usage"].get("reasoning_tokens"),
+            }
+            for agent, data in mgmt["agent_workload"].items()
+        ],
+        [
+            ("agent", "ID"),
+            ("display_label", "名称"),
+            ("status_label", "采集状态"),
+            ("input_tokens", "输入"),
+            ("output_tokens", "输出"),
+            ("cache_tokens", "缓存"),
+            ("reasoning_tokens", "推理"),
+            ("total_tokens", "总计"),
+        ],
+    )
     return f"""
     <section class="grid stats">
-      {_stat_cards(mgmt["task_counts_by_status"])}
+      <div class="chart-card">
+        <h3>任务状态图</h3>
+        {_chart_svg("任务状态图", task_chart_data, "value", "label")}
+      </div>
+      <div class="chart-card">
+        <h3>Agent 完成率图</h3>
+        {_chart_svg("Agent 完成率图", workload_rows, "completion_rate", "label")}
+      </div>
+      <div class="chart-card">
+        <h3>Token 使用量图</h3>
+        {_chart_svg("Token 使用量图", token_rows, "value", "label") if token_rows else '<p class="empty">Token 使用量未采集</p>'}
+      </div>
+    </section>
+    <section class="band">
+      <h2>执行健康</h2>
+      <div class="grid stats">
+        {_metric_card("过期租约", mgmt["execution_health"]["stale_count"])}
+        {_metric_card("重试关注", mgmt["execution_health"]["retry_attention_count"])}
+      </div>
+      <div class="legend">显示所有已注册 agent；未采集的 token 以“未采集”显示，不以 0 代替。</div>
+      {executions_table}
     </section>
     <section class="band">
       <h2>任务状态 / 负责人</h2>
       <div class="split">
-        <div>{_table(mgmt["tasks"], [("id", "ID"), ("status", "状态"), ("owner", "负责人"), ("domain", "领域"), ("priority", "优先级"), ("title", "任务")])}</div>
+        <div>{tasks_table}</div>
         <div class="owner-list">{_stat_cards(mgmt["task_counts_by_owner"])}</div>
       </div>
     </section>
     <section class="band"><h2>审批与人类依赖</h2>{dependencies}</section>
     <section class="band"><h2>周期</h2>{_table(mgmt["cycles"], [("id", "ID"), ("started_at", "开始"), ("finished_at", "结束"), ("summary", "摘要")])}</section>
     <section class="band"><h2>审计 / 决策</h2>{_table(mgmt["audit"], [("id", "ID"), ("ts", "时间"), ("actor", "角色"), ("action", "动作"), ("entity", "对象"), ("entity_id", "对象 ID")])}</section>
+    <section class="band"><h2>Agent 工作负载</h2>{workload_table}</section>
+    <section class="band"><h2>任务结果汇总</h2>{task_outcomes}</section>
     """
 
 
@@ -471,7 +826,7 @@ def _operations(snapshot: dict[str, Any]) -> str:
     return f"""
     <section class="band launch">
       <h2>上线前占位</h2>
-      <p>当前状态为 pre_launch。所有未接入或未发生的运营字段显示为占位，不显示为 0。</p>
+      <p>当前状态为上线前。所有未接入或未发生的运营字段显示为占位，不显示为 0。</p>
       <div class="placeholder-grid">{fields}</div>
     </section>
     <section class="band"><h2>KPI 定义来源</h2><ul class="roadmap">{kpis or '<li>暂无 KPI 定义</li>'}</ul></section>
@@ -526,7 +881,7 @@ def _company(snapshot: dict[str, Any]) -> str:
     </section>
     <section class="band">
       <h2>当前产品 PixWeave</h2>
-      <p class="lede">状态: {_escape(company["product"]["status"])}。本区只汇总仓库文档描述，不声明外部上线、收入或客户结果。</p>
+      <p class="lede">状态：内部本地 beta。({_escape(company["product"]["status"])}) 本区只汇总仓库文档描述，不声明外部上线、收入或客户结果。</p>
       <ul class="roadmap">{product}</ul>
       {_source_label(company["product"]["source"])}
     </section>
@@ -551,8 +906,8 @@ def _company(snapshot: dict[str, Any]) -> str:
       <ul class="roadmap">{org_lines}</ul>
       {_source_label(company["organization"]["source"])}
     </section>
-    <section class="band"><h2>Live SQLite 角色与职责</h2>{roles}<p class="source">来源: SQLite roles</p></section>
-    <section class="band"><h2>RACI / 协作关系</h2>{raci}<p class="source">来源: SQLite raci</p></section>
+    <section class="band"><h2>SQLite 角色与职责</h2>{roles}<p class="source">来源：SQLite roles</p></section>
+    <section class="band"><h2>RACI / 协作关系</h2>{raci}<p class="source">来源：SQLite raci</p></section>
     <section class="band">
       <h2>CEO 10 分钟节奏与 08/13/20 汇报</h2>
       <ul class="roadmap">{cadence}</ul>
@@ -709,6 +1064,23 @@ main { min-width: 0; padding: 28px; }
 .eyebrow { color: var(--muted); margin: 0 0 4px; font-size: 12px; }
 h1 { margin: 0; font-size: 28px; letter-spacing: 0; }
 h2 { margin: 0 0 14px; font-size: 16px; letter-spacing: 0; }
+.chart-card {
+  min-width: 0;
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.chart-card h3 { margin: 0 0 10px; font-size: 14px; color: var(--muted); font-weight: 600; }
+.chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.chart text { font: 12px ui-sans-serif, system-ui, sans-serif; fill: var(--text); }
+.chart .label { fill: var(--muted); }
+.chart rect { fill: var(--accent); }
+.legend { color: var(--muted); margin: 8px 0 14px; }
 .health { border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; color: var(--accent); white-space: nowrap; }
 .grid { display: grid; gap: 12px; }
 .stats { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin-bottom: 14px; }
