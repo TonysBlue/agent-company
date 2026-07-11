@@ -23,9 +23,17 @@ from .campaign_review import CampaignReviewError, build_campaign_review_record, 
 from .config import CompanyConfig, load_config
 from .feedback import FeedbackError, capture_feedback
 from .local_image_render import LOCAL_IMAGE_RENDER_PROVIDER, LOCAL_IMAGE_RENDER_PROVIDER_VERSION
+from .source_image_edit import (
+    SOURCE_IMAGE_EDIT_GALLERY_FILE,
+    SOURCE_IMAGE_EDIT_MANIFEST_FILE,
+    SOURCE_IMAGE_EDIT_PROVIDER,
+    SOURCE_IMAGE_EDIT_PROVIDER_VERSION,
+    SourceImageEditError,
+    create_source_image_edit_bundle,
+)
 
 
-MAX_JSON_BYTES = 256 * 1024
+MAX_JSON_BYTES = 3 * 1024 * 1024
 
 
 @dataclass(frozen=True)
@@ -88,7 +96,7 @@ class LocalBetaProductApp:
 
     def handle_post(self, path: str, raw_body: bytes, content_type: str = "application/json") -> Response:
         route = urlparse(path).path
-        if route not in {"/api/beta/render", "/api/beta/review", "/api/beta/feedback"}:
+        if route not in {"/api/beta/render", "/api/beta/review", "/api/beta/feedback", "/api/beta/source-edit"}:
             return Response(404, "text/plain; charset=utf-8", "not found\n")
         if len(raw_body) > MAX_JSON_BYTES:
             return _error(f"JSON body must be at most {MAX_JSON_BYTES} bytes", 413)
@@ -108,7 +116,9 @@ class LocalBetaProductApp:
                 return _json_response(self.record_review(payload))
             if route == "/api/beta/feedback":
                 return _json_response(self.capture_feedback(payload))
-        except (BrandKitError, CampaignReviewError, FeedbackError, OSError, ValueError) as exc:
+            if route == "/api/beta/source-edit":
+                return _json_response(self.edit_source_image(payload))
+        except (BrandKitError, CampaignReviewError, FeedbackError, SourceImageEditError, OSError, ValueError) as exc:
             return _error(str(exc))
         raise AssertionError(route)
 
@@ -122,11 +132,20 @@ class LocalBetaProductApp:
                 "render": "/api/beta/render",
                 "review": "/api/beta/review",
                 "feedback": "/api/beta/feedback",
+                "source_edit": "/api/beta/source-edit",
             },
             "render_provider": {
                 "name": LOCAL_IMAGE_RENDER_PROVIDER,
                 "version": LOCAL_IMAGE_RENDER_PROVIDER_VERSION,
                 "dependency_free": True,
+                "asset_type": "svg",
+            },
+            "source_edit_provider": {
+                "name": SOURCE_IMAGE_EDIT_PROVIDER,
+                "version": SOURCE_IMAGE_EDIT_PROVIDER_VERSION,
+                "dependency_free": True,
+                "accepted_media_types": ["image/png", "image/jpeg"],
+                "operations": ["crop", "branded_overlay"],
                 "asset_type": "svg",
             },
             "controls": {
@@ -138,6 +157,31 @@ class LocalBetaProductApp:
                 "payments_authorized": False,
                 "outreach_authorized": False,
             },
+        }
+
+    def edit_source_image(self, payload: dict[str, Any]) -> dict[str, Any]:
+        bundle_basis = stable_sha256({
+            "source_image": payload.get("source_image", {}),
+            "brand_kit": payload.get("brand_kit", {}),
+            "operations": payload.get("operations", []),
+        })
+        edit_dir = self.artifacts_dir / f"source-edit-v1-{bundle_basis[:12]}"
+        manifest = create_source_image_edit_bundle(payload, edit_dir)
+        return {
+            "ok": True,
+            "schema_version": manifest["schema_version"],
+            "path": str(edit_dir),
+            "edit_manifest": str(edit_dir / SOURCE_IMAGE_EDIT_MANIFEST_FILE),
+            "review_gallery": str(edit_dir / SOURCE_IMAGE_EDIT_GALLERY_FILE),
+            "bundle_sha256": manifest["bundle_sha256"],
+            "source_sha256": manifest["source"]["sha256"],
+            "asset_count": manifest["asset_count"],
+            "provider": manifest["provider"],
+            "provider_version": manifest["provider_version"],
+            "operations": [asset["operation_type"] for asset in manifest["assets"]],
+            "external_publish_authorized": False,
+            "external_action_authorized": False,
+            "capability_disclaimer": manifest["capability_disclaimer"],
         }
 
     def render_campaign(self, campaign_input: dict[str, Any]) -> dict[str, Any]:
@@ -227,7 +271,9 @@ class LocalBetaProductApp:
             "render": "POST /api/beta/render with examples/campaign.json body",
             "review": "POST /api/beta/review with bundle_path and campaign-review-decisions/v1 decisions",
             "feedback": "POST /api/beta/feedback with feedback-submission/v1 body",
+            "source_edit": "POST /api/beta/source-edit with source-image-edit/v1 PNG/JPEG base64 body and crop/branded_overlay operations",
             "provider": f"{LOCAL_IMAGE_RENDER_PROVIDER} {LOCAL_IMAGE_RENDER_PROVIDER_VERSION} dependency-free SVG",
+            "source_edit_provider": f"{SOURCE_IMAGE_EDIT_PROVIDER} {SOURCE_IMAGE_EDIT_PROVIDER_VERSION} dependency-free SVG edits",
         }, indent=2)
         return f"""<!doctype html>
 <html lang="en">
