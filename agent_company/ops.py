@@ -29,14 +29,31 @@ class CompanyOS:
         blocked = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='blocked'")["c"]
         approvals = self.store.fetch_one("SELECT COUNT(*) AS c FROM approvals WHERE status='pending'")["c"]
         cycles = self.store.fetch_one("SELECT COUNT(*) AS c FROM cycles")["c"]
+        active_phase = self.store.fetch_one("SELECT * FROM strategic_phases WHERE status='active' ORDER BY id DESC LIMIT 1")
+        recent = self.store.fetch_all("SELECT summary FROM cycles ORDER BY id DESC LIMIT 12")
+        consecutive_empty = 0
+        for row in recent:
+            try:
+                summary = json.loads(row["summary"])
+            except (TypeError, json.JSONDecodeError):
+                break
+            if int(summary.get("processed", 0)) or summary.get("progressed") or summary.get("escalated"):
+                break
+            consecutive_empty += 1
+        active_count = open_tasks + in_progress + blocked
+        business_progress = "advancing" if active_count else ("stalled" if consecutive_empty >= 3 else "at_risk")
         return {
             "product": self.config.product_name,
             "open_tasks": open_tasks,
             "in_progress_tasks": in_progress,
-            "active_tasks": open_tasks + in_progress + blocked,
+            "active_tasks": active_count,
             "blocked_tasks": blocked,
             "pending_approvals": approvals,
             "cycles": cycles,
+            "technical_health": "healthy",
+            "business_progress": business_progress,
+            "consecutive_empty_cycles": consecutive_empty,
+            "active_strategic_phase": dict(active_phase) if active_phase else None,
             "disclaimer": DISCLAIMER,
         }
 
@@ -88,6 +105,7 @@ class CompanyOS:
                 self.store.audit(conn, "CEO", "dispatch_task", "task", task["id"], {"owner": task["owner"]})
                 self.store.audit(conn, "CEO", "claim_task_execution", "task_execution", task["id"], details)
                 progressed.append(task["id"])
+            planned_phase_id = self._ensure_strategic_horizon(conn)
             self._ensure_backlog(conn)
             self._record_metrics(conn)
             summary = {
@@ -96,6 +114,7 @@ class CompanyOS:
                 "recovered": recovered,
                 "recovery_exhausted": exhausted,
                 "processed": len(tasks),
+                "planned_phase_id": planned_phase_id,
             }
             conn.execute("UPDATE cycles SET finished_at=?, summary=? WHERE id=?", (utcnow(), json.dumps(summary, sort_keys=True), cycle_id))
             self.store.audit(conn, "CEO", "run_cycle", "cycle", cycle_id, summary)
@@ -144,6 +163,96 @@ class CompanyOS:
                 "Produce a reviewable artifact, verify it against the parent task result, and attach the evidence path before completion.",
             ),
         )
+
+    def _ensure_strategic_horizon(self, conn) -> int | None:
+        """Activate one reviewed commercial phase before the active queue is exhausted."""
+        active = conn.execute(
+            "SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
+        ).fetchone()[0]
+        low_water = max(2, self.config.cycle_task_limit // 2)
+        if active > low_water:
+            return None
+        existing = conn.execute(
+            "SELECT id FROM strategic_phases WHERE phase_key='controlled-beta-validation-v1'"
+        ).fetchone()
+        if existing:
+            return existing["id"]
+
+        now_dt = datetime.now(timezone.utc).replace(microsecond=0)
+        now = now_dt.isoformat()
+        deadline = (now_dt + timedelta(days=30)).isoformat()
+        metrics = [
+            "完成至少 5 次经同意的受控 Beta 使用会话",
+            "获得可审计的满意度、任务成功率和操作时长证据",
+            "形成基于实测 Token 与人工复核成本的单位经济结论",
+        ]
+        dependencies = [
+            "真实客户外联、公开发布、定价、收费、合同与法律承诺均须董事长批准",
+            "外部测试者账号和数据处理方式须在启用前完成风险评审",
+        ]
+        evidence = ["会话记录", "反馈与缺陷台账", "质量评分", "Token 与成本台账", "阶段复盘"]
+        cur = conn.execute(
+            """INSERT INTO strategic_phases(
+                   phase_key, name, objective, success_metrics, deadline, dependencies,
+                   evidence_requirements, status, created_at, activated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)""",
+            (
+                "controlled-beta-validation-v1",
+                "受控 Beta 客户验证与单位经济阶段",
+                "以受控 Beta 客户验证推动真实产品使用、客户满意度、产品质量和商业可行性进步。",
+                json.dumps(metrics, ensure_ascii=False),
+                deadline,
+                json.dumps(dependencies, ensure_ascii=False),
+                json.dumps(evidence, ensure_ascii=False),
+                now,
+                now,
+            ),
+        )
+        phase_id = int(cur.lastrowid)
+        tasks = [
+            ("CPO", "定义受控 Beta 客户验证协议与成功指标", "product", 98,
+             "形成版本化协议，明确目标客户、核心场景、任务成功率、满意度、质量与停止阈值。",
+             "确保客户验证可产生可比较的需求、满意度与产品质量证据。"),
+            ("Product Engineer", "完善受控 Beta 会话与反馈闭环", "engineering", 96,
+             "实现本地受控会话、同意记录、反馈捕获、问题关联和可验证测试，不进行公开发布。",
+             "让真实使用反馈能进入产品改进闭环并缩短问题解决时间。"),
+            ("AI Platform & Quality Engineer", "自动采集任务时长 Token 与质量证据", "engineering", 95,
+             "真实执行自动写入任务时长和模型 Token 台账；未知值保持未采集；测试覆盖失败路径。",
+             "建立产品质量、效率和成本优化所需的真实经营数据。"),
+            ("CRO", "建立经董事长批准的首批验证客户候选与外联方案", "gtm", 94,
+             "完成候选客户画像、价值假设、招募材料、审批依赖和衡量方法；批准前不发送外联。",
+             "形成可执行且受治理的客户获取路径，验证需求而非只做内部建设。"),
+            ("CFO", "建立受控 Beta 单位经济与利润敏感性模型", "finance", 92,
+             "使用实测或明确标记待采集的 Token、复核和支持成本，给出盈亏平衡与利润敏感性。",
+             "为未来定价和资源投入提供可审计的利润决策依据。"),
+            ("COO", "建立 Beta 客户问题 SLA 与满意度改进机制", "operations", 90,
+             "定义反馈分级、负责人、响应期限、复盘、复发预防和满意度回访闭环。",
+             "持续提高客户问题解决速度、满意度和留存可能性。"),
+            ("Counsel", "完成受控 Beta 数据权利隐私与同意检查", "risk", 89,
+             "形成非法律意见的风险清单、同意文本草案、数据保留规则和董事长决策点。",
+             "在客户验证前降低数据、图片权利和隐私风险。"),
+            ("CTO", "制定并验证受控 Beta 可靠性与恢复门槛", "engineering", 91,
+             "定义访问控制、备份恢复、可观测性和故障演练门槛，附可重复验证证据。",
+             "保证客户使用期间产品可靠、问题可定位且数据可恢复。"),
+        ]
+        for owner, title, domain, priority, criteria, outcome in tasks:
+            conn.execute(
+                """INSERT INTO tasks(
+                       created_at, updated_at, owner, title, domain, status, priority,
+                       acceptance_criteria, strategic_phase_id, business_outcome)
+                   VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?)""",
+                (now, now, owner, title, domain, priority, criteria, phase_id, outcome),
+            )
+        details = {
+            "phase_key": "controlled-beta-validation-v1",
+            "objective": "controlled beta customer validation and unit economics",
+            "task_count": len(tasks),
+            "trigger_active_tasks": active,
+            "low_water_mark": low_water,
+            "deadline": deadline,
+        }
+        self.store.audit(conn, "CEO", "activate_strategic_phase", "strategic_phase", phase_id, details)
+        return phase_id
 
     def _ensure_backlog(self, conn) -> None:
         """Keep a bounded, finite roadmap backlog with explicit done criteria.
@@ -611,7 +720,7 @@ class CompanyOS:
     def validate(self) -> list[str]:
         self.init()
         errors: list[str] = []
-        required_tables = {"audit_log", "roles", "raci", "tasks", "approvals", "metrics", "experiments", "cycles", "task_executions", "token_usage"}
+        required_tables = {"audit_log", "roles", "raci", "tasks", "approvals", "metrics", "experiments", "cycles", "task_executions", "token_usage", "strategic_phases"}
         rows = self.store.fetch_all("SELECT name FROM sqlite_master WHERE type='table'")
         present = {row["name"] for row in rows}
         missing = required_tables - present

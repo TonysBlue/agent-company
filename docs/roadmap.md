@@ -1,5 +1,11 @@
 # Roadmap
 
+## Proactive Strategic Horizon
+
+The CEO reviews the active-work horizon every cycle and must activate the next reviewed phase before the queue reaches zero. A phase is finite and auditable: objective, measurable success metrics, deadline, dependencies, evidence requirements, business outcomes, and bounded tasks are persisted in SQLite. Technical availability and business progress are reported separately.
+
+The current next phase is **受控 Beta 客户验证与单位经济阶段**. It advances real product use, customer satisfaction evidence, quality improvement, and profit economics while keeping outreach, public launch, pricing, payment, contracts, and legal commitments under Chairman approval.
+
 ## 90-Day Plan
 
 Days 1-30:

@@ -141,6 +141,7 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         "raci": [],
         "task_executions": [],
         "token_usage": [],
+        "strategic_phases": [],
     }
     if not config.db_path.exists():
         empty["database"]["error"] = "database file not found"
@@ -152,6 +153,9 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
             ).fetchone()
             token_usage_table = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='token_usage'"
+            ).fetchone()
+            strategic_phase_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='strategic_phases'"
             ).fetchone()
             return {
                 "database": {
@@ -183,6 +187,9 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "token_usage": _row_dicts(list(conn.execute(
                     "SELECT * FROM token_usage ORDER BY ts DESC, id DESC"
                 ))) if token_usage_table else [],
+                "strategic_phases": _row_dicts(list(conn.execute(
+                    "SELECT * FROM strategic_phases ORDER BY id DESC"
+                ))) if strategic_phase_table else [],
             }
     except sqlite3.Error as exc:
         empty["database"]["error"] = str(exc)
@@ -480,6 +487,18 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
     agents = [row["name"] for row in sqlite_data["roles"] if row.get("kind") == "agent"]
     pending_approvals = [row for row in approvals if row.get("status") == "pending"]
     blocked_tasks = [row for row in tasks if row.get("status") == "blocked"]
+    active_tasks = [row for row in tasks if row.get("status") in {"open", "in_progress", "blocked"}]
+    recent_cycles = sqlite_data["cycles"]
+    consecutive_empty_cycles = 0
+    for cycle in recent_cycles:
+        try:
+            summary = json.loads(cycle.get("summary") or "{}")
+        except json.JSONDecodeError:
+            break
+        if summary.get("processed") or summary.get("progressed") or summary.get("escalated"):
+            break
+        consecutive_empty_cycles += 1
+    business_progress = "推进中" if active_tasks else ("停滞" if consecutive_empty_cycles >= 3 else "有风险")
     execution_health = _execution_health(sqlite_data["task_executions"])
     token_usage: dict[str, Any] = {agent: {"agent": agent, "display_label": _role_label(agent), "status_label": "未采集"} for agent in agents}
     workload: dict[str, Any] = {
@@ -572,6 +591,10 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "execution_health": execution_health,
             "agent_workload": workload,
             "token_usage": token_usage,
+            "strategic_phases": sqlite_data["strategic_phases"],
+            "technical_health": "正常" if sqlite_data["database"]["available"] else "异常",
+            "business_progress": business_progress,
+            "consecutive_empty_cycles": consecutive_empty_cycles,
             "role_execution_timeline": execution_timeline,
             "average_execution_seconds_per_ceo_cycle": average_cycle_duration,
             "decisions": [row for row in approvals if row.get("status") in {"approved", "denied"}],
@@ -882,6 +905,12 @@ def _management(snapshot: dict[str, Any]) -> str:
     )
     return f"""
     <section class="grid stats">
+      {_metric_card("技术运行状态", mgmt["technical_health"])}
+      {_metric_card("业务推进状态", mgmt["business_progress"])}
+      {_metric_card("连续空周期", mgmt["consecutive_empty_cycles"])}
+      {_metric_card("战略阶段", mgmt["strategic_phases"][0]["name"] if mgmt["strategic_phases"] else "未规划")}
+    </section>
+    <section class="grid stats">
       <div class="chart-card">
         <h3>任务状态图</h3>
         {_chart_svg("任务状态图", task_chart_data, "value", "label")}
@@ -894,6 +923,10 @@ def _management(snapshot: dict[str, Any]) -> str:
         <h3>Token 使用量图</h3>
         {_chart_svg("Token 使用量图", token_rows, "value", "label") if token_rows else '<p class="empty">Token 使用量未采集</p>'}
       </div>
+    </section>
+    <section class="band">
+      <h2>战略阶段与业务目标</h2>
+      {_table(mgmt["strategic_phases"], [("id", "ID"), ("name", "阶段"), ("status", "状态"), ("objective", "业务目标"), ("success_metrics", "成功指标"), ("deadline", "截止时间"), ("dependencies", "依赖")])}
     </section>
     <section class="band">
       <h2>角色任务执行时间轴</h2>

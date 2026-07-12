@@ -273,26 +273,55 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         titles = store.fetch_all("SELECT title, COUNT(*) AS c FROM tasks GROUP BY title")
         self.assertTrue(all(row["c"] == 1 for row in titles))
 
-    def test_backlog_stops_after_reviewed_roadmap_is_exhausted(self) -> None:
+    def test_ceo_prepares_next_strategic_phase_before_backlog_exhaustion(self) -> None:
         self.osys.init()
-        for _ in range(12):
-            cycle = self.osys.run_cycle()
-            for task_id in cycle["progressed"]:
-                task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE id=?", (task_id,))
-                evidence = self.root / f"evidence-{task_id}.md"
-                evidence.write_text("verified\n", encoding="utf-8")
-                self.osys.complete_task(task_id, task["owner"], "Verified bounded result.", [evidence])
-
         store = Store(self.config.db_path)
-        titles = store.fetch_all("SELECT title FROM tasks")
-        self.assertFalse(any("iteration" in row["title"] for row in titles))
-        task_count = len(titles)
+        with store.connect() as conn:
+            conn.execute("UPDATE tasks SET status='done', result='{}'")
+            now = "2026-07-13T00:00:00+00:00"
+            conn.execute(
+                """INSERT INTO tasks(created_at, updated_at, owner, title, domain, status,
+                                      priority, acceptance_criteria)
+                   VALUES (?, ?, 'CPO', 'Last current-phase task', 'product', 'open', 99,
+                           'One bounded current-phase result is verified.')""",
+                (now, now),
+            )
 
-        # Further dispatches may leave a legitimate reserved task blocked, but they
-        # must not manufacture replacement work after the finite list is consumed.
-        for _ in range(3):
-            self.osys.run_cycle()
-        self.assertEqual(len(store.fetch_all("SELECT id FROM tasks")), task_count)
+        cycle = self.osys.run_cycle()
+
+        phases = store.fetch_all("SELECT * FROM strategic_phases ORDER BY id")
+        self.assertEqual(len(phases), 1)
+        self.assertEqual(phases[0]["status"], "active")
+        self.assertIn("客户验证", phases[0]["objective"])
+        self.assertTrue(phases[0]["success_metrics"])
+        self.assertTrue(phases[0]["deadline"])
+        phase_tasks = store.fetch_all("SELECT * FROM tasks WHERE strategic_phase_id=?", (phases[0]["id"],))
+        self.assertGreaterEqual(len(phase_tasks), 6)
+        self.assertTrue(all(row["acceptance_criteria"] for row in phase_tasks))
+        self.assertTrue(all(row["business_outcome"] for row in phase_tasks))
+        self.assertIn("planned_phase_id", cycle)
+        audits = store.fetch_all("SELECT action FROM audit_log WHERE entity='strategic_phase'")
+        self.assertIn("activate_strategic_phase", [row["action"] for row in audits])
+
+        before = len(phase_tasks)
+        self.osys.run_cycle()
+        after = len(store.fetch_all("SELECT id FROM tasks WHERE strategic_phase_id=?", (phases[0]["id"],)))
+        self.assertEqual(after, before)
+
+    def test_status_distinguishes_business_stall_from_technical_health(self) -> None:
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET status='done', result='{}'")
+            conn.execute("DELETE FROM strategic_phases")
+            for index in range(3):
+                conn.execute(
+                    "INSERT INTO cycles(started_at, finished_at, summary) VALUES (?, ?, ?)",
+                    (f"2026-07-13T00:0{index}:00+00:00", f"2026-07-13T00:0{index}:01+00:00", '{"processed": 0, "progressed": []}'),
+                )
+        status = self.osys.status()
+        self.assertEqual(status["technical_health"], "healthy")
+        self.assertEqual(status["business_progress"], "stalled")
+        self.assertGreaterEqual(status["consecutive_empty_cycles"], 3)
 
     def test_cycle_seeds_internal_draft_experiment(self) -> None:
         self.osys.run_cycle()

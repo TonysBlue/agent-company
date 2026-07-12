@@ -125,6 +125,20 @@ class Store:
                     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                     UNIQUE(task_id)
                 );
+                CREATE TABLE IF NOT EXISTS strategic_phases (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    phase_key TEXT NOT NULL UNIQUE,
+                    name TEXT NOT NULL,
+                    objective TEXT NOT NULL,
+                    success_metrics TEXT NOT NULL,
+                    deadline TEXT NOT NULL,
+                    dependencies TEXT NOT NULL,
+                    evidence_requirements TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    activated_at TEXT,
+                    completed_at TEXT
+                );
                 CREATE TABLE IF NOT EXISTS token_usage (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ts TEXT NOT NULL,
@@ -152,6 +166,10 @@ class Store:
             task_columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
             if "acceptance_criteria" not in task_columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN acceptance_criteria TEXT")
+            if "strategic_phase_id" not in task_columns:
+                conn.execute("ALTER TABLE tasks ADD COLUMN strategic_phase_id INTEGER REFERENCES strategic_phases(id)")
+            if "business_outcome" not in task_columns:
+                conn.execute("ALTER TABLE tasks ADD COLUMN business_outcome TEXT")
             self._seed(conn)
 
     def _seed(self, conn: sqlite3.Connection) -> None:
