@@ -7,4 +7,4 @@
 - Customer data handling and export controls.
 - External publishing before review.
 
-Mitigations: reserved-action gates, audit log, deterministic local MVP backend, Counsel risk checks, Chairman approval for external/irreversible actions.
+Mitigations: reserved-action gates, audit log, deterministic local MVP backend, on-demand Legal/Compliance Specialist review, and Chairman approval for external or irreversible actions.

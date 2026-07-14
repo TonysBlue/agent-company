@@ -11,6 +11,9 @@ from typing import Any, Iterable
 from .models import RACI, ROLES, SEED_TASKS
 
 
+ORGANIZATION_MIGRATION_VERSION = "lean-org-v1"
+
+
 def utcnow() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
@@ -42,7 +45,8 @@ class Store:
                 CREATE TABLE IF NOT EXISTS roles (
                     name TEXT PRIMARY KEY,
                     kind TEXT NOT NULL,
-                    mandate TEXT NOT NULL
+                    mandate TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'resident'
                 );
                 CREATE TABLE IF NOT EXISTS raci (
                     domain TEXT PRIMARY KEY,
@@ -170,34 +174,104 @@ class Store:
                 conn.execute("ALTER TABLE tasks ADD COLUMN strategic_phase_id INTEGER REFERENCES strategic_phases(id)")
             if "business_outcome" not in task_columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN business_outcome TEXT")
+            role_columns = {row[1] for row in conn.execute("PRAGMA table_info(roles)")}
+            if "status" not in role_columns:
+                conn.execute("ALTER TABLE roles ADD COLUMN status TEXT NOT NULL DEFAULT 'resident'")
             self._seed(conn)
 
     def _seed(self, conn: sqlite3.Connection) -> None:
-        for name, mandate in ROLES.items():
-            kind = "human" if name == "Chairman" else "agent"
-            conn.execute(
-                "INSERT OR IGNORE INTO roles(name, kind, mandate) VALUES (?, ?, ?)",
-                (name, kind, mandate),
-            )
-        for domain, values in RACI.items():
-            conn.execute(
-                "INSERT OR IGNORE INTO raci(domain, responsible, accountable, consulted, informed) VALUES (?, ?, ?, ?, ?)",
-                (domain, *values),
-            )
-        count = conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
-        if count == 0:
+        self._migrate_organization(conn)
+        initialized = conn.execute(
+            "SELECT 1 FROM audit_log WHERE actor='system' AND action='init' LIMIT 1"
+        ).fetchone()
+        if initialized is None:
             now = utcnow()
             conn.executemany(
                 "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority, blocked_reason, result) VALUES (?, ?, ?, ?, ?, 'open', ?, NULL, NULL)",
                 [(now, now, owner, title, domain, priority) for owner, title, domain, priority in SEED_TASKS],
             )
-        # Reads call CompanyOS.init() defensively, so initialization must remain
-        # idempotent in the audit trail as well as in the schema.
-        initialized = conn.execute(
-            "SELECT 1 FROM audit_log WHERE actor='system' AND action='init' LIMIT 1"
-        ).fetchone()
-        if initialized is None:
             self.audit(conn, "system", "init", "database", None, {"seeded": True})
+
+    def _migrate_organization(self, conn: sqlite3.Connection) -> dict[str, Any]:
+        before = {
+            row["name"]: {"kind": row["kind"], "mandate": row["mandate"]}
+            for row in conn.execute("SELECT name, kind, mandate FROM roles")
+        }
+        resident_names = set(ROLES)
+        historical_names = sorted(set(before) - resident_names)
+
+        obsolete_active = list(conn.execute(
+            """SELECT id, owner, status FROM tasks
+               WHERE status IN ('open', 'in_progress', 'blocked')
+                 AND owner NOT IN (?, ?, ?)""",
+            ("CEO", "Product Engineer", "Customer & Revenue"),
+        ))
+        now = utcnow()
+        for task in obsolete_active:
+            result = {
+                "migration_version": ORGANIZATION_MIGRATION_VERSION,
+                "reason": "closed during lean organization migration; historical owner retained",
+                "previous_status": task["status"],
+            }
+            conn.execute(
+                "UPDATE tasks SET status='cancelled', updated_at=?, blocked_reason=NULL, result=? WHERE id=?",
+                (now, json.dumps(result, sort_keys=True), task["id"]),
+            )
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_executions'"
+            ).fetchone():
+                conn.execute(
+                    "UPDATE task_executions SET recovery_status='cancelled', updated_at=? WHERE task_id=?",
+                    (now, task["id"]),
+                )
+
+        conn.execute("UPDATE roles SET status='historical' WHERE name NOT IN ({})".format(
+            ",".join("?" for _ in resident_names)
+        ), tuple(sorted(resident_names)))
+        for name, mandate in ROLES.items():
+            kind = "human" if name == "Chairman" else "agent"
+            conn.execute(
+                """INSERT INTO roles(name, kind, mandate, status) VALUES (?, ?, ?, 'resident')
+                   ON CONFLICT(name) DO UPDATE SET
+                       kind=excluded.kind,
+                       mandate=excluded.mandate,
+                       status='resident'""",
+                (name, kind, mandate),
+            )
+        conn.execute("DELETE FROM raci")
+        for domain, values in RACI.items():
+            conn.execute(
+                "INSERT INTO raci(domain, responsible, accountable, consulted, informed) VALUES (?, ?, ?, ?, ?)",
+                (domain, *values),
+            )
+
+        details = {
+            "migration_version": ORGANIZATION_MIGRATION_VERSION,
+            "resident_roles": sorted(name for name in resident_names if name != "Chairman"),
+            "historical_roles": historical_names,
+            "raci_domains": sorted(RACI),
+            "task_owner_rows_changed": 0,
+            "closed_obsolete_active_task_ids": [task["id"] for task in obsolete_active],
+        }
+        migrated = conn.execute(
+            "SELECT 1 FROM audit_log WHERE action='migrate_organization' AND entity_id=?",
+            (ORGANIZATION_MIGRATION_VERSION,),
+        ).fetchone()
+        if migrated is None:
+            self.audit(
+                conn,
+                "system",
+                "migrate_organization",
+                "organization",
+                ORGANIZATION_MIGRATION_VERSION,
+                details,
+            )
+        return details
+
+    def migrate_organization(self) -> dict[str, Any]:
+        self.init()
+        with self.connect() as conn:
+            return self._migrate_organization(conn)
 
     def audit(self, conn: sqlite3.Connection, actor: str, action: str, entity: str, entity_id: Any, details: dict[str, Any]) -> None:
         conn.execute(

@@ -17,6 +17,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .config import CompanyConfig, load_config
+from .models import ON_DEMAND_CAPABILITIES
 
 
 PAGES = {
@@ -28,6 +29,7 @@ PAGES = {
 
 ROLE_LABELS = {
     "CEO": "首席执行官（CEO）",
+    "Customer & Revenue": "客户与营收（Customer & Revenue）",
     "CPO": "首席产品官（CPO）",
     "CTO": "首席技术官（CTO）",
     "CRO": "首席营收官（CRO）",
@@ -173,7 +175,7 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "cycles": _row_dicts(list(conn.execute("SELECT * FROM cycles ORDER BY id DESC LIMIT 12"))),
                 "audit": _row_dicts(list(conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 20"))),
                 "experiments": _row_dicts(list(conn.execute("SELECT * FROM experiments ORDER BY id DESC LIMIT 12"))),
-                "roles": _row_dicts(list(conn.execute("SELECT name, kind, mandate FROM roles ORDER BY name ASC"))),
+                "roles": _row_dicts(list(conn.execute("SELECT name, kind, mandate, status FROM roles ORDER BY name ASC"))),
                 "raci": _row_dicts(list(conn.execute(
                     "SELECT domain, responsible, accountable, consulted, informed FROM raci ORDER BY domain ASC"
                 ))),
@@ -484,7 +486,15 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
     sqlite_data = _sqlite_snapshot(config)
     tasks = sqlite_data["tasks"]
     approvals = sqlite_data["approvals"]
-    agents = [row["name"] for row in sqlite_data["roles"] if row.get("kind") == "agent"]
+    resident_agents = [
+        row["name"] for row in sqlite_data["roles"]
+        if row.get("kind") == "agent" and row.get("status") == "resident"
+    ]
+    historical_task_agents = [
+        str(task.get("owner")) for task in tasks
+        if task.get("owner") and task.get("owner") not in resident_agents and task.get("owner") != "Chairman"
+    ]
+    agents = list(dict.fromkeys([*resident_agents, *historical_task_agents]))
     pending_approvals = [row for row in approvals if row.get("status") == "pending"]
     blocked_tasks = [row for row in tasks if row.get("status") == "blocked"]
     active_tasks = [row for row in tasks if row.get("status") in {"open", "in_progress", "blocked"}]
@@ -695,6 +705,16 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "roles": [
                 {**row, "source": "SQLite roles"}
                 for row in sqlite_data["roles"]
+                if row.get("status") == "resident"
+            ],
+            "historical_roles": [
+                {**row, "source": "SQLite roles (historical compatibility)"}
+                for row in sqlite_data["roles"]
+                if row.get("status") == "historical"
+            ],
+            "on_demand_capabilities": [
+                {"name": name, "mandate": mandate, "source": "agent_company.models"}
+                for name, mandate in ON_DEMAND_CAPABILITIES.items()
             ],
             "raci": [
                 {**row, "source": "SQLite raci"}
@@ -1018,13 +1038,23 @@ def _company(snapshot: dict[str, Any]) -> str:
     org_lines = _doc_list(company["organization"], "组织说明缺失；请补充 docs/org.md。")
     cadence = _doc_list(
         company["cadence"],
-        "CEO 每 10 分钟恢复运营；08:00、13:00、20:00 向 Chairman 汇报，详见 docs/cadence.md。",
+        "CEO 每 30 分钟恢复运营；08:00、13:00、20:00 向 Chairman 汇报，详见 docs/cadence.md。",
     )
     governance = _doc_list(company["governance"], "治理说明缺失；请补充 docs/versioning-and-records.md。")
     roles = _table(company["roles"], [
         ("name", "角色"),
         ("kind", "类型"),
         ("mandate", "职责 / 授权边界"),
+        ("source", "来源"),
+    ])
+    historical_roles = _table(company["historical_roles"], [
+        ("name", "历史角色"),
+        ("status", "状态"),
+        ("source", "来源"),
+    ])
+    on_demand = _table(company["on_demand_capabilities"], [
+        ("name", "按需能力"),
+        ("mandate", "用途 / 边界"),
         ("source", "来源"),
     ])
     raci = _table(company["raci"], [
@@ -1059,36 +1089,30 @@ def _company(snapshot: dict[str, Any]) -> str:
         <div class="org-node human">Chairman<br><small>唯一人类 / 保留决策</small></div>
         <div class="org-node">CEO<br><small>执行协调 / 决策流</small></div>
         <div class="org-row">
-          <div class="org-node">CPO</div>
-          <div class="org-node cto">CTO<br><small>紧凑 CTO 组</small></div>
-          <div class="org-node">CRO</div>
-          <div class="org-node">COO</div>
-          <div class="org-node">CFO</div>
-          <div class="org-node">Counsel</div>
-        </div>
-        <div class="org-row compact">
-          <div class="org-node">Product Engineer</div>
-          <div class="org-node">AI Platform &amp; Quality Engineer</div>
+          <div class="org-node">Product Engineer<br><small>产品交付 / 质量证据</small></div>
+          <div class="org-node">客户与营收（Customer &amp; Revenue）<br><small>客户 / GTM / 营收运营</small></div>
         </div>
       </div>
       <ul class="roadmap">{org_lines}</ul>
       {_source_label(company["organization"]["source"])}
     </section>
-    <section class="band"><h2>SQLite 角色与职责</h2>{roles}<p class="source">来源：SQLite roles</p></section>
+    <section class="band"><h2>SQLite 常驻角色与职责</h2>{roles}<p class="source">来源：SQLite roles</p></section>
+    <section class="band"><h2>按需能力</h2>{on_demand}<p class="source">来源：agent_company.models</p></section>
+    <section class="band"><h2>历史角色兼容记录</h2><p class="lede">仅为保留历史任务 owner 与账本关联，不属于当前常驻组织。</p>{historical_roles}</section>
     <section class="band"><h2>RACI / 协作关系</h2>{raci}<p class="source">来源：SQLite raci</p></section>
     <section class="band">
-      <h2>CEO 10 分钟节奏与 08/13/20 汇报</h2>
+      <h2>CEO 30 分钟节奏与 08/13/20 汇报</h2>
       <ul class="roadmap">{cadence}</ul>
       {_source_label(company["cadence"]["source"])}
     </section>
     <section class="band">
       <h2>Chairman 保留决策 / 人类依赖</h2>
-      <p class="lede">外部发布、外部支出、法律承诺、合同签署、生产部署、客户数据导出和定价变更必须等待 Chairman 决策；人类阻塞项从 live approvals/tasks 在管理页展示。</p>
+      <p class="lede">真实客户外联、定价承诺、付款与预算、合同和法律承诺、公开发布、生产部署及不可逆动作必须等待 Chairman 决策；人类阻塞项从 live approvals/tasks 在管理页展示。</p>
       {_source_label("docs/org.md")}
     </section>
     <section class="band">
       <h2>Codex 异步资源</h2>
-      <p class="lede">Codex 是 CEO 可分配给各职能的异步执行资源，条件是工作有边界、可审查、可验证；它不是部门，也不是决策者。</p>
+      <p class="lede">Codex workers 是按需能力，条件是工作有边界、可审查、可验证；它们不是常驻角色、部门或决策者。</p>
       {_source_label("docs/org.md")}
     </section>
     <section class="band">

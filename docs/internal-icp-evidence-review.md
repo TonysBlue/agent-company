@@ -1,7 +1,7 @@
 # Internal ICP Evidence Review
 
 Date: 2026-07-11  
-Owner: CRO  
+Owner: Customer & Revenue
 Scope: internal analysis only; no outreach, customer claim, pricing decision, or external publication
 
 ## Evidence boundary
@@ -40,7 +40,7 @@ Score each message against the same four evidence dimensions, each on `0–2`:
 3. real-user evidence (`0` none, `1` qualitative evidence, `2` measured repeated use);
 4. commercial-outcome evidence (`0` none, `1` proxy outcome, `2` measured customer outcome).
 
-Primary metric: `positioning_evidence_support_rate = points_awarded / 8` for each message. Owner: CRO. Cadence: once per material product-evidence change and before any request to externally test positioning. Data sources: Git-tracked requirements, runnable CLI behavior, passing regression output, and approved anonymized customer evidence when such evidence exists.
+Primary metric: `positioning_evidence_support_rate = points_awarded / 8` for each message. Owner: Customer & Revenue. Cadence: once per material product-evidence change and before any request to externally test positioning. Data sources: Git-tracked requirements, runnable CLI behavior, passing regression output, and approved anonymized customer evidence when such evidence exists.
 
 Guardrail: a message is not eligible for an external positioning-test approval request unless every awarded point links to reviewable evidence and the wording explicitly distinguishes implemented capability from unvalidated customer value. The internal test does not authorize outreach.
 

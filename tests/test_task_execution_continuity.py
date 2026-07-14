@@ -47,17 +47,19 @@ codex_enabled = true
         self.config = load_config()
         self.osys = CompanyOS(self.config)
         self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DELETE FROM tasks")
 
     def tearDown(self) -> None:
         os.chdir(self.old_cwd)
         self.tmp.cleanup()
 
-    def _create_task(self, owner: str = "CTO") -> int:
+    def _create_task(self, owner: str = "Product Engineer") -> int:
         return self.osys.create_task(
             "CEO",
             owner,
             f"Continuity task {owner}",
-            "engineering",
+            "engineering" if owner == "Product Engineer" else "gtm",
             90,
             "Execution state is durable and recoverable.",
         )["task_id"]
@@ -70,14 +72,14 @@ codex_enabled = true
         tables = {row["name"] for row in Store(self.config.db_path).fetch_all("SELECT name FROM sqlite_master WHERE type='table'")}
         self.assertIn("task_executions", tables)
         stored = Store(self.config.db_path).fetch_one("SELECT title FROM tasks WHERE id=?", (task_id,))
-        self.assertEqual(stored["title"], "Continuity task CTO")
+        self.assertEqual(stored["title"], "Continuity task Product Engineer")
 
     def test_claim_is_atomic_and_records_runtime_identity(self) -> None:
         task_id = self._create_task()
 
         first = self.osys.claim_task(
             task_id,
-            "CTO",
+            "Product Engineer",
             executor_id="exec-1",
             backend="codex",
             process_id=1234,
@@ -90,7 +92,7 @@ codex_enabled = true
         self.assertEqual(first["status"], "in_progress")
         self.assertEqual(first["executor_id"], "exec-1")
         with self.assertRaisesRegex(ValueError, "already claimed"):
-            self.osys.claim_task(task_id, "CTO", executor_id="exec-2", backend="local")
+            self.osys.claim_task(task_id, "Product Engineer", executor_id="exec-2", backend="local")
         execution = self.osys.inspect_execution(task_id)["execution"]
         self.assertEqual(execution["backend"], "codex")
         self.assertEqual(execution["process_id"], 1234)
@@ -100,7 +102,7 @@ codex_enabled = true
 
     def test_heartbeat_checkpoint_and_failure_are_audited(self) -> None:
         task_id = self._create_task()
-        self.osys.claim_task(task_id, "CTO", executor_id="exec-1", backend="local", lease_seconds=60)
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="exec-1", backend="local", lease_seconds=60)
 
         heartbeat = self.osys.heartbeat_task(task_id, "exec-1", lease_seconds=120)
         checkpoint = self.osys.checkpoint_task(task_id, "exec-1", "tests passing", "write docs")
@@ -121,9 +123,9 @@ codex_enabled = true
         self.assertIn("fail_task_execution", actions)
 
     def test_run_cycle_recovers_stale_lease_before_dispatching_new_work(self) -> None:
-        stale_task = self._create_task("CTO")
-        fresh_task = self._create_task("CPO")
-        self.osys.claim_task(stale_task, "CTO", executor_id="stale-exec", backend="local")
+        stale_task = self._create_task("Product Engineer")
+        fresh_task = self._create_task("Customer & Revenue")
+        self.osys.claim_task(stale_task, "Product Engineer", executor_id="stale-exec", backend="local")
         with Store(self.config.db_path).connect() as conn:
             conn.execute(
                 "UPDATE task_executions SET heartbeat_at=?, lease_expires_at=?, recovery_status=? WHERE task_id=?",
@@ -147,7 +149,7 @@ codex_enabled = true
 
     def test_retry_exhaustion_blocks_instead_of_looping(self) -> None:
         task_id = self._create_task()
-        self.osys.claim_task(task_id, "CTO", executor_id="exec-1", backend="local", max_attempts=1)
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="exec-1", backend="local", max_attempts=1)
         with Store(self.config.db_path).connect() as conn:
             conn.execute(
                 "UPDATE task_executions SET lease_expires_at=?, recovery_status=? WHERE task_id=?",
@@ -165,11 +167,11 @@ codex_enabled = true
 
     def test_run_cycle_renews_valid_in_progress_leases_without_new_dispatch(self) -> None:
         task_id = self._create_task()
-        other_task = self._create_task("CPO")
+        other_task = self._create_task("Customer & Revenue")
         with patch("agent_company.ops._process_start_identity", return_value="current-start"):
             self.osys.claim_task(
                 task_id,
-                "CTO",
+                "Product Engineer",
                 executor_id="exec-1",
                 backend="local",
                 process_id=os.getpid(),
@@ -204,10 +206,10 @@ codex_enabled = true
 
     def test_run_cycle_recovers_fresh_lease_when_recorded_pid_identity_mismatches(self) -> None:
         task_id = self._create_task()
-        other_task = self._create_task("CPO")
+        other_task = self._create_task("Customer & Revenue")
         self.osys.claim_task(
             task_id,
-            "CTO",
+            "Product Engineer",
             executor_id="exec-1",
             backend="local",
             process_id=os.getpid(),
@@ -226,8 +228,8 @@ codex_enabled = true
 
     def test_run_cycle_recovers_fresh_local_execution_without_recorded_pid(self) -> None:
         task_id = self._create_task()
-        other_task = self._create_task("CPO")
-        self.osys.claim_task(task_id, "CTO", executor_id="exec-1", backend="local", lease_seconds=600)
+        other_task = self._create_task("Customer & Revenue")
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="exec-1", backend="local", lease_seconds=600)
 
         cycle = self.osys.run_cycle()
 
@@ -239,10 +241,10 @@ codex_enabled = true
 
     def test_run_cycle_recovers_fresh_local_execution_without_recorded_pid_identity(self) -> None:
         task_id = self._create_task()
-        other_task = self._create_task("CPO")
+        other_task = self._create_task("Customer & Revenue")
         self.osys.claim_task(
             task_id,
-            "CTO",
+            "Product Engineer",
             executor_id="exec-1",
             backend="local",
             process_id=os.getpid(),
@@ -259,11 +261,11 @@ codex_enabled = true
 
     def test_run_cycle_recovers_failed_execution_without_waiting_for_lease_expiry(self) -> None:
         task_id = self._create_task()
-        other_task = self._create_task("CPO")
+        other_task = self._create_task("Customer & Revenue")
         with patch("agent_company.ops._process_start_identity", return_value="current-start"):
             self.osys.claim_task(
                 task_id,
-                "CTO",
+                "Product Engineer",
                 executor_id="exec-1",
                 backend="local",
                 process_id=os.getpid(),
@@ -286,7 +288,7 @@ codex_enabled = true
         with patch("agent_company.ops._process_start_identity", return_value="current-start"):
             self.osys.claim_task(
                 task_id,
-                "CTO",
+                "Product Engineer",
                 executor_id="exec-1",
                 backend="local",
                 process_id=os.getpid(),
@@ -306,7 +308,7 @@ codex_enabled = true
         task_id = self._create_task()
         self.osys.claim_task(
             task_id,
-            "CTO",
+            "Product Engineer",
             executor_id="exec-1",
             backend="local",
             process_id=os.getpid(),
@@ -325,7 +327,7 @@ codex_enabled = true
         with contextlib.redirect_stdout(out):
             code = cli_main([
                 "--config", str(self.root / "config" / "sample.ini"),
-                "task-claim", str(task_id), "--actor", "CTO", "--executor-id", "cli-exec", "--backend", "codex",
+                "task-claim", str(task_id), "--actor", "Product Engineer", "--executor-id", "cli-exec", "--backend", "codex",
                 "--session-ref", "session-1",
             ])
         self.assertEqual(code, 0)
@@ -344,7 +346,7 @@ codex_enabled = true
 
     def test_dashboard_exposes_execution_health(self) -> None:
         task_id = self._create_task()
-        self.osys.claim_task(task_id, "CTO", executor_id="exec-1", backend="local", lease_seconds=60)
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="exec-1", backend="local", lease_seconds=60)
         self.osys.checkpoint_task(task_id, "exec-1", "checkpoint A", "next B")
         self.osys.fail_task(task_id, "exec-1", "last error", recoverable=True)
 

@@ -133,7 +133,7 @@ logs = logs
         self.assertIn("真实商业运营原则", company.body)
         self.assertIn("PixWeave", company.body)
         self.assertIn("组织图", company.body)
-        self.assertIn("CEO 10 分钟节奏", company.body)
+        self.assertIn("CEO 30 分钟节奏", company.body)
         self.assertIn("08:00", company.body)
         self.assertIn("13:00", company.body)
         self.assertIn("20:00", company.body)
@@ -204,7 +204,7 @@ logs = logs
                        ts, agent, task_id, execution_id, session, model, provider,
                        input_tokens, output_tokens, cache_tokens, reasoning_tokens,
                        total_tokens, cost, currency, source, created_at
-                   ) VALUES (?, 'CTO', 1, NULL, 's-1', 'gpt-test', 'openai',
+                   ) VALUES (?, 'Product Engineer', 1, NULL, 's-1', 'gpt-test', 'openai',
                    100, 25, 10, 5, 140, 0.12, 'USD', 'observed-test', ?)""",
                 ("2026-07-11T00:00:00+00:00", "2026-07-11T00:00:00+00:00"),
             )
@@ -214,7 +214,7 @@ logs = logs
         self.assertIn("CEO", workload)
         self.assertEqual(workload["CEO"]["status_label"], "未采集")
         self.assertEqual(workload["CTO"]["task_outcomes"]["in_progress"], 1)
-        self.assertEqual(workload["CTO"]["token_usage"]["total_tokens"], 140)
+        self.assertEqual(workload["Product Engineer"]["token_usage"]["total_tokens"], 140)
         self.assertEqual(workload["CTO"]["display_label"], "首席技术官（CTO）")
 
         management = DashboardApp(self.config).render_path("/management").body

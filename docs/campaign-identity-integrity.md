@@ -26,4 +26,4 @@ Automated regression coverage must demonstrate that:
 3. the existing valid example still produces 16 unique variant IDs; and
 4. two runs over the valid example produce the same manifest checksum.
 
-The measurable product signal is `manifest_identity_collision_rate`, defined as duplicate variant IDs divided by generated variants. Owner: AI Platform & Quality Engineer. Cadence: every manifest build and CI regression run. Required threshold: `0` for every accepted manifest. Data source: generated manifest `variants[].id` and `variant_count`.
+The measurable product signal is `manifest_identity_collision_rate`, defined as duplicate variant IDs divided by generated variants. Owner: Product Engineer. Independent review capability: Independent Quality Reviewer, invoked on demand. Cadence: every manifest build and CI regression run. Required threshold: `0` for every accepted manifest. Data source: generated manifest `variants[].id` and `variant_count`.

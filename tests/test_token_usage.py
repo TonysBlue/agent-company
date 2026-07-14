@@ -45,12 +45,14 @@ logs = logs
         self.tmp.cleanup()
 
     def test_schema_records_audited_token_usage_without_losing_existing_data(self) -> None:
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DELETE FROM tasks")
         task_id = self.osys.create_task(
-            "CEO", "CTO", "Measure model call", "engineering", 90, "Token usage is recorded from observed values."
+            "CEO", "Product Engineer", "Measure model call", "engineering", 90, "Token usage is recorded from observed values."
         )["task_id"]
 
         record = self.osys.record_token_usage(
-            agent="CTO",
+            agent="Product Engineer",
             task_id=task_id,
             execution_id=None,
             session="session-1",
@@ -67,7 +69,7 @@ logs = logs
             timestamp="2026-07-11T00:00:00+00:00",
         )
 
-        self.assertEqual(record["agent"], "CTO")
+        self.assertEqual(record["agent"], "Product Engineer")
         self.assertEqual(record["total_tokens"], 140)
         rows = Store(self.config.db_path).fetch_all("SELECT * FROM token_usage")
         self.assertEqual(len(rows), 1)
@@ -79,7 +81,7 @@ logs = logs
 
     def test_token_usage_validation_rejects_fabricated_or_inconsistent_values(self) -> None:
         valid = {
-            "agent": "CTO",
+            "agent": "Product Engineer",
             "input_tokens": 1,
             "output_tokens": 2,
             "cache_tokens": 3,
@@ -110,7 +112,7 @@ logs = logs
             code = cli_main([
                 "--config", config_path,
                 "token-record",
-                "--agent", "CTO",
+                "--agent", "Product Engineer",
                 "--input-tokens", "7",
                 "--output-tokens", "8",
                 "--cache-tokens", "0",
@@ -127,13 +129,13 @@ logs = logs
         with contextlib.redirect_stdout(list_out):
             self.assertEqual(cli_main(["--config", config_path, "token-list"]), 0)
         listed = json.loads(list_out.getvalue())
-        self.assertEqual(listed[0]["agent"], "CTO")
+        self.assertEqual(listed[0]["agent"], "Product Engineer")
 
         summary_out = io.StringIO()
         with contextlib.redirect_stdout(summary_out):
             self.assertEqual(cli_main(["--config", config_path, "token-summary"]), 0)
         summary = json.loads(summary_out.getvalue())
-        self.assertEqual(summary["agents"]["CTO"]["total_tokens"], 20)
+        self.assertEqual(summary["agents"]["Product Engineer"]["total_tokens"], 20)
         self.assertEqual(summary["agents"]["CEO"]["status_label"], "未采集")
 
 

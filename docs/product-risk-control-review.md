@@ -1,7 +1,7 @@
 # Product Risk Control Review
 
 Date: 2026-07-11
-Owner: Counsel
+Owner: CEO; Legal/Compliance Specialist invoked on demand
 Scope: internal operational risk review only; not legal advice and not authorization for production use, customer-data processing, external publication, or a legal commitment
 
 ## Evidence reviewed
@@ -42,10 +42,10 @@ Escalate to the CEO immediately and do not process the asset when any of the fol
 - deletion, legal hold, jurisdiction, age, or data-residency requirements are unclear;
 - policy flags conflict, provenance lineage breaks, or review evidence cannot be verified.
 
-The CEO must seek Chairman approval before real customer-data handling, external publication, production release, legal commitment, or another reserved action. Counsel should recommend qualified external legal review where ownership, consent, privacy, or jurisdiction cannot be resolved internally.
+The CEO must seek Chairman approval before real customer outreach or data handling, pricing commitments, payment or budgets, external publication, production release, legal commitment, or another reserved action. An on-demand Legal/Compliance Specialist should recommend qualified external legal review where ownership, consent, privacy, or jurisdiction cannot be resolved internally.
 
 ## Acceptance signal
 
 `provenance_gate_escape_rate = artifacts accepted for internal use with missing/invalid required provenance / artifacts accepted for internal use`.
 
-Owner: AI Platform & Quality Engineer. Cadence: every artifact validation and CI regression run, reviewed weekly by COO and Counsel. Data source: versioned provenance records, policy flags, and artifact review decisions. Required threshold: `0`; any escape is a stop event and CEO escalation.
+Owner: Product Engineer. Cadence: every artifact validation and CI regression run, independently reviewed on demand and escalated to the CEO or Legal/Compliance Specialist as required. Data source: versioned provenance records, policy flags, and artifact review decisions. Required threshold: `0`; any escape is a stop event and CEO escalation.

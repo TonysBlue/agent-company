@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .backend import LocalBackend
 from .beta_launch import evaluate_beta_launch_package_file
+from .beta_session import capture_session_file
 from .config import load_config
 from .feedback import capture_feedback_file, triage_feedback_file
 from .ops import CompanyOS
@@ -20,6 +21,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", default=None, help="Path to INI config")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("init", help="Initialize state")
+    sub.add_parser("org-migrate", help="Apply the audited lean organization migration")
     sub.add_parser("status", help="Show company status")
     sub.add_parser("run-cycle", help="Run one operating cycle")
     sub.add_parser("task-list", help="List active tasks")
@@ -140,6 +142,9 @@ def build_parser() -> argparse.ArgumentParser:
     beta = sub.add_parser("beta-launch-readiness", help="Evaluate an internal beta launch readiness package")
     beta.add_argument("input", type=Path)
     beta.add_argument("--output", type=Path, default=None)
+    beta_session = sub.add_parser("beta-session-capture", help="Validate and retain a controlled-beta session record")
+    beta_session.add_argument("input", type=Path)
+    beta_session.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -150,6 +155,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "init":
             osys.init()
             print("initialized")
+        elif args.command == "org-migrate":
+            print(json.dumps(osys.store.migrate_organization(), indent=2, sort_keys=True))
         elif args.command == "status":
             print(json.dumps(osys.status(), indent=2, sort_keys=True))
         elif args.command == "run-cycle":
@@ -272,6 +279,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(triage_feedback_file(args.submission, args.decision, args.output), indent=2, sort_keys=True))
         elif args.command == "beta-launch-readiness":
             print(json.dumps(evaluate_beta_launch_package_file(args.input, args.output), indent=2, sort_keys=True))
+        elif args.command == "beta-session-capture":
+            print(json.dumps(capture_session_file(args.input, args.output), indent=2, sort_keys=True))
         else:
             raise AssertionError(args.command)
     except Exception as exc:

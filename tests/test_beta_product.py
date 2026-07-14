@@ -51,8 +51,12 @@ logs = logs
         home = self.app.render_path("/beta")
         status = json.loads(self.app.render_path("/api/beta/status").body)
 
-        self.assertIn("LOCAL INTERNAL BETA", home.body)
-        self.assertIn("external_publish_authorized: false", home.body)
+        self.assertIn("织象 PixWeave", home.body)
+        self.assertIn("上传商品图", home.body)
+        self.assertIn("选择发布场景", home.body)
+        self.assertIn("预览与反馈", home.body)
+        self.assertNotIn("POST /api/beta", home.body)
+        self.assertIn("结果为本地草稿，不代表发布授权", home.body)
         self.assertTrue(status["controls"]["internal_only"])
         self.assertFalse(status["controls"]["external_publish_authorized"])
         self.assertFalse(status["controls"]["production_deploy_authorized"])
@@ -61,6 +65,21 @@ logs = logs
         self.assertEqual(status["source_edit_provider"]["name"], "local-source-edit")
         self.assertEqual(status["source_edit_provider"]["operations"], ["crop", "branded_overlay"])
         self.assertIn("/api/beta/source-edit", home.body)
+        self.assertIn("/api/beta/feedback", home.body)
+        self.assertIn("/api/beta/artifact", home.body)
+
+    def test_artifact_route_serves_only_local_beta_files(self) -> None:
+        local = self.app.artifacts_dir / "preview.svg"
+        local.write_text("<svg></svg>", encoding="utf-8")
+        served = self.app.render_path(f"/api/beta/artifact?path={local}")
+        outside = self.root / "outside.svg"
+        outside.write_text("<svg></svg>", encoding="utf-8")
+        rejected = self.app.render_path(f"/api/beta/artifact?path={outside}")
+
+        self.assertEqual(served.status, 200)
+        self.assertEqual(served.content_type, "image/svg+xml")
+        self.assertEqual(rejected.status, 404)
+        self.assertIn("local beta artifact root", rejected.body)
 
     def test_render_review_and_feedback_flow_writes_bounded_local_artifacts(self) -> None:
         campaign = json.loads((self.repo / "examples" / "campaign.json").read_text(encoding="utf-8"))

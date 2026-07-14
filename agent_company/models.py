@@ -4,25 +4,31 @@ from __future__ import annotations
 
 ROLES = {
     "Chairman": "Only human. Owns mission, capital allocation, reserved decisions, and final external control.",
-    "CEO": "Agent. Coordinates company execution and is the only agent that may write Chairman inbox/outbox files.",
-    "CPO": "Agent. Owns product requirements, customer workflows, and roadmap proposals.",
-    "CTO": "Agent. Leads a compact engineering group and owns architecture, delivery quality, validation, and release readiness.",
-    "Product Engineer": "Agent reporting to CTO. Builds the end-to-end product across frontend, backend, and integrations; optimizes for working vertical slices.",
-    "AI Platform & Quality Engineer": "Agent reporting to CTO. Owns model integration, evaluation, reliability, security checks, test automation, and release evidence.",
-    "CRO": "Agent. Owns GTM, pipeline design, pricing experiments, and revenue operations.",
-    "COO": "Agent. Owns cadence, metrics hygiene, operating process, and risk register.",
-    "CFO": "Agent. Owns unit economics, runway model, budgets, and spend approval requests.",
-    "Counsel": "Agent. Flags legal/compliance risk but never provides legal autonomy or binds the company.",
+    "CEO": "Resident agent. Owns product priorities, company operations, and Chairman decision flow.",
+    "Product Engineer": "Resident agent. Builds and validates end-to-end product increments across frontend, backend, AI integration, reliability, and release evidence.",
+    "Customer & Revenue": "Resident agent. Owns customer discovery preparation, GTM, pipeline, and revenue operations within Chairman approval boundaries.",
+}
+
+ON_DEMAND_CAPABILITIES = {
+    "Finance & Risk Reviewer": "Reviews unit economics, budgets, financial controls, and material operating risk when requested.",
+    "Legal/Compliance Specialist": "Flags legal and compliance issues when requested; does not provide legal autonomy or bind the company.",
+    "Independent Quality Reviewer": "Provides independent product, evidence, security, reliability, and release-quality review when requested.",
+    "Codex workers": "Execute bounded, reviewable, verifiable work asynchronously; they are not standing roles or decision-makers.",
 }
 
 RACI = {
-    "strategy": ("CEO", "Chairman", "CPO,CRO,CFO,COO", "All agents"),
-    "roadmap": ("CPO", "CEO", "CTO,CRO", "Chairman"),
-    "engineering": ("CTO", "CEO", "CPO", "Chairman"),
-    "pricing": ("CRO", "Chairman", "CFO,CEO", "All agents"),
-    "spend": ("CFO", "Chairman", "CEO", "All agents"),
-    "legal": ("Counsel", "Chairman", "CEO", "All agents"),
-    "cadence": ("COO", "CEO", "All agents", "Chairman"),
+    "strategy": ("CEO", "Chairman", "Product Engineer,Customer & Revenue", "All resident agents"),
+    "product_priority": ("CEO", "CEO", "Product Engineer,Customer & Revenue", "Chairman"),
+    "product_delivery": ("Product Engineer", "CEO", "Independent Quality Reviewer", "Chairman,Customer & Revenue"),
+    "customer_revenue": ("Customer & Revenue", "CEO", "Product Engineer", "Chairman"),
+    "customer_outreach": ("Customer & Revenue", "Chairman", "CEO", "Product Engineer"),
+    "pricing": ("Customer & Revenue", "Chairman", "CEO,Finance & Risk Reviewer", "Product Engineer"),
+    "spend": ("CEO", "Chairman", "Finance & Risk Reviewer", "Product Engineer,Customer & Revenue"),
+    "legal": ("Legal/Compliance Specialist", "Chairman", "CEO", "Product Engineer,Customer & Revenue"),
+    "public_release": ("Customer & Revenue", "Chairman", "CEO,Product Engineer", "Independent Quality Reviewer"),
+    "production_deploy": ("Product Engineer", "Chairman", "CEO,Independent Quality Reviewer", "Customer & Revenue"),
+    "irreversible_action": ("CEO", "Chairman", "Finance & Risk Reviewer,Legal/Compliance Specialist", "All resident agents"),
+    "cadence": ("CEO", "CEO", "Product Engineer,Customer & Revenue", "Chairman"),
 }
 
 RESERVED_KEYWORDS = {
@@ -36,10 +42,6 @@ RESERVED_KEYWORDS = {
 }
 
 SEED_TASKS = [
-    ("CPO", "Draft configurable AI image generation/editing product requirements", "product", 90),
-    ("CTO", "Build deterministic local prompt-to-artifact backend prototype", "engineering", 85),
-    ("CRO", "Design first ICP, offer, and GTM experiment backlog", "gtm", 80),
-    ("CFO", "Create unit economics baseline for image generation/editing product", "finance", 75),
-    ("COO", "Set weekly operating cadence and KPI review loop", "operations", 70),
-    ("Counsel", "Review reserved-action policy and disclaimers for human control", "risk", 65),
+    ("Product Engineer", "Deliver the highest-priority reviewable product increment", "product", 90),
+    ("Customer & Revenue", "Prepare the highest-priority evidence-backed commercial action", "gtm", 80),
 ]

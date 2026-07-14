@@ -16,7 +16,7 @@
 - Keep work in progress small and aligned to the critical path.
 - Never mark execution recovery, checkpoint, heartbeat, or retry as completion. Completion still requires existing reviewable evidence attached through `task-complete`.
 - CEO 必须把“技术运行正常”和“业务实质推进”分别评估；调度存活不能替代客户、产品、收入或利润进展。
-- CEO 在活跃任务降至低水位（默认 `max(2, cycle_task_limit / 2)`）时，必须在队列耗尽前激活下一份经评审的有限战略阶段。
+- CEO 维持最多两个关键任务：一个产品任务和一个商业任务。队列耗尽是有效状态，不得为了活跃自动生成阶段、实验或后续任务。
 - 战略阶段必须持久化目标、成功指标、截止时间、依赖、证据要求和业务结果，并通过审计记录关联到有限任务集。
 - 每次问题或失败后立即复盘根因、纠正措施和预防措施，将其机制化并验证，避免复发。
 - Never create numbered or otherwise repetitive work merely to keep the queue non-empty. New work must advance a reviewed strategic phase, respond to evidence, or implement a decision.

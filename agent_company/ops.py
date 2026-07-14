@@ -69,12 +69,21 @@ class CompanyOS:
             if recovery:
                 tasks = []
             else:
-                tasks = list(
-                    conn.execute(
-                        "SELECT * FROM tasks WHERE status='open' ORDER BY priority DESC, id ASC LIMIT ?",
-                        (self.config.cycle_task_limit,),
-                    )
-                )
+                active_rows = list(conn.execute(
+                    "SELECT domain FROM tasks WHERE status IN ('in_progress', 'blocked')"
+                ))
+                occupied = {self._wip_lane(row["domain"]) for row in active_rows}
+                tasks = []
+                for task in conn.execute(
+                    "SELECT * FROM tasks WHERE status='open' ORDER BY priority DESC, id ASC"
+                ):
+                    lane = self._wip_lane(task["domain"])
+                    if lane not in {"product", "commercial"} or lane in occupied:
+                        continue
+                    tasks.append(task)
+                    occupied.add(lane)
+                    if len(tasks) == 2:
+                        break
             progressed: list[int] = []
             escalated: list[int] = []
             for task in tasks:
@@ -105,8 +114,6 @@ class CompanyOS:
                 self.store.audit(conn, "CEO", "dispatch_task", "task", task["id"], {"owner": task["owner"]})
                 self.store.audit(conn, "CEO", "claim_task_execution", "task_execution", task["id"], details)
                 progressed.append(task["id"])
-            planned_phase_id = self._ensure_strategic_horizon(conn)
-            self._ensure_backlog(conn)
             self._record_metrics(conn)
             summary = {
                 "progressed": progressed,
@@ -114,11 +121,19 @@ class CompanyOS:
                 "recovered": recovered,
                 "recovery_exhausted": exhausted,
                 "processed": len(tasks),
-                "planned_phase_id": planned_phase_id,
+                "planned_phase_id": None,
             }
             conn.execute("UPDATE cycles SET finished_at=?, summary=? WHERE id=?", (utcnow(), json.dumps(summary, sort_keys=True), cycle_id))
             self.store.audit(conn, "CEO", "run_cycle", "cycle", cycle_id, summary)
             return {"cycle_id": cycle_id, **summary}
+
+    @staticmethod
+    def _wip_lane(domain: str) -> str | None:
+        if domain in {"product", "engineering"}:
+            return "product"
+        if domain in {"gtm", "revenue", "customer", "commercial"}:
+            return "commercial"
+        return None
 
     def _perform_task(self, backend, task) -> dict[str, str]:
         title = task["title"]
@@ -129,226 +144,6 @@ class CompanyOS:
             "summary": f"{task['owner']} produced an internal {domain} operating artifact for {self.config.product_name}.",
             "next": "Review in weekly operating cadence.",
         }
-
-    def _spawn_followups(self, conn, task, result: dict[str, str]) -> None:
-        followups = {
-            "product": ("CTO", "Validate prototype workflow against product requirements", "engineering", 60),
-            "engineering": ("CPO", "Prepare internal beta workflow checklist", "product", 58),
-            "gtm": ("CRO", "Draft landing-page copy for Chairman review before public launch", "gtm", 55),
-            "finance": ("CFO", "Refine gross margin assumptions with usage scenarios", "finance", 50),
-            "operations": ("COO", "Update KPI dashboard definitions", "operations", 48),
-            "risk": ("Counsel", "Maintain human-control compliance checklist", "risk", 45),
-        }
-        if task["domain"] not in followups:
-            return
-        owner, title, domain, priority = followups[task["domain"]]
-        # Completed recurring titles are not useful new work; roadmap replenishment
-        # below creates distinct, measurable tasks instead.
-        exists = conn.execute("SELECT 1 FROM tasks WHERE title=?", (title,)).fetchone()
-        if exists:
-            return
-        now = utcnow()
-        conn.execute(
-            """INSERT INTO tasks(
-                   created_at, updated_at, owner, title, domain, status, priority,
-                   acceptance_criteria
-               ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?)""",
-            (
-                now,
-                now,
-                owner,
-                title,
-                domain,
-                priority,
-                "Produce a reviewable artifact, verify it against the parent task result, and attach the evidence path before completion.",
-            ),
-        )
-
-    def _ensure_strategic_horizon(self, conn) -> int | None:
-        """Activate one reviewed commercial phase before the active queue is exhausted."""
-        active = conn.execute(
-            "SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
-        ).fetchone()[0]
-        low_water = max(2, self.config.cycle_task_limit // 2)
-        if active > low_water:
-            return None
-        existing = conn.execute(
-            "SELECT id FROM strategic_phases WHERE phase_key='controlled-beta-validation-v1'"
-        ).fetchone()
-        if existing:
-            return existing["id"]
-
-        now_dt = datetime.now(timezone.utc).replace(microsecond=0)
-        now = now_dt.isoformat()
-        deadline = (now_dt + timedelta(days=30)).isoformat()
-        metrics = [
-            "完成至少 5 次经同意的受控 Beta 使用会话",
-            "获得可审计的满意度、任务成功率和操作时长证据",
-            "形成基于实测 Token 与人工复核成本的单位经济结论",
-        ]
-        dependencies = [
-            "真实客户外联、公开发布、定价、收费、合同与法律承诺均须董事长批准",
-            "外部测试者账号和数据处理方式须在启用前完成风险评审",
-        ]
-        evidence = ["会话记录", "反馈与缺陷台账", "质量评分", "Token 与成本台账", "阶段复盘"]
-        cur = conn.execute(
-            """INSERT INTO strategic_phases(
-                   phase_key, name, objective, success_metrics, deadline, dependencies,
-                   evidence_requirements, status, created_at, activated_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)""",
-            (
-                "controlled-beta-validation-v1",
-                "受控 Beta 客户验证与单位经济阶段",
-                "以受控 Beta 客户验证推动真实产品使用、客户满意度、产品质量和商业可行性进步。",
-                json.dumps(metrics, ensure_ascii=False),
-                deadline,
-                json.dumps(dependencies, ensure_ascii=False),
-                json.dumps(evidence, ensure_ascii=False),
-                now,
-                now,
-            ),
-        )
-        phase_id = int(cur.lastrowid)
-        tasks = [
-            ("CPO", "定义受控 Beta 客户验证协议与成功指标", "product", 98,
-             "形成版本化协议，明确目标客户、核心场景、任务成功率、满意度、质量与停止阈值。",
-             "确保客户验证可产生可比较的需求、满意度与产品质量证据。"),
-            ("Product Engineer", "完善受控 Beta 会话与反馈闭环", "engineering", 96,
-             "实现本地受控会话、同意记录、反馈捕获、问题关联和可验证测试，不进行公开发布。",
-             "让真实使用反馈能进入产品改进闭环并缩短问题解决时间。"),
-            ("AI Platform & Quality Engineer", "自动采集任务时长 Token 与质量证据", "engineering", 95,
-             "真实执行自动写入任务时长和模型 Token 台账；未知值保持未采集；测试覆盖失败路径。",
-             "建立产品质量、效率和成本优化所需的真实经营数据。"),
-            ("CRO", "建立经董事长批准的首批验证客户候选与外联方案", "gtm", 94,
-             "完成候选客户画像、价值假设、招募材料、审批依赖和衡量方法；批准前不发送外联。",
-             "形成可执行且受治理的客户获取路径，验证需求而非只做内部建设。"),
-            ("CFO", "建立受控 Beta 单位经济与利润敏感性模型", "finance", 92,
-             "使用实测或明确标记待采集的 Token、复核和支持成本，给出盈亏平衡与利润敏感性。",
-             "为未来定价和资源投入提供可审计的利润决策依据。"),
-            ("COO", "建立 Beta 客户问题 SLA 与满意度改进机制", "operations", 90,
-             "定义反馈分级、负责人、响应期限、复盘、复发预防和满意度回访闭环。",
-             "持续提高客户问题解决速度、满意度和留存可能性。"),
-            ("Counsel", "完成受控 Beta 数据权利隐私与同意检查", "risk", 89,
-             "形成非法律意见的风险清单、同意文本草案、数据保留规则和董事长决策点。",
-             "在客户验证前降低数据、图片权利和隐私风险。"),
-            ("CTO", "制定并验证受控 Beta 可靠性与恢复门槛", "engineering", 91,
-             "定义访问控制、备份恢复、可观测性和故障演练门槛，附可重复验证证据。",
-             "保证客户使用期间产品可靠、问题可定位且数据可恢复。"),
-        ]
-        for owner, title, domain, priority, criteria, outcome in tasks:
-            conn.execute(
-                """INSERT INTO tasks(
-                       created_at, updated_at, owner, title, domain, status, priority,
-                       acceptance_criteria, strategic_phase_id, business_outcome)
-                   VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?)""",
-                (now, now, owner, title, domain, priority, criteria, phase_id, outcome),
-            )
-        details = {
-            "phase_key": "controlled-beta-validation-v1",
-            "objective": "controlled beta customer validation and unit economics",
-            "task_count": len(tasks),
-            "trigger_active_tasks": active,
-            "low_water_mark": low_water,
-            "deadline": deadline,
-        }
-        self.store.audit(conn, "CEO", "activate_strategic_phase", "strategic_phase", phase_id, details)
-        return phase_id
-
-    def _ensure_backlog(self, conn) -> None:
-        """Keep a bounded, finite roadmap backlog with explicit done criteria.
-
-        Exhausting the reviewed roadmap is a valid operating state.  The scheduler
-        must not manufacture numbered repetitions merely to keep the queue non-empty;
-        new work should come from evidence, a decision, or a reviewed roadmap change.
-        """
-        active = conn.execute(
-            "SELECT COUNT(*) FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
-        ).fetchone()[0]
-        target = max(self.config.cycle_task_limit, 6)
-        now = utcnow()
-        if conn.execute("SELECT COUNT(*) FROM experiments").fetchone()[0] == 0:
-            cur = conn.execute(
-                """INSERT INTO experiments(
-                       created_at, owner, name, hypothesis, metric, status, result
-                   ) VALUES (?, 'CRO', ?, ?, ?, 'draft', NULL)""",
-                (
-                    now,
-                    "Internal positioning evidence test",
-                    "Commercial teams with frequent campaign variants respond more strongly to controllability and repeatability than generic image generation speed.",
-                    "rubric_score_difference",
-                ),
-            )
-            self.store.audit(
-                conn,
-                "CEO",
-                "create_experiment",
-                "experiment",
-                cur.lastrowid,
-                {"status": "draft", "external_action": False},
-            )
-        if active >= target:
-            return
-        candidates = [
-            ("CPO", "Define brand-kit schema and inheritance rules", "product", 84,
-             "Schema covers colors, typography, logo constraints, forbidden elements, and versioning with two examples."),
-            ("CTO", "Implement brand-kit validation for local artifacts", "engineering", 82,
-             "Validator rejects invalid palettes and missing brand-kit versions; unit tests cover valid and invalid inputs."),
-            ("CPO", "Specify batch campaign variation workflow", "product", 80,
-             "Requirements define inputs, variation matrix, review states, retry behavior, and export manifest."),
-            ("CTO", "Add batch manifest generation to local backend", "engineering", 78,
-             "One command creates a deterministic multi-variant manifest; tests prove repeatability and input validation."),
-            ("CRO", "Draft internal ICP interview guide and evidence rubric", "gtm", 74,
-             "Guide has 10 non-leading questions and a rubric for pain frequency, urgency, workflow volume, and willingness to pay; no outreach is sent."),
-            ("CFO", "Build inference cost sensitivity model", "finance", 72,
-             "Model documents assumptions and computes low/base/high cost per accepted asset and gross-margin break-even points."),
-            ("COO", "Define edit-fidelity and brand-consistency scorecards", "operations", 70,
-             "Scorecards include formulas, sampling rules, baseline protocol, owners, and alert thresholds."),
-            ("Counsel", "Draft internal image provenance and IP risk checklist", "risk", 68,
-             "Checklist covers source rights, likeness, trademarks, provenance retention, review escalation, and deletion handling; marked non-legal advice."),
-            ("CPO", "Design reusable product-shot workflow template", "product", 66,
-             "Template defines required inputs, controls, edit stages, acceptance checks, and three representative scenarios."),
-            ("CTO", "Add artifact provenance fields and schema version", "engineering", 64,
-             "Artifacts record schema version, model/backend, seed, parent artifact, timestamps, and policy flags; migration tests pass."),
-            ("CPO", "Define campaign approval states and role permissions", "product", 62,
-             "Specification defines creator, reviewer, and approver permissions plus transitions, rejection reasons, and an audit example."),
-            ("CTO", "Implement deterministic brand consistency scoring", "engineering", 61,
-             "Scorer evaluates palette and required metadata, returns explainable violations, and has repeatability tests."),
-            ("CRO", "Create internal positioning message test matrix", "gtm", 60,
-             "Matrix compares three evidence-based value propositions for two ICP segments with hypotheses and success metrics; no external distribution occurs."),
-            ("CFO", "Model beta packaging scenarios without setting prices", "finance", 59,
-             "Internal model compares usage limits and cost envelopes for three packaging scenarios without approving or publishing a price."),
-            ("COO", "Create baseline QA sampling protocol", "operations", 58,
-             "Protocol defines sample size, stratification, review cadence, defect taxonomy, and stop thresholds."),
-            ("Counsel", "Define internal generated-image incident workflow", "risk", 57,
-             "Workflow covers intake, preservation, severity, escalation, deletion holds, and Chairman-controlled external response; marked non-legal advice."),
-            ("CPO", "Specify social creative resize and adaptation workflow", "product", 56,
-             "Requirements cover source asset, channel variants, safe zones, copy constraints, review states, and deterministic manifest output."),
-            ("CTO", "Add structured artifact policy flags", "engineering", 54,
-             "Artifacts support documented policy flag codes and review status; tests cover serialization and invalid values."),
-            ("CRO", "Design internal customer discovery evidence repository", "gtm", 53,
-             "Schema stores anonymized interview evidence, segment, pain, frequency, confidence, and consent status without collecting real customer data."),
-            ("COO", "Define experiment lifecycle and stopping rules", "operations", 52,
-             "Playbook defines draft, approved, running, analyzed, and stopped states with metric, guardrail, owner, and stopping criteria."),
-            ("CTO", "Implement configurable prompt-pack expansion", "engineering", 76,
-             "One CLI command validates a versioned prompt pack, deterministically expands its variable matrix into uniquely identified prompts, writes an atomic manifest, and has tests for repeatability and fail-closed input validation."),
-        ]
-        for owner, title, domain, priority, criteria in candidates:
-            if active >= target:
-                break
-            exists = conn.execute("SELECT 1 FROM tasks WHERE title=?", (title,)).fetchone()
-            if exists:
-                continue
-            conn.execute(
-                """INSERT INTO tasks(
-                       created_at, updated_at, owner, title, domain, status,
-                       priority, acceptance_criteria
-                   ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?)""",
-                (now, now, owner, title, domain, priority, criteria),
-            )
-            active += 1
-
-        # Do not synthesize recurring/numbered work after these reviewed candidates
-        # are exhausted.  An empty queue is preferable to false operating progress.
 
     def _has_approved_action(self, conn, task_id: int, action_type: str) -> bool:
         summary_prefix = f"Task {task_id} requires Chairman decision before continuing:"
@@ -416,12 +211,23 @@ class CompanyOS:
             raise ValueError("title, domain, and acceptance criteria must not be empty")
         if priority < 1 or priority > 100:
             raise ValueError("priority must be between 1 and 100")
+        lane = self._wip_lane(domain.strip())
+        if lane is None:
+            raise ValueError("domain must belong to the product or commercial WIP lane")
         with self.store.connect() as conn:
-            role = conn.execute("SELECT kind FROM roles WHERE name=?", (owner,)).fetchone()
-            if role is None or role["kind"] != "agent":
+            role = conn.execute("SELECT kind, status FROM roles WHERE name=?", (owner,)).fetchone()
+            if role is None or role["kind"] != "agent" or role["status"] != "resident":
                 raise ValueError(f"owner must be a registered agent: {owner}")
             if conn.execute("SELECT 1 FROM tasks WHERE title=?", (title.strip(),)).fetchone():
                 raise ValueError(f"task title already exists: {title.strip()}")
+            active_domains = [
+                row["domain"]
+                for row in conn.execute(
+                    "SELECT domain FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
+                )
+            ]
+            if lane in {self._wip_lane(active_domain) for active_domain in active_domains}:
+                raise ValueError(f"{lane} WIP lane already has an active task")
             now = utcnow()
             cur = conn.execute(
                 """INSERT INTO tasks(
@@ -614,8 +420,6 @@ class CompanyOS:
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             if execution is not None:
                 self.store.audit(conn, actor, "complete_task_execution", "task_execution", task_id, self._execution_details(execution))
-            self._spawn_followups(conn, task, result)
-            self._ensure_backlog(conn)
             return {"task_id": task_id, "status": "done", **result}
 
     def cancel_task(self, task_id: int, actor: str, reason: str) -> dict[str, object]:
@@ -732,6 +536,24 @@ class CompanyOS:
         humans = self.store.fetch_all("SELECT name FROM roles WHERE kind='human'")
         if [row["name"] for row in humans] != ["Chairman"]:
             errors.append("Non-Chairman human roles are not allowed")
+        resident_agents = {
+            row["name"]
+            for row in self.store.fetch_all(
+                "SELECT name FROM roles WHERE kind='agent' AND status='resident'"
+            )
+        }
+        expected_agents = {"CEO", "Product Engineer", "Customer & Revenue"}
+        if resident_agents != expected_agents:
+            errors.append(f"Resident agents must be exactly: {sorted(expected_agents)}")
+        active_domains = [
+            row["domain"]
+            for row in self.store.fetch_all(
+                "SELECT domain FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
+            )
+        ]
+        lanes = [self._wip_lane(domain) for domain in active_domains]
+        if lanes.count("product") > 1 or lanes.count("commercial") > 1 or None in lanes:
+            errors.append("Active WIP must contain at most one product and one commercial task")
         if not self.config.chairman_inbox.exists() or not self.config.chairman_outbox.exists():
             errors.append("Chairman inbox/outbox paths missing")
         if self.config.backend == "codex" and not self.config.codex_enabled:
@@ -784,8 +606,8 @@ class CompanyOS:
         _parse_iso8601(ts, "timestamp")
 
         with self.store.connect() as conn:
-            role = conn.execute("SELECT kind FROM roles WHERE name=?", (agent,)).fetchone()
-            if role is None or role["kind"] != "agent":
+            role = conn.execute("SELECT kind, status FROM roles WHERE name=?", (agent,)).fetchone()
+            if role is None or role["kind"] != "agent" or role["status"] != "resident":
                 raise ValueError("agent must be a registered agent role")
             if task_id is not None and conn.execute("SELECT 1 FROM tasks WHERE id=?", (task_id,)).fetchone() is None:
                 raise ValueError(f"task not found: {task_id}")
@@ -836,7 +658,12 @@ class CompanyOS:
     def token_usage_summary(self) -> dict[str, object]:
         self.init()
         with self.store.connect() as conn:
-            agents = [row["name"] for row in conn.execute("SELECT name FROM roles WHERE kind='agent' ORDER BY name ASC")]
+            agents = [
+                row["name"]
+                for row in conn.execute(
+                    "SELECT name FROM roles WHERE kind='agent' AND status='resident' ORDER BY name ASC"
+                )
+            ]
             rows = conn.execute(
                 """SELECT agent,
                           COUNT(*) AS record_count,

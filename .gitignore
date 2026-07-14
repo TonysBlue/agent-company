@@ -14,3 +14,4 @@ data/chairman/outbox/*.json
 logs/*
 !logs/.gitkeep
 archives/
+.agent-company/

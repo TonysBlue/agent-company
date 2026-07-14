@@ -2,19 +2,22 @@
 
 ## Roles
 
-- Chairman: human owner of mission, capital allocation, and reserved decisions.
-- CEO: agent accountable for execution and Chairman decision flow.
-- CPO: product strategy, requirements, roadmap, customer workflows.
-- CTO: architecture, technical priorities, delivery quality, validation, and release readiness.
-  - Product Engineer: end-to-end frontend/backend/integration delivery; owns working vertical slices.
-  - AI Platform & Quality Engineer: model integration, evaluation, reliability, security checks, automated testing, and release evidence.
-- CRO: ICP, GTM, revenue experiments, pipeline.
-- COO: cadence, metrics process, operating risks.
-- CFO: unit economics, runway, budgets, spend requests.
-- Counsel: policy, compliance, disclaimers, legal-risk escalation.
+- Chairman: the only human; owns final strategy, capital allocation, and reserved decisions.
+- CEO: resident agent; owns product priorities, company operations, and Chairman decision flow.
+- Product Engineer: resident agent; owns end-to-end product delivery, AI integration, reliability, test automation, and release evidence.
+- Customer & Revenue: resident agent; owns customer discovery preparation, GTM, pipeline, and revenue operations within Chairman approval boundaries.
+
+## On-demand capabilities
+
+- Finance & Risk Reviewer: unit economics, budget, financial-control, and material-risk review.
+- Legal/Compliance Specialist: legal/compliance issue spotting and escalation; never binds the company or replaces licensed advice.
+- Independent Quality Reviewer: independent product, evidence, security, reliability, and release-quality review.
+- Codex workers: bounded, reviewable, verifiable asynchronous execution; not a department or decision-maker.
 
 ## Governance
 
-Reserved actions require Chairman approval: external publish, external spend, legal commitment, contract signature, production deploy, data export, and pricing change.
+The Chairman makes the final strategic decision. The CEO controls product priority and operations. Real customer outreach, pricing commitments, payment or budget approval, contracts and legal commitments, public release, production deployment, customer-data export, and irreversible action require Chairman approval.
 
-The CTO group is deliberately limited to three roles. Other functions remain single-owner executive agents. Codex is an asynchronous execution resource that the CEO may assign to any function when the work is bounded, reviewable, and verifiable; it is not a department or decision-maker.
+Active WIP is limited to two critical tasks: one product lane and one commercial lane. Finishing or exhausting reviewed work is valid; the operating cycle does not create tasks merely to appear active.
+
+SQLite retired-role rows and old owner labels are retained solely to preserve historical task and token-ledger integrity. They are marked `historical` and do not constitute resident roles. Older documents may retain an author/owner label as historical attribution.

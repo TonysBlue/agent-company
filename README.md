@@ -1,6 +1,6 @@
 # Agent Company OS
 
-Python 3.11 stdlib-only MVP for an AI-native company operating system. Chairman is the only human. CEO, CPO, CTO, CRO, COO, CFO, and Counsel are agents.
+Python 3.11 stdlib-only MVP for an AI-native company operating system. Chairman is the only human. CEO, Product Engineer, and Customer & Revenue are the three resident agents. Finance & Risk Reviewer, Legal/Compliance Specialist, Independent Quality Reviewer, and Codex workers are invoked on demand and are not resident roles.
 
 The company develops and commercially operates 织象 PixWeave, a configurable AI image generation and editing product for controlled commercial visual workflows. The working name is independent from Raphael AI and does not imply affiliation. The system preserves human control: it never claims legal autonomy and blocks external, irreversible, financial, pricing, legal, production, or customer-data actions until Chairman decides.
 
@@ -12,20 +12,21 @@ This repository operates a real commercial venture rather than a business simula
 
 ```bash
 python3.11 -m agent_company.cli init
+python3.11 -m agent_company.cli org-migrate
 python3.11 -m agent_company.cli status
 python3.11 -m agent_company.cli run-cycle
 python3.11 -m agent_company.cli task-list
-python3.11 -m agent_company.cli task-create --actor CEO --owner CTO --title "Implement bounded capability" --domain engineering --priority 80 --acceptance-criteria "Runnable implementation and regression evidence pass."
-python3.11 -m agent_company.cli task-claim 1 --actor CPO --executor-id cpo-local-1 --backend local
-python3.11 -m agent_company.cli task-heartbeat 1 --executor-id cpo-local-1
-python3.11 -m agent_company.cli task-checkpoint 1 --executor-id cpo-local-1 --checkpoint "Tests pass" --next-action "Attach evidence"
+python3.11 -m agent_company.cli task-create --actor CEO --owner "Product Engineer" --title "Implement bounded capability" --domain engineering --priority 80 --acceptance-criteria "Runnable implementation and regression evidence pass."
+python3.11 -m agent_company.cli task-claim 1 --actor "Product Engineer" --executor-id product-engineer-local-1 --backend local
+python3.11 -m agent_company.cli task-heartbeat 1 --executor-id product-engineer-local-1
+python3.11 -m agent_company.cli task-checkpoint 1 --executor-id product-engineer-local-1 --checkpoint "Tests pass" --next-action "Attach evidence"
 python3.11 -m agent_company.cli task-inspect 1
-python3.11 -m agent_company.cli task-fail 1 --executor-id cpo-local-1 --error "Recoverable executor error"
+python3.11 -m agent_company.cli task-fail 1 --executor-id product-engineer-local-1 --error "Recoverable executor error"
 python3.11 -m agent_company.cli task-recover 1 --actor CEO --reason "Lease expired during executor restart"
-python3.11 -m agent_company.cli task-complete 1 --actor CPO --summary "Acceptance criteria met" --evidence path/to/reviewable-evidence
+python3.11 -m agent_company.cli task-complete 1 --actor "Product Engineer" --summary "Acceptance criteria met" --evidence path/to/reviewable-evidence
 python3.11 -m agent_company.cli task-cancel 1 --actor CEO --reason "Superseded by reviewed task 2."
-python3.11 -m agent_company.cli token-record --agent CTO --input-tokens 100 --output-tokens 25 --cache-tokens 10 --reasoning-tokens 5 --total-tokens 140 --source observed-log --model gpt-test --provider openai
-python3.11 -m agent_company.cli token-list --agent CTO
+python3.11 -m agent_company.cli token-record --agent "Product Engineer" --input-tokens 100 --output-tokens 25 --cache-tokens 10 --reasoning-tokens 5 --total-tokens 140 --source observed-log --model gpt-test --provider openai
+python3.11 -m agent_company.cli token-list --agent "Product Engineer"
 python3.11 -m agent_company.cli token-summary
 python3.11 -m agent_company.cli chairman-inbox
 python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
@@ -46,6 +47,7 @@ python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard
 python3.11 -m agent_company.cli feedback-capture examples/feedback-submission.json --output data/artifacts/feedback-submission.json
 python3.11 -m agent_company.cli feedback-triage data/artifacts/feedback-submission.json examples/feedback-triage.json --output data/artifacts/feedback-triage.json
 python3.11 -m agent_company.cli beta-launch-readiness examples/beta-launch-package.json
+python3.11 -m agent_company.cli beta-session-capture examples/beta-session.json --output data/artifacts/beta-session.json
 ```
 
 `campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives through the dependency-free `local-svg` image rendering provider, with per-variant render provenance, media type, checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
@@ -58,6 +60,12 @@ claims that work is complete. Agents must use `task-claim` for still-open work a
 Obsolete or duplicate work must use `task-cancel`, which records that no completion occurred.
 Only the CEO may use `task-create`; it requires a registered agent owner, a unique title,
 bounded priority, explicit acceptance criteria, and records the new work in the audit trail.
+The active WIP limit is two critical tasks: at most one product task and one commercial task.
+Cycles do not manufacture follow-up, phase, or experiment tasks merely to keep the system active.
+
+`org-migrate` applies the versioned `lean-org-v1` SQLite migration. It is safe to rerun,
+updates live roles and RACI, retains retired role rows as historical compatibility records,
+never rewrites historical task owners, and records one detailed migration audit event.
 
 Task execution continuity is durable in SQLite. Each claimed task has an audited
 `task_executions` row with `executor_id`, backend, optional local PID/start identity,
@@ -86,6 +94,7 @@ Product-shot workflow manifests validate required source provenance, explicit co
 Visual QA scorecards calculate pass/fail/stop results from explicitly measured edit-fidelity and brand-consistency observations. These tools do not measure images directly and do not measure or claim actual image quality.
 Feedback capture rejects declared sensitive data and anti-abuse honeypots, requires explicit consent before retaining optional contact data, and binds submissions to product/workflow/artifact context. Feedback triage records acknowledgement-through-release states and requires backlog/release linkage for those claims; neither command authorizes outreach or publication.
 `beta-launch-readiness` evaluates a versioned internal readiness package with pinned evidence for product capability, feedback controls, risk review, onboarding, support ownership, observability, rollback, security/privacy, unit economics, and reserved-action approvals. It fails closed on malformed, missing, or tampered evidence and always records `launch_authorized: false`; it never authorizes production deployment, publication, pricing, payment, outreach, or launch.
+`beta-session-capture` validates and retains a local controlled-beta session record with explicit consent, asset provenance, observed timing, task outcome, optional satisfaction and cost observations, artifact checksums, quality review, feedback and issue linkage, and retention status. Missing observations remain `not_collected`, and the record never authorizes external action.
 
 `beta-product` runs a local-only internal HTTP interface for campaign render, review, feedback capture, and source-image edit review at `http://127.0.0.1:18112/beta` by default. It composes the existing validated campaign, dependency-free local SVG render provider, review, feedback, and bounded source edit domain functions, writes only local artifacts under `data/artifacts/local-beta/`, rejects review paths outside that root, shows draft/no-publish controls, and records no production deployment, publication, pricing, payment, outreach, or legal authorization. Source-image edits accept only bounded PNG/JPEG uploads with safe provenance metadata, validate signatures, dimensions, and polyglot trailing data, then produce internal draft SVG crop and branded-overlay review outputs with source/output SHA-256 lineage.
 

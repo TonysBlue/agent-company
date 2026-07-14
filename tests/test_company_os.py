@@ -147,7 +147,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         with Store(self.config.db_path).connect() as conn:
             now = "2026-01-01T00:00:00+00:00"
             conn.execute(
-                "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority) VALUES (?, ?, 'CRO', 'Change price tier', 'gtm', 'open', 999)",
+                "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority) VALUES (?, ?, 'Customer & Revenue', 'Change price tier', 'gtm', 'open', 999)",
                 (now, now),
             )
         result = self.osys.run_cycle()
@@ -157,14 +157,14 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(approval["action_type"], "pricing_change")
         inbox_file = Path(approval["inbox_file"])
         payload = json.loads(inbox_file.read_text(encoding="utf-8"))
-        self.assertEqual(payload["requested_by"], "CRO")
+        self.assertEqual(payload["requested_by"], "Customer & Revenue")
 
     def test_chairman_decision_reopens_approved_task(self) -> None:
         self.osys.init()
         with Store(self.config.db_path).connect() as conn:
             now = "2026-01-01T00:00:00+00:00"
             conn.execute(
-                "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority) VALUES (?, ?, 'CRO', 'Change price tier', 'gtm', 'open', 999)",
+                "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority) VALUES (?, ?, 'Customer & Revenue', 'Change price tier', 'gtm', 'open', 999)",
                 (now, now),
             )
         self.osys.run_cycle()
@@ -180,7 +180,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         with Store(self.config.db_path).connect() as conn:
             now = "2026-01-01T00:00:00+00:00"
             conn.execute(
-                "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority) VALUES (?, ?, 'CRO', 'Change price tier', 'gtm', 'open', 999)",
+                "INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority) VALUES (?, ?, 'Customer & Revenue', 'Change price tier', 'gtm', 'open', 999)",
                 (now, now),
             )
         self.osys.run_cycle()
@@ -188,9 +188,12 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.osys.decide(approval["id"], "approve", "Approved for controlled internal continuation.")
 
         cycle = self.osys.run_cycle()
+        task_id = Store(self.config.db_path).fetch_one(
+            "SELECT id FROM tasks WHERE title='Change price tier'"
+        )["id"]
 
-        self.assertNotIn(7, cycle["escalated"])
-        self.assertIn(7, cycle["progressed"])
+        self.assertNotIn(task_id, cycle["escalated"])
+        self.assertIn(task_id, cycle["progressed"])
         duplicate = [
             item for item in self.osys.chairman_inbox()
             if item["summary"].endswith("Change price tier")
@@ -215,8 +218,11 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(json.loads(stored["result"])["evidence"], [str(evidence.resolve())])
 
     def test_ceo_creates_audited_reviewed_task(self) -> None:
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DELETE FROM tasks")
         created = self.osys.create_task(
-            "CEO", "CTO", "Implement bounded capability", "engineering", 80,
+            "CEO", "Product Engineer", "Implement bounded capability", "engineering", 80,
             "A runnable command and regression test pass.",
         )
         self.assertEqual(created["status"], "open")
@@ -227,10 +233,10 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         )
         self.assertIsNotNone(audit)
         with self.assertRaisesRegex(ValueError, "only CEO"):
-            self.osys.create_task("CTO", "CTO", "Unauthorized", "engineering", 50, "Must fail.")
+            self.osys.create_task("Product Engineer", "Product Engineer", "Unauthorized", "engineering", 50, "Must fail.")
         with self.assertRaisesRegex(ValueError, "already exists"):
             self.osys.create_task(
-                "CEO", "CTO", "Implement bounded capability", "engineering", 80, "Duplicate must fail."
+                "CEO", "Product Engineer", "Implement bounded capability", "engineering", 80, "Duplicate must fail."
             )
 
     def test_task_cancel_closes_work_without_claiming_completion(self) -> None:
@@ -256,7 +262,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertIsNone(classify_reserved_action("Design first ICP and offer backlog", self.config))
         self.assertEqual(classify_reserved_action("sign vendor agreement", self.config), "contract_signature")
 
-    def test_cycle_replenishes_distinct_backlog_with_acceptance_criteria(self) -> None:
+    def test_cycle_does_not_replenish_backlog_after_reviewed_work_completes(self) -> None:
         self.osys.init()
         cycle = self.osys.run_cycle()
         for task_id in cycle["progressed"]:
@@ -268,12 +274,11 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         active = store.fetch_all(
             "SELECT title, acceptance_criteria FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
         )
-        self.assertGreaterEqual(len(active), self.config.cycle_task_limit)
-        self.assertTrue(any(row["acceptance_criteria"] for row in active))
+        self.assertEqual(active, [])
         titles = store.fetch_all("SELECT title, COUNT(*) AS c FROM tasks GROUP BY title")
         self.assertTrue(all(row["c"] == 1 for row in titles))
 
-    def test_ceo_prepares_next_strategic_phase_before_backlog_exhaustion(self) -> None:
+    def test_ceo_does_not_auto_create_strategic_phase_before_backlog_exhaustion(self) -> None:
         self.osys.init()
         store = Store(self.config.db_path)
         with store.connect() as conn:
@@ -282,7 +287,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
             conn.execute(
                 """INSERT INTO tasks(created_at, updated_at, owner, title, domain, status,
                                       priority, acceptance_criteria)
-                   VALUES (?, ?, 'CPO', 'Last current-phase task', 'product', 'open', 99,
+                   VALUES (?, ?, 'Product Engineer', 'Last current-phase task', 'product', 'open', 99,
                            'One bounded current-phase result is verified.')""",
                 (now, now),
             )
@@ -290,23 +295,10 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         cycle = self.osys.run_cycle()
 
         phases = store.fetch_all("SELECT * FROM strategic_phases ORDER BY id")
-        self.assertEqual(len(phases), 1)
-        self.assertEqual(phases[0]["status"], "active")
-        self.assertIn("客户验证", phases[0]["objective"])
-        self.assertTrue(phases[0]["success_metrics"])
-        self.assertTrue(phases[0]["deadline"])
-        phase_tasks = store.fetch_all("SELECT * FROM tasks WHERE strategic_phase_id=?", (phases[0]["id"],))
-        self.assertGreaterEqual(len(phase_tasks), 6)
-        self.assertTrue(all(row["acceptance_criteria"] for row in phase_tasks))
-        self.assertTrue(all(row["business_outcome"] for row in phase_tasks))
-        self.assertIn("planned_phase_id", cycle)
+        self.assertEqual(phases, [])
+        self.assertIsNone(cycle["planned_phase_id"])
         audits = store.fetch_all("SELECT action FROM audit_log WHERE entity='strategic_phase'")
-        self.assertIn("activate_strategic_phase", [row["action"] for row in audits])
-
-        before = len(phase_tasks)
-        self.osys.run_cycle()
-        after = len(store.fetch_all("SELECT id FROM tasks WHERE strategic_phase_id=?", (phases[0]["id"],)))
-        self.assertEqual(after, before)
+        self.assertNotIn("activate_strategic_phase", [row["action"] for row in audits])
 
     def test_status_distinguishes_business_stall_from_technical_health(self) -> None:
         self.osys.init()
@@ -323,11 +315,10 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(status["business_progress"], "stalled")
         self.assertGreaterEqual(status["consecutive_empty_cycles"], 3)
 
-    def test_cycle_seeds_internal_draft_experiment(self) -> None:
+    def test_cycle_does_not_seed_activity_experiment(self) -> None:
         self.osys.run_cycle()
         experiments = Store(self.config.db_path).fetch_all("SELECT * FROM experiments")
-        self.assertEqual(len(experiments), 1)
-        self.assertEqual(experiments[0]["status"], "draft")
+        self.assertEqual(experiments, [])
 
     def test_brand_kit_validation_and_deterministic_campaign_manifest(self) -> None:
         brand_kit = {

@@ -31,7 +31,7 @@ claim about a real source asset or commercial visual output.
 `provenance_gate_escape_rate = accepted manifests containing a source or derived variant
 with missing, invalid, pending, or rejected provenance / accepted manifests`.
 
-Owner: AI Platform & Quality Engineer. Cadence: every manifest build and CI regression
-run, reviewed weekly by COO and Counsel. Required threshold: `0`; any escape is a stop
+Owner: Product Engineer. Cadence: every manifest build and CI regression
+run, independently reviewed on demand by Independent Quality Reviewer and escalated to a Legal/Compliance Specialist when required. Required threshold: `0`; any escape is a stop
 event and CEO escalation. Data sources: campaign inputs, generated manifests, validation
 errors, and CI results.
