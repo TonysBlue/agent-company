@@ -1,0 +1,16 @@
+[Unit]
+Description=Agent Company durable event worker
+After=local-fs.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/agent-company
+ExecStart=/usr/bin/env python3.11 -m agent_company.cli worker-run
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

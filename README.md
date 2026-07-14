@@ -15,6 +15,10 @@ python3.11 -m agent_company.cli init
 python3.11 -m agent_company.cli org-migrate
 python3.11 -m agent_company.cli status
 python3.11 -m agent_company.cli run-cycle
+python3.11 -m agent_company.cli worker-step
+python3.11 -m agent_company.cli worker-status
+python3.11 -m agent_company.cli worker-wake --reason "operator verification"
+python3.11 -m agent_company.cli worker-run
 python3.11 -m agent_company.cli task-list
 python3.11 -m agent_company.cli task-create --actor CEO --owner "Product Engineer" --title "Implement bounded capability" --domain engineering --priority 80 --acceptance-criteria "Runnable implementation and regression evidence pass."
 python3.11 -m agent_company.cli task-claim 1 --actor "Product Engineer" --executor-id product-engineer-local-1 --backend local
@@ -62,6 +66,17 @@ Only the CEO may use `task-create`; it requires a registered agent owner, a uniq
 bounded priority, explicit acceptance criteria, and records the new work in the audit trail.
 The active WIP limit is two critical tasks: at most one product task and one commercial task.
 Cycles do not manufacture follow-up, phase, or experiment tasks merely to keep the system active.
+
+The 7x24 execution engine uses durable SQLite events plus a local FIFO notification;
+there is no fixed CEO cron pulse. An idle `worker-run` blocks in the kernel and neither
+calls an LLM nor creates work. `worker-step` processes at most one persisted event for
+verification. Task creation, completion, cancellation, failure, recovery, Chairman
+decisions, and explicit wakes enqueue events. A file lock enforces one worker per
+database, restart recovery requeues interrupted events, and `worker-status` reports
+queue counts, lock state, heartbeat, last error, and health. Approval blocking is
+task-scoped: the other safe WIP lane continues, while one product and one commercial
+task remain the maximum. See `docs/event-worker-deployment.md`; do not enable the
+infinite user service until CEO verification.
 
 `org-migrate` applies the versioned `lean-org-v1` SQLite migration. It is safe to rerun,
 updates live roles and RACI, retains retired role rows as historical compatibility records,
@@ -120,6 +135,10 @@ cp deploy/agent-company-dashboard.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now agent-company-dashboard.service
 ```
+
+The event worker has a separate user service template at
+`deploy/agent-company-worker.service`. Its reviewed install and recovery procedure is
+documented in `docs/event-worker-deployment.md`.
 
 ## Files
 

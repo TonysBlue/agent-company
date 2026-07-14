@@ -2,7 +2,8 @@
 
 ## Continuous operations
 
-- CEO wakes every 10 minutes and resumes from persistent company state.
+- CEO resumes from durable events. There is no periodic cron pulse; an idle worker
+  blocks on local notification and does not invoke an LLM or manufacture activity.
 - Before taking new work, CEO inspects all `in_progress` task executions and records lease health.
 - Active executors must heartbeat and checkpoint durable state with the task execution CLI/API.
 - Stale leases are recovered without killing local processes; PID liveness is advisory and only trusted when the stored process start identity still matches.

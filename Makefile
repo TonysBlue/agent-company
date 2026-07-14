@@ -1,4 +1,4 @@
-.PHONY: init status cycle inbox report dashboard demo validate test archive clean
+.PHONY: init status cycle worker-step worker-status worker-wake inbox report dashboard demo validate test archive clean
 
 PYTHON ?= python3.11
 
@@ -10,6 +10,15 @@ status:
 
 cycle:
 	$(PYTHON) -m agent_company.cli run-cycle
+
+worker-step:
+	$(PYTHON) -m agent_company.cli worker-step
+
+worker-status:
+	$(PYTHON) -m agent_company.cli worker-status
+
+worker-wake:
+	$(PYTHON) -m agent_company.cli worker-wake --reason "$(or $(REASON),operator wake)"
 
 inbox:
 	$(PYTHON) -m agent_company.cli chairman-inbox

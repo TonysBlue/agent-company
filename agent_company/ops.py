@@ -66,66 +66,67 @@ class CompanyOS:
             recovery = self._recover_stale_executions(conn, "CEO", "cycle lease inspection")
             recovered = [item["task_id"] for item in recovery if item["status"] == "open"]
             exhausted = [item["task_id"] for item in recovery if item["status"] == "blocked"]
-            if recovery:
-                tasks = []
-            else:
+            progressed: list[int] = []
+            escalated: list[int] = []
+            inspected = 0
+            if not recovery:
                 active_rows = list(conn.execute(
                     "SELECT domain FROM tasks WHERE status IN ('in_progress', 'blocked')"
                 ))
                 occupied = {self._wip_lane(row["domain"]) for row in active_rows}
-                tasks = []
                 for task in conn.execute(
                     "SELECT * FROM tasks WHERE status='open' ORDER BY priority DESC, id ASC"
                 ):
                     lane = self._wip_lane(task["domain"])
                     if lane not in {"product", "commercial"} or lane in occupied:
                         continue
-                    tasks.append(task)
-                    occupied.add(lane)
-                    if len(tasks) == 2:
-                        break
-            progressed: list[int] = []
-            escalated: list[int] = []
-            for task in tasks:
-                reserved = classify_reserved_action(f"{task['title']} {task['domain']}", self.config)
-                if reserved and self._has_approved_action(conn, task["id"], reserved):
-                    reserved = None
-                if reserved:
-                    approval_id = self._create_approval(
+                    inspected += 1
+                    reserved = classify_reserved_action(f"{task['title']} {task['domain']}", self.config)
+                    if reserved and self._has_approved_action(conn, task["id"], reserved):
+                        reserved = None
+                    if reserved:
+                        approval_id = self._create_approval(
+                            conn,
+                            requested_by=task["owner"],
+                            action_type=reserved,
+                            summary=f"Task {task['id']} requires Chairman decision before continuing: {task['title']}",
+                        )
+                        conn.execute(
+                            "UPDATE tasks SET status='blocked', updated_at=?, blocked_reason=? WHERE id=?",
+                            (utcnow(), f"Pending Chairman approval #{approval_id}", task["id"]),
+                        )
+                        escalated.append(task["id"])
+                        occupied.add(lane)
+                        continue
+                    details = self._claim_task_execution(
                         conn,
-                        requested_by=task["owner"],
-                        action_type=reserved,
-                        summary=f"Task {task['id']} requires Chairman decision before continuing: {task['title']}",
+                        task,
+                        actor="CEO",
+                        executor_id=f"cycle-{cycle_id}-task-{task['id']}",
+                        backend="cycle",
+                        lease_seconds=600,
                     )
-                    conn.execute(
-                        "UPDATE tasks SET status='blocked', updated_at=?, blocked_reason=? WHERE id=?",
-                        (utcnow(), f"Pending Chairman approval #{approval_id}", task["id"]),
-                    )
-                    escalated.append(task["id"])
-                    continue
-                details = self._claim_task_execution(
-                    conn,
-                    task,
-                    actor="CEO",
-                    executor_id=f"cycle-{cycle_id}-task-{task['id']}",
-                    backend="cycle",
-                    lease_seconds=600,
-                )
-                self.store.audit(conn, "CEO", "dispatch_task", "task", task["id"], {"owner": task["owner"]})
-                self.store.audit(conn, "CEO", "claim_task_execution", "task_execution", task["id"], details)
-                progressed.append(task["id"])
+                    self.store.audit(conn, "CEO", "dispatch_task", "task", task["id"], {"owner": task["owner"]})
+                    self.store.audit(conn, "CEO", "claim_task_execution", "task_execution", task["id"], details)
+                    progressed.append(task["id"])
+                    occupied.add(lane)
+                    if len(progressed) == 2:
+                        break
             self._record_metrics(conn)
             summary = {
                 "progressed": progressed,
                 "escalated": escalated,
                 "recovered": recovered,
                 "recovery_exhausted": exhausted,
-                "processed": len(tasks),
+                "processed": inspected,
                 "planned_phase_id": None,
             }
             conn.execute("UPDATE cycles SET finished_at=?, summary=? WHERE id=?", (utcnow(), json.dumps(summary, sort_keys=True), cycle_id))
             self.store.audit(conn, "CEO", "run_cycle", "cycle", cycle_id, summary)
-            return {"cycle_id": cycle_id, **summary}
+            result = {"cycle_id": cycle_id, **summary}
+        if recovery:
+            self.store.notify_worker()
+        return result
 
     @staticmethod
     def _wip_lane(domain: str) -> str | None:
@@ -245,7 +246,9 @@ class CompanyOS:
                 "acceptance_criteria": acceptance_criteria.strip(),
             }
             self.store.audit(conn, actor, "create_task", "task", task_id, details)
-            return {"task_id": task_id, "status": "open", **details}
+            result = {"task_id": task_id, "status": "open", **details}
+        self.store.notify_worker()
+        return result
 
     def claim_task(
         self,
@@ -363,7 +366,16 @@ class CompanyOS:
             updated = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             details = self._execution_details(updated)
             self.store.audit(conn, task["owner"], "fail_task_execution", "task_execution", task_id, details)
-            return {"task_id": task_id, "status": task_status, **details}
+            self.store.enqueue_event(
+                conn,
+                "task.failed",
+                "task",
+                task_id,
+                {"recoverable": recoverable, "error": error.strip()},
+            )
+            result = {"task_id": task_id, "status": task_status, **details}
+        self.store.notify_worker()
+        return result
 
     def inspect_execution(self, task_id: int) -> dict[str, object]:
         self.init()
@@ -389,7 +401,8 @@ class CompanyOS:
             result = self._recover_execution(conn, task_id, actor, reason.strip(), require_stale=False)
             if result is None:
                 raise ValueError(f"task {task_id} has no recoverable execution")
-            return result
+        self.store.notify_worker()
+        return result
 
     def complete_task(self, task_id: int, actor: str, summary: str, evidence: list[Path]) -> dict[str, object]:
         self.init()
@@ -420,7 +433,16 @@ class CompanyOS:
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             if execution is not None:
                 self.store.audit(conn, actor, "complete_task_execution", "task_execution", task_id, self._execution_details(execution))
-            return {"task_id": task_id, "status": "done", **result}
+            self.store.enqueue_event(
+                conn,
+                "task.completed",
+                "task",
+                task_id,
+                result,
+            )
+            response = {"task_id": task_id, "status": "done", **result}
+        self.store.notify_worker()
+        return response
 
     def cancel_task(self, task_id: int, actor: str, reason: str) -> dict[str, object]:
         """Close obsolete work without misrepresenting it as completed."""
@@ -448,7 +470,16 @@ class CompanyOS:
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             if execution is not None:
                 self.store.audit(conn, actor, "cancel_task_execution", "task_execution", task_id, self._execution_details(execution))
-            return {"task_id": task_id, "status": "cancelled", **result}
+            self.store.enqueue_event(
+                conn,
+                "task.cancelled",
+                "task",
+                task_id,
+                result,
+            )
+            response = {"task_id": task_id, "status": "cancelled", **result}
+        self.store.notify_worker()
+        return response
 
     def chairman_inbox(self) -> list[dict[str, object]]:
         self.init()
@@ -485,7 +516,15 @@ class CompanyOS:
                     result = None if decision == "approve" else json.dumps({"summary": "Chairman denied reserved action; task closed without external action."})
                     conn.execute("UPDATE tasks SET status=?, updated_at=?, blocked_reason=NULL, result=? WHERE id=?", (new_status, utcnow(), result, task["id"]))
             self.store.audit(conn, "Chairman", "decide", "approval", approval_id, payload)
-            return payload
+            self.store.enqueue_event(
+                conn,
+                "chairman.decided",
+                "approval",
+                approval_id,
+                payload,
+            )
+        self.store.notify_worker()
+        return payload
 
     def report(self) -> str:
         self.init()
@@ -524,7 +563,7 @@ class CompanyOS:
     def validate(self) -> list[str]:
         self.init()
         errors: list[str] = []
-        required_tables = {"audit_log", "roles", "raci", "tasks", "approvals", "metrics", "experiments", "cycles", "task_executions", "token_usage", "strategic_phases"}
+        required_tables = {"audit_log", "roles", "raci", "tasks", "approvals", "metrics", "experiments", "cycles", "task_executions", "token_usage", "strategic_phases", "execution_events", "event_worker_state"}
         rows = self.store.fetch_all("SELECT name FROM sqlite_master WHERE type='table'")
         present = {row["name"] for row in rows}
         missing = required_tables - present
@@ -548,7 +587,8 @@ class CompanyOS:
         active_domains = [
             row["domain"]
             for row in self.store.fetch_all(
-                "SELECT domain FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
+                """SELECT domain FROM tasks
+                   WHERE status IN ('open', 'in_progress', 'blocked')"""
             )
         ]
         lanes = [self._wip_lane(domain) for domain in active_domains]
@@ -857,6 +897,13 @@ class CompanyOS:
         updated = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
         result = {"task_id": task_id, "status": status, **self._execution_details(updated)}
         self.store.audit(conn, actor, "recover_task_execution", "task_execution", task_id, {**result, "reason": reason, "stale": stale})
+        self.store.enqueue_event(
+            conn,
+            "task.recovered",
+            "task",
+            task_id,
+            {"status": status, "reason": reason, "stale": stale},
+        )
         return result
 
     def _execution_needs_recovery(self, execution: dict[str, object]) -> bool:

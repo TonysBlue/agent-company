@@ -24,6 +24,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("org-migrate", help="Apply the audited lean organization migration")
     sub.add_parser("status", help="Show company status")
     sub.add_parser("run-cycle", help="Run one operating cycle")
+    sub.add_parser("worker-run", help="Run the persistent event worker until stopped")
+    sub.add_parser("worker-step", help="Process at most one durable event")
+    sub.add_parser("worker-status", help="Show event worker health and queue state")
+    wake = sub.add_parser("worker-wake", help="Persist an explicit worker wake event")
+    wake.add_argument("--reason", required=True)
     sub.add_parser("task-list", help="List active tasks")
     create = sub.add_parser("task-create", help="Create one reviewed backlog task")
     create.add_argument("--actor", required=True)
@@ -161,6 +166,22 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.status(), indent=2, sort_keys=True))
         elif args.command == "run-cycle":
             print(json.dumps(osys.run_cycle(), indent=2, sort_keys=True))
+        elif args.command == "worker-run":
+            from .event_engine import EventEngine
+
+            EventEngine(osys.config).run()
+        elif args.command == "worker-step":
+            from .event_engine import EventEngine
+
+            print(json.dumps(EventEngine(osys.config).step(), indent=2, sort_keys=True))
+        elif args.command == "worker-status":
+            from .event_engine import EventEngine
+
+            print(json.dumps(EventEngine(osys.config).status(), indent=2, sort_keys=True))
+        elif args.command == "worker-wake":
+            from .event_engine import EventEngine
+
+            print(json.dumps(EventEngine(osys.config).wake(args.reason), indent=2, sort_keys=True))
         elif args.command == "task-list":
             print(json.dumps(osys.task_list(), indent=2, sort_keys=True))
         elif args.command == "task-create":

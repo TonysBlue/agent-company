@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import errno
 import json
+import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
@@ -165,6 +167,47 @@ class Store:
                     FOREIGN KEY(task_id) REFERENCES tasks(id),
                     FOREIGN KEY(execution_id) REFERENCES task_executions(id)
                 );
+                CREATE TABLE IF NOT EXISTS execution_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    available_at TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    entity_type TEXT NOT NULL,
+                    entity_id TEXT,
+                    payload TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    claimed_at TEXT,
+                    processed_at TEXT,
+                    worker_id TEXT,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    last_error TEXT
+                );
+                CREATE INDEX IF NOT EXISTS execution_events_pending
+                    ON execution_events(status, available_at, id);
+                CREATE TABLE IF NOT EXISTS event_worker_state (
+                    singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                    status TEXT NOT NULL,
+                    worker_id TEXT,
+                    process_id INTEGER,
+                    started_at TEXT,
+                    heartbeat_at TEXT,
+                    stopped_at TEXT,
+                    last_error TEXT,
+                    events_processed INTEGER NOT NULL DEFAULT 0
+                );
+                INSERT OR IGNORE INTO event_worker_state(singleton, status)
+                    VALUES (1, 'stopped');
+                CREATE TRIGGER IF NOT EXISTS tasks_enqueue_created_event
+                AFTER INSERT ON tasks
+                BEGIN
+                    INSERT INTO execution_events(
+                        created_at, available_at, event_type, entity_type,
+                        entity_id, payload, status
+                    ) VALUES (
+                        NEW.created_at, NEW.created_at, 'task.created', 'task',
+                        CAST(NEW.id AS TEXT), '{}', 'pending'
+                    );
+                END;
                 """
             )
             task_columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
@@ -178,6 +221,21 @@ class Store:
             if "status" not in role_columns:
                 conn.execute("ALTER TABLE roles ADD COLUMN status TEXT NOT NULL DEFAULT 'resident'")
             self._seed(conn)
+            conn.execute(
+                """INSERT INTO execution_events(
+                       created_at, available_at, event_type, entity_type,
+                       entity_id, payload, status
+                   )
+                   SELECT tasks.updated_at, tasks.updated_at, 'task.created', 'task',
+                          CAST(tasks.id AS TEXT), '{"migration_backfill": true}', 'pending'
+                   FROM tasks
+                   WHERE tasks.status IN ('open', 'in_progress', 'blocked')
+                     AND NOT EXISTS (
+                         SELECT 1 FROM execution_events
+                         WHERE execution_events.entity_type='task'
+                           AND execution_events.entity_id=CAST(tasks.id AS TEXT)
+                     )"""
+            )
 
     def _seed(self, conn: sqlite3.Connection) -> None:
         self._migrate_organization(conn)
@@ -278,6 +336,54 @@ class Store:
             "INSERT INTO audit_log(ts, actor, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)",
             (utcnow(), actor, action, entity, str(entity_id) if entity_id is not None else None, json.dumps(details, sort_keys=True)),
         )
+
+    @property
+    def worker_wake_path(self) -> Path:
+        return self.db_path.with_name(f"{self.db_path.name}-worker.wake")
+
+    @property
+    def worker_lock_path(self) -> Path:
+        return self.db_path.with_name(f"{self.db_path.name}-worker.lock")
+
+    def enqueue_event(
+        self,
+        conn: sqlite3.Connection,
+        event_type: str,
+        entity_type: str,
+        entity_id: Any,
+        payload: dict[str, Any],
+    ) -> int:
+        now = utcnow()
+        cursor = conn.execute(
+            """INSERT INTO execution_events(
+                   created_at, available_at, event_type, entity_type,
+                   entity_id, payload, status
+               ) VALUES (?, ?, ?, ?, ?, ?, 'pending')""",
+            (
+                now,
+                now,
+                event_type,
+                entity_type,
+                str(entity_id) if entity_id is not None else None,
+                json.dumps(payload, sort_keys=True),
+            ),
+        )
+        return int(cursor.lastrowid)
+
+    def notify_worker(self) -> bool:
+        """Best-effort edge notification; SQLite remains the durable queue."""
+        path = self.worker_wake_path
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_NONBLOCK)
+        except OSError as exc:
+            if exc.errno in {errno.ENOENT, errno.ENXIO}:
+                return False
+            raise
+        try:
+            os.write(fd, b"1")
+        finally:
+            os.close(fd)
+        return True
 
     def fetch_all(self, query: str, params: Iterable[Any] = ()) -> list[sqlite3.Row]:
         with self.connect() as conn:
