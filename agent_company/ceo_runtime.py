@@ -421,7 +421,11 @@ class CEORuntime:
             response = self.reasoner.reason(self._prompt(snapshot))
             payload = self.validate_protocol(response.payload)
         except Exception as exc:
-            retryable = isinstance(exc, subprocess.TimeoutExpired) or "524" in str(exc) or "timeout" in str(exc).lower()
+            retryable = (
+                isinstance(exc, (subprocess.TimeoutExpired, ProtocolError))
+                or "524" in str(exc)
+                or "timeout" in str(exc).lower()
+            )
             status = "retry_scheduled" if retryable else "failed"
             error = f"timeout: {exc}" if isinstance(exc, subprocess.TimeoutExpired) else str(exc)
             with self.store.connect() as conn:
