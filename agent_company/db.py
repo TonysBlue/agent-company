@@ -14,6 +14,7 @@ from .models import RACI, ROLES, SEED_TASKS
 
 
 ORGANIZATION_MIGRATION_VERSION = "lean-org-v1"
+CEO_RUNTIME_SCHEMA_VERSION = "ceo-runtime-schema/v1"
 
 
 def utcnow() -> str:
@@ -33,6 +34,13 @@ class Store:
 
     def init(self) -> None:
         with self.connect() as conn:
+            # Older databases need this column before triggers referencing it are parsed.
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='execution_events'"
+            ).fetchone():
+                event_columns = {row[1] for row in conn.execute("PRAGMA table_info(execution_events)")}
+                if "priority" not in event_columns:
+                    conn.execute("ALTER TABLE execution_events ADD COLUMN priority INTEGER NOT NULL DEFAULT 10")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
@@ -180,10 +188,13 @@ class Store:
                     processed_at TEXT,
                     worker_id TEXT,
                     attempts INTEGER NOT NULL DEFAULT 0,
-                    last_error TEXT
+                    last_error TEXT,
+                    priority INTEGER NOT NULL DEFAULT 10
                 );
                 CREATE INDEX IF NOT EXISTS execution_events_pending
                     ON execution_events(status, available_at, id);
+                CREATE INDEX IF NOT EXISTS execution_events_priority_pending
+                    ON execution_events(status, priority DESC, available_at, id);
                 CREATE TABLE IF NOT EXISTS event_worker_state (
                     singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
                     status TEXT NOT NULL,
@@ -197,15 +208,93 @@ class Store:
                 );
                 INSERT OR IGNORE INTO event_worker_state(singleton, status)
                     VALUES (1, 'stopped');
+                CREATE TABLE IF NOT EXISTS ceo_runtime_migrations (
+                    version TEXT PRIMARY KEY,
+                    applied_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS ceo_state_versions (
+                    version INTEGER PRIMARY KEY,
+                    schema_version TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    source_kind TEXT NOT NULL,
+                    source_id TEXT,
+                    strategy_json TEXT NOT NULL,
+                    assumptions_json TEXT NOT NULL,
+                    critical_path_json TEXT NOT NULL,
+                    active_directive_version INTEGER NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS chairman_directives (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    directive_version INTEGER NOT NULL UNIQUE,
+                    schema_version TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    source_platform TEXT NOT NULL,
+                    source_session_id TEXT NOT NULL,
+                    source_message_id TEXT NOT NULL,
+                    source_message_sha256 TEXT NOT NULL,
+                    directive_type TEXT NOT NULL,
+                    objective TEXT NOT NULL,
+                    constraints_json TEXT NOT NULL,
+                    priority INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    UNIQUE(source_platform, source_session_id, source_message_id)
+                );
+                CREATE TABLE IF NOT EXISTS ceo_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    created_at TEXT NOT NULL,
+                    finished_at TEXT,
+                    event_id INTEGER NOT NULL,
+                    source_tag TEXT NOT NULL,
+                    state_version_read INTEGER NOT NULL,
+                    directive_version_read INTEGER NOT NULL,
+                    input_snapshot_sha256 TEXT NOT NULL,
+                    input_snapshot_json TEXT NOT NULL,
+                    model TEXT,
+                    provider TEXT,
+                    input_tokens INTEGER,
+                    output_tokens INTEGER,
+                    cache_tokens INTEGER,
+                    reasoning_tokens INTEGER,
+                    total_tokens INTEGER,
+                    judgment TEXT,
+                    actions_json TEXT,
+                    result_json TEXT,
+                    status TEXT NOT NULL,
+                    error TEXT,
+                    FOREIGN KEY(event_id) REFERENCES execution_events(id)
+                );
+                CREATE TABLE IF NOT EXISTS approval_deliveries (
+                    approval_id INTEGER PRIMARY KEY,
+                    idempotency_key TEXT NOT NULL UNIQUE,
+                    status TEXT NOT NULL,
+                    attempts INTEGER NOT NULL DEFAULT 0,
+                    available_at TEXT NOT NULL,
+                    delivered_at TEXT,
+                    delivery_ref TEXT,
+                    last_error TEXT,
+                    FOREIGN KEY(approval_id) REFERENCES approvals(id)
+                );
+                CREATE TRIGGER IF NOT EXISTS approvals_enqueue_pending_event
+                AFTER INSERT ON approvals
+                WHEN NEW.status = 'pending'
+                BEGIN
+                    INSERT INTO execution_events(
+                        created_at, available_at, event_type, entity_type,
+                        entity_id, payload, status, priority
+                    ) VALUES (
+                        NEW.created_at, NEW.created_at, 'approval.pending', 'approval',
+                        CAST(NEW.id AS TEXT), '{}', 'pending', 90
+                    );
+                END;
                 CREATE TRIGGER IF NOT EXISTS tasks_enqueue_created_event
                 AFTER INSERT ON tasks
                 BEGIN
                     INSERT INTO execution_events(
                         created_at, available_at, event_type, entity_type,
-                        entity_id, payload, status
+                        entity_id, payload, status, priority
                     ) VALUES (
                         NEW.created_at, NEW.created_at, 'task.created', 'task',
-                        CAST(NEW.id AS TEXT), '{}', 'pending'
+                        CAST(NEW.id AS TEXT), '{}', 'pending', 10
                     );
                 END;
                 """
@@ -220,6 +309,22 @@ class Store:
             role_columns = {row[1] for row in conn.execute("PRAGMA table_info(roles)")}
             if "status" not in role_columns:
                 conn.execute("ALTER TABLE roles ADD COLUMN status TEXT NOT NULL DEFAULT 'resident'")
+            event_columns = {row[1] for row in conn.execute("PRAGMA table_info(execution_events)")}
+            if "priority" not in event_columns:
+                conn.execute("ALTER TABLE execution_events ADD COLUMN priority INTEGER NOT NULL DEFAULT 10")
+            conn.execute(
+                "INSERT OR IGNORE INTO ceo_runtime_migrations(version, applied_at) VALUES (?, ?)",
+                (CEO_RUNTIME_SCHEMA_VERSION, utcnow()),
+            )
+            if conn.execute("SELECT 1 FROM ceo_state_versions LIMIT 1").fetchone() is None:
+                conn.execute(
+                    """INSERT INTO ceo_state_versions(
+                           version, schema_version, created_at, source_kind, source_id,
+                           strategy_json, assumptions_json, critical_path_json,
+                           active_directive_version
+                       ) VALUES (1, 'ceo-state/v1', ?, 'migration', ?, '{}', '[]', '[]', 0)""",
+                    (utcnow(), CEO_RUNTIME_SCHEMA_VERSION),
+                )
             self._seed(conn)
             conn.execute(
                 """INSERT INTO execution_events(
@@ -234,6 +339,28 @@ class Store:
                          SELECT 1 FROM execution_events
                          WHERE execution_events.entity_type='task'
                            AND execution_events.entity_id=CAST(tasks.id AS TEXT)
+                     )"""
+            )
+            conn.execute(
+                """INSERT INTO execution_events(
+                       created_at, available_at, event_type, entity_type,
+                       entity_id, payload, status, priority
+                   )
+                   SELECT approvals.created_at, approvals.created_at,
+                          'approval.pending', 'approval', CAST(approvals.id AS TEXT),
+                          '{"migration_backfill": true}', 'pending', 90
+                   FROM approvals
+                   WHERE approvals.status='pending'
+                     AND NOT EXISTS (
+                         SELECT 1 FROM approval_deliveries
+                         WHERE approval_deliveries.approval_id=approvals.id
+                           AND approval_deliveries.status='delivered'
+                     )
+                     AND NOT EXISTS (
+                         SELECT 1 FROM execution_events
+                         WHERE execution_events.event_type='approval.pending'
+                           AND execution_events.entity_id=CAST(approvals.id AS TEXT)
+                           AND execution_events.status IN ('pending', 'processing')
                      )"""
             )
 
@@ -352,13 +479,14 @@ class Store:
         entity_type: str,
         entity_id: Any,
         payload: dict[str, Any],
+        priority: int = 10,
     ) -> int:
         now = utcnow()
         cursor = conn.execute(
             """INSERT INTO execution_events(
                    created_at, available_at, event_type, entity_type,
-                   entity_id, payload, status
-               ) VALUES (?, ?, ?, ?, ?, ?, 'pending')""",
+                   entity_id, payload, status, priority
+               ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)""",
             (
                 now,
                 now,
@@ -366,6 +494,7 @@ class Store:
                 entity_type,
                 str(entity_id) if entity_id is not None else None,
                 json.dumps(payload, sort_keys=True),
+                priority,
             ),
         )
         return int(cursor.lastrowid)

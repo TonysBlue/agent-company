@@ -1,0 +1,19 @@
+test_ceo_runtime (unittest.loader._FailedTest.test_ceo_runtime) ... ERROR
+
+======================================================================
+ERROR: test_ceo_runtime (unittest.loader._FailedTest.test_ceo_runtime)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_ceo_runtime
+Traceback (most recent call last):
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/unittest/loader.py", line 162, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/tests/test_ceo_runtime.py", line 14, in <module>
+    from agent_company.ceo_runtime import (
+ModuleNotFoundError: No module named 'agent_company.ceo_runtime'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)

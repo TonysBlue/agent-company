@@ -19,6 +19,9 @@ python3.11 -m agent_company.cli worker-step
 python3.11 -m agent_company.cli worker-status
 python3.11 -m agent_company.cli worker-wake --reason "operator verification"
 python3.11 -m agent_company.cli worker-run
+python3.11 -m agent_company.cli ceo-status
+python3.11 -m agent_company.cli chairman-directive-ingest --source-platform weixin --source-session-id SESSION --source-message-id MESSAGE --message "transient raw message" --directive-type priority --objective "Reviewed objective" --constraint "No external delivery"
+python3.11 -m agent_company.cli ceo-step --fixture examples/ceo-actions-fixture.json --disable-external-delivery
 python3.11 -m agent_company.cli task-list
 python3.11 -m agent_company.cli task-create --actor CEO --owner "Product Engineer" --title "Implement bounded capability" --domain engineering --priority 80 --acceptance-criteria "Runnable implementation and regression evidence pass."
 python3.11 -m agent_company.cli task-claim 1 --actor "Product Engineer" --executor-id product-engineer-local-1 --backend local
@@ -67,16 +70,19 @@ bounded priority, explicit acceptance criteria, and records the new work in the 
 The active WIP limit is two critical tasks: at most one product task and one commercial task.
 Cycles do not manufacture follow-up, phase, or experiment tasks merely to keep the system active.
 
-The 7x24 execution engine uses durable SQLite events plus a local FIFO notification;
-there is no fixed CEO cron pulse. An idle `worker-run` blocks in the kernel and neither
-calls an LLM nor creates work. `worker-step` processes at most one persisted event for
-verification. Task creation, completion, cancellation, failure, recovery, Chairman
-decisions, and explicit wakes enqueue events. A file lock enforces one worker per
-database, restart recovery requeues interrupted events, and `worker-status` reports
-queue counts, lock state, heartbeat, last error, and health. Approval blocking is
-task-scoped: the other safe WIP lane continues, while one product and one commercial
-task remain the maximum. See `docs/event-worker-deployment.md`; do not enable the
-infinite user service until CEO verification.
+The 7x24 execution engine uses durable priority-ordered SQLite events plus a local FIFO
+notification; there is no fixed CEO cron pulse. An idle `worker-run` blocks in the kernel
+and neither calls an LLM nor creates work. Ordinary events retain deterministic
+`run-cycle` dispatch. Complex events call the versioned persistent CEO control plane,
+which accepts only a strict allowlist of internal actions or Chairman approval requests.
+It invokes Hermes v0.18.2 as `hermes chat -q ... -Q --source tool` under the implicit
+default profile, with no shell/file tools. Retryable or superseded reasoning requeues the
+same event with backoff. Approval delivery uses `hermes send --to weixin`; a failed card
+does not block lower-priority safe events. Raw Chairman conversation is never retained,
+only structured directives, source identifiers, and a message SHA-256. Use `ceo-step
+--fixture ... --disable-external-delivery` for a no-LLM/no-Weixin smoke test. See
+`docs/event-worker-deployment.md`; do not enable the infinite user service until CEO
+verification.
 
 `org-migrate` applies the versioned `lean-org-v1` SQLite migration. It is safe to rerun,
 updates live roles and RACI, retains retired role rows as historical compatibility records,

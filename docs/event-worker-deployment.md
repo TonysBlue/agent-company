@@ -11,10 +11,20 @@ lease expiry the worker persists an internal wake and runs recovery; this is not
 fixed-interval pulse. Existing active tasks are backfilled into the event queue during
 the idempotent SQLite migration.
 
-The worker performs governance dispatch only. It does not invoke an LLM, launch Codex,
-create replacement work, publish, spend, contact customers, deploy, or perform another
-external action. Executors remain separately bounded and must attach reviewable
-evidence through the existing task lifecycle.
+The worker runs deterministic governance dispatch for ordinary events. Complex events
+(`chairman.directive`, Chairman decisions, and task completion/failure/recovery) invoke
+the persistent CEO control plane through one bounded Hermes query. The query may only
+return an allowlisted structured protocol: update CEO state, create a bounded internal
+task, request Chairman approval, or do nothing. It cannot run shell/file tools or directly
+publish, spend, contact customers, deploy, export data, change pricing, or make a legal
+commitment.
+
+The CEO is one logical identity backed by versioned SQLite state rather than a permanently
+resident chat process. It uses the Hermes default profile implicitly and invokes the
+verified Hermes v0.18.2 form `hermes chat -q ... -Q --source tool -t todo --max-turns 1`.
+The `tool` source keeps background sessions out of normal user session lists. This adapter
+does not pass `--profile`, `--oneshot`, or `--usage-file`. Model/token fields stay null when
+the supported `chat` command does not report them.
 
 ## Preflight and one-step verification
 
@@ -26,6 +36,8 @@ python3.11 -m agent_company.cli worker-status
 python3.11 -m agent_company.cli worker-step
 python3.11 -m agent_company.cli worker-wake --reason "operator verification"
 python3.11 -m agent_company.cli worker-step
+python3.11 -m agent_company.cli ceo-status
+python3.11 -m agent_company.cli ceo-step --fixture examples/ceo-actions-fixture.json --disable-external-delivery
 make test
 make validate
 ```
@@ -33,6 +45,9 @@ make validate
 `worker-step` takes the same non-blocking single-instance lock as the long-running
 worker and processes at most one event. Use it for CEO verification before enabling
 the service. An idle step returns `{"status": "idle"}` and creates no task.
+`ceo-step --fixture` creates a local complex fixture event when needed, processes it
+without an LLM, and `--disable-external-delivery` prevents messaging. A fixture must be
+a valid `ceo-actions/v1` JSON object.
 
 ## Install the user service
 
@@ -49,6 +64,11 @@ systemctl --user enable --now agent-company-worker.service
 Do not run the final command until CEO verification is complete. This repository
 change deliberately does not start or enable the infinite worker.
 
+The unit sets `HOME=%h` and includes `%h/.local/bin` in `PATH` so the user-installed
+Hermes executable and the existing `~/.hermes` configuration are visible. Do not put
+credentials in the unit file or repository. Verify `hermes --version`, `hermes chat
+--help`, and `hermes send --help` as the service user before enabling it.
+
 ## Operations and recovery
 
 ```bash
@@ -64,6 +84,13 @@ Only one worker can hold the file lock for a database. On restart, events left i
 authoritative if a FIFO notification is lost. Health is `degraded` when a processing
 event exists without a live lock holder; queue counts, worker heartbeat, last error,
 and last event are exposed by `worker-status`.
+
+Events are claimed by descending priority and then availability/id. Retryable Hermes
+timeouts and superseded reasoning atomically return their event to `pending`, with
+`available_at` backoff and `last_error`. Failed approval-card delivery is also deferred,
+so an available lower-priority safe event can proceed. Approval cards use the
+Hermes-configured Weixin home destination exactly as `hermes send --to weixin`; no variable
+name is treated as a chat ID. Delivery is idempotently recorded in SQLite.
 
 Chairman approval blocks only its linked task. The other product or commercial lane
 continues when safe, while the one-product/one-commercial WIP limit remains enforced.

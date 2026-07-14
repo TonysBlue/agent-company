@@ -1,0 +1,11 @@
+{
+  "schema_version": "ceo-actions/v1",
+  "judgment": "No additional CEO action is needed for this local smoke event.",
+  "state_patch": {},
+  "actions": [
+    {
+      "type": "noop",
+      "reason": "Fixture smoke completed without external delivery."
+    }
+  ]
+}

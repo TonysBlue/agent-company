@@ -29,6 +29,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("worker-status", help="Show event worker health and queue state")
     wake = sub.add_parser("worker-wake", help="Persist an explicit worker wake event")
     wake.add_argument("--reason", required=True)
+    sub.add_parser("ceo-status", help="Show the persistent Hermes CEO control-plane status")
+    directive = sub.add_parser("chairman-directive-ingest", help="Ingest a structured Chairman directive")
+    directive.add_argument("--source-platform", required=True)
+    directive.add_argument("--source-session-id", required=True)
+    directive.add_argument("--source-message-id", required=True)
+    directive.add_argument("--message", required=True, help="Transient raw message; only its SHA-256 is retained")
+    directive.add_argument("--directive-type", required=True)
+    directive.add_argument("--objective", required=True)
+    directive.add_argument("--constraint", action="append", default=[])
+    directive.add_argument("--priority", type=int, default=100)
+    ceo_step = sub.add_parser("ceo-step", help="Process at most one event through the CEO-aware engine")
+    ceo_step.add_argument("--fixture", type=Path, default=None)
+    ceo_step.add_argument("--disable-external-delivery", action="store_true")
     sub.add_parser("task-list", help="List active tasks")
     create = sub.add_parser("task-create", help="Create one reviewed backlog task")
     create.add_argument("--actor", required=True)
@@ -182,6 +195,47 @@ def main(argv: list[str] | None = None) -> int:
             from .event_engine import EventEngine
 
             print(json.dumps(EventEngine(osys.config).wake(args.reason), indent=2, sort_keys=True))
+        elif args.command == "ceo-status":
+            from .ceo_runtime import CEORuntime
+
+            print(json.dumps(CEORuntime(osys.config).status(), indent=2, sort_keys=True))
+        elif args.command == "chairman-directive-ingest":
+            from .ceo_runtime import CEORuntime
+
+            print(json.dumps(CEORuntime(osys.config).ingest_directive(
+                source_platform=args.source_platform,
+                source_session_id=args.source_session_id,
+                source_message_id=args.source_message_id,
+                message=args.message,
+                directive_type=args.directive_type,
+                objective=args.objective,
+                constraints=args.constraint,
+                priority=args.priority,
+            ), indent=2, sort_keys=True))
+        elif args.command == "ceo-step":
+            from .ceo_runtime import CEORuntime, DisabledSender, FixtureReasoner
+            from .event_engine import EventEngine
+
+            reasoner = FixtureReasoner(args.fixture) if args.fixture else None
+            sender = DisabledSender() if args.disable_external_delivery else None
+            runtime = CEORuntime(
+                osys.config,
+                reasoner=reasoner,
+                sender=sender,
+                external_delivery_enabled=False if args.disable_external_delivery else None,
+            )
+            if args.fixture:
+                runtime.init()
+                with runtime.store.connect() as conn:
+                    runtime.store.enqueue_event(
+                        conn,
+                        "ceo.fixture",
+                        "fixture",
+                        args.fixture.name,
+                        {"fixture": str(args.fixture.resolve())},
+                        priority=101,
+                    )
+            print(json.dumps(EventEngine(osys.config, ceo_runtime=runtime).step(), indent=2, sort_keys=True))
         elif args.command == "task-list":
             print(json.dumps(osys.task_list(), indent=2, sort_keys=True))
         elif args.command == "task-create":

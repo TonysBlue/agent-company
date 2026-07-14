@@ -5,6 +5,10 @@ After=local-fs.target
 [Service]
 Type=simple
 WorkingDirectory=%h/agent-company
+# Hermes v0.18.2 is installed in the user's local bin; credentials remain in
+# the user's existing ~/.hermes configuration and are never copied into this unit.
+Environment="HOME=%h"
+Environment="PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
 ExecStart=/usr/bin/env python3.11 -m agent_company.cli worker-run
 Restart=on-failure
 RestartSec=5

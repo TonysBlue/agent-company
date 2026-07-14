@@ -24,10 +24,13 @@ class WorkerAlreadyRunning(RuntimeError):
 
 
 class EventEngine:
-    def __init__(self, config: CompanyConfig):
+    def __init__(self, config: CompanyConfig, ceo_runtime=None):
+        from .ceo_runtime import CEORuntime
+
         self.config = config
         self.osys = CompanyOS(config)
         self.store = Store(config.db_path)
+        self.ceo_runtime = ceo_runtime or CEORuntime(config)
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}"
 
     def init(self) -> None:
@@ -196,7 +199,7 @@ class EventEngine:
             row = conn.execute(
                 """SELECT * FROM execution_events
                    WHERE status='pending' AND available_at <= ?
-                   ORDER BY available_at, id LIMIT 1""",
+                   ORDER BY priority DESC, available_at, id LIMIT 1""",
                 (utcnow(),),
             ).fetchone()
             if row is None:
@@ -227,7 +230,11 @@ class EventEngine:
         if event is None:
             return {"status": "idle", "recovered_events": recovered}
         try:
-            dispatch = self.osys.run_cycle()
+            ceo = self.ceo_runtime.process_event(event)
+            if ceo["classification"] == "deterministic_dispatch":
+                dispatch = self.osys.run_cycle()
+            else:
+                dispatch = None
         except Exception as exc:
             with self.store.connect() as conn:
                 conn.execute(
@@ -245,6 +252,13 @@ class EventEngine:
                     {"error": str(exc), "event_type": event["event_type"]},
                 )
             raise
+        if ceo["status"] in {
+            "retry_scheduled",
+            "superseded",
+            "delivery_retry_scheduled",
+            "delivery_disabled",
+        }:
+            return self._defer_event(event, ceo, recovered)
         with self.store.connect() as conn:
             processed_at = utcnow()
             conn.execute(
@@ -259,7 +273,7 @@ class EventEngine:
                 "process_execution_event",
                 "execution_event",
                 event["id"],
-                {"event_type": event["event_type"], "dispatch": dispatch},
+                {"event_type": event["event_type"], "dispatch": dispatch, "ceo": ceo},
             )
             conn.execute(
                 """UPDATE event_worker_state
@@ -275,6 +289,57 @@ class EventEngine:
             "status": "processed",
             "recovered_events": recovered,
             "dispatch": dispatch,
+            "ceo": ceo,
+        }
+
+    def _defer_event(self, event: dict[str, Any], ceo: dict[str, Any], recovered: int) -> dict[str, Any]:
+        error = ceo.get("error") or (
+            "CEO result superseded by a newer state or Chairman directive"
+            if ceo["status"] == "superseded"
+            else ceo["status"]
+        )
+        available_at = None
+        if ceo["status"] == "delivery_retry_scheduled":
+            delivery = self.store.fetch_one(
+                "SELECT available_at FROM approval_deliveries WHERE approval_id=?",
+                (event["entity_id"],),
+            )
+            available_at = delivery["available_at"] if delivery else None
+        if available_at is None:
+            from .ceo_runtime import _retry_at
+
+            available_at = _retry_at(int(event["attempts"]))
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                """UPDATE execution_events
+                   SET status='pending', available_at=?, worker_id=NULL,
+                       claimed_at=NULL, processed_at=NULL, last_error=?
+                   WHERE id=? AND status='processing' AND worker_id=?""",
+                (available_at, error, event["id"], self.worker_id),
+            )
+            self.store.audit(
+                conn,
+                "system",
+                "defer_execution_event",
+                "execution_event",
+                event["id"],
+                {
+                    "event_type": event["event_type"],
+                    "ceo_status": ceo["status"],
+                    "available_at": available_at,
+                    "error": error,
+                },
+            )
+        return {
+            "event_id": event["id"],
+            "event_type": event["event_type"],
+            "entity_type": event["entity_type"],
+            "entity_id": event["entity_id"],
+            "status": "deferred",
+            "recovered_events": recovered,
+            "dispatch": None,
+            "ceo": ceo,
         }
 
     def _set_worker_state(self, status: str, error: str | None = None, recovered: int = 0) -> None:

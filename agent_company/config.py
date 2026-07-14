@@ -31,6 +31,8 @@ class CompanyConfig:
     backend: str
     codex_enabled: bool
     reserved_actions: tuple[str, ...] = field(default_factory=lambda: tuple(DEFAULT_RESERVED_ACTIONS))
+    ceo_hermes_timeout_seconds: int = 120
+    ceo_external_delivery_enabled: bool = True
 
 
 def load_config(path: str | Path | None = None) -> CompanyConfig:
@@ -65,4 +67,6 @@ def load_config(path: str | Path | None = None) -> CompanyConfig:
         backend=get("backend", "name", "local"),
         codex_enabled=get_bool("backend", "codex_enabled", False),
         reserved_actions=reserved_actions,
+        ceo_hermes_timeout_seconds=int(get("ceo_runtime", "hermes_timeout_seconds", "120")),
+        ceo_external_delivery_enabled=get_bool("ceo_runtime", "external_delivery_enabled", True),
     )
