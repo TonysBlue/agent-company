@@ -144,6 +144,11 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         "task_executions": [],
         "token_usage": [],
         "strategic_phases": [],
+        "execution_events": [],
+        "event_worker_state": [],
+        "ceo_state_versions": [],
+        "ceo_runs": [],
+        "chairman_directives": [],
     }
     if not config.db_path.exists():
         empty["database"]["error"] = "database file not found"
@@ -158,6 +163,12 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
             ).fetchone()
             strategic_phase_table = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='strategic_phases'"
+            ).fetchone()
+            event_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='execution_events'"
+            ).fetchone()
+            ceo_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='ceo_state_versions'"
             ).fetchone()
             return {
                 "database": {
@@ -192,6 +203,21 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "strategic_phases": _row_dicts(list(conn.execute(
                     "SELECT * FROM strategic_phases ORDER BY id DESC"
                 ))) if strategic_phase_table else [],
+                "execution_events": _row_dicts(list(conn.execute(
+                    "SELECT * FROM execution_events ORDER BY id DESC LIMIT 80"
+                ))) if event_table else [],
+                "event_worker_state": _row_dicts(list(conn.execute(
+                    "SELECT * FROM event_worker_state"
+                ))) if event_table else [],
+                "ceo_state_versions": _row_dicts(list(conn.execute(
+                    "SELECT * FROM ceo_state_versions ORDER BY version DESC LIMIT 5"
+                ))) if ceo_table else [],
+                "ceo_runs": _row_dicts(list(conn.execute(
+                    "SELECT * FROM ceo_runs ORDER BY id DESC LIMIT 20"
+                ))) if ceo_table else [],
+                "chairman_directives": _row_dicts(list(conn.execute(
+                    "SELECT * FROM chairman_directives ORDER BY directive_version DESC LIMIT 20"
+                ))) if ceo_table else [],
             }
     except sqlite3.Error as exc:
         empty["database"]["error"] = str(exc)
@@ -481,6 +507,35 @@ def _chart_svg(title: str, rows: list[dict[str, Any]], value_key: str, label_key
     """
 
 
+def _role_activity_timeline(sqlite_data: dict[str, Any]) -> list[dict[str, Any]]:
+    activities: list[dict[str, Any]] = []
+    for row in sqlite_data["audit"]:
+        role = str(row.get("actor") or "系统")
+        if role.lower() in {"system", "operator"}:
+            continue
+        activities.append({
+            "timestamp": row.get("ts"), "role": role, "display_label": _role_label(role),
+            "activity": row.get("action"), "source": "审计",
+            "detail": f"{row.get('entity') or ''} {row.get('entity_id') or ''}".strip(),
+        })
+    for row in sqlite_data["ceo_runs"]:
+        activities.append({
+            "timestamp": row.get("finished_at") or row.get("created_at"), "role": "CEO",
+            "display_label": _role_label("CEO"), "activity": "CEO 经营判断",
+            "source": "CEO Runtime", "detail": row.get("judgment") or row.get("error") or row.get("status"),
+        })
+    for row in sqlite_data["task_executions"]:
+        role = str(row.get("task_owner") or "系统")
+        activities.append({
+            "timestamp": row.get("updated_at") or row.get("claimed_at"), "role": role,
+            "display_label": _role_label(role), "activity": f"任务 {row.get('task_id')} {_recovery_status_label(row.get('recovery_status'))}",
+            "source": "任务执行", "detail": row.get("checkpoint") or row.get("last_error") or row.get("task_title"),
+        })
+    activities = [item for item in activities if item.get("timestamp")]
+    activities.sort(key=lambda item: str(item["timestamp"]), reverse=True)
+    return activities[:80]
+
+
 def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
     config = config or load_config()
     sqlite_data = _sqlite_snapshot(config)
@@ -538,6 +593,10 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
     execution_timeline, average_cycle_duration = _execution_timing(
         sqlite_data["task_executions"], sqlite_data["cycles"], agents
     )
+    worker = sqlite_data["event_worker_state"][0] if sqlite_data["event_worker_state"] else {}
+    latest_ceo_state = sqlite_data["ceo_state_versions"][0] if sqlite_data["ceo_state_versions"] else {}
+    pending_events = [row for row in sqlite_data["execution_events"] if row.get("status") in {"pending", "processing"}]
+    role_activity_timeline = _role_activity_timeline(sqlite_data)
     docs = {
         "roadmap": _read_doc(config.workspace / "docs" / "roadmap.md"),
         "kpis": _read_doc(config.workspace / "docs" / "kpis.md"),
@@ -604,6 +663,18 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "strategic_phases": sqlite_data["strategic_phases"],
             "technical_health": "正常" if sqlite_data["database"]["available"] else "异常",
             "business_progress": business_progress,
+            "operating_model": "事件驱动 7×24",
+            "worker": worker,
+            "ceo_runtime": {
+                "logical_ceo_count": 1 if latest_ceo_state else 0,
+                "state_version": latest_ceo_state.get("version"),
+                "strategy": json.loads(latest_ceo_state.get("strategy_json") or "{}"),
+                "critical_path": json.loads(latest_ceo_state.get("critical_path_json") or "[]"),
+                "last_run": sqlite_data["ceo_runs"][0] if sqlite_data["ceo_runs"] else None,
+            },
+            "chairman_directives": sqlite_data["chairman_directives"],
+            "pending_events": pending_events,
+            "role_activity_timeline": role_activity_timeline,
             "consecutive_empty_cycles": consecutive_empty_cycles,
             "role_execution_timeline": execution_timeline,
             "average_execution_seconds_per_ceo_cycle": average_cycle_duration,
@@ -644,8 +715,10 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "architecture": docs["architecture"],
         },
         "operations": {
-            "launch_state": "pre_launch",
-            "fields": [
+            "launch_state": "internal_beta",
+            "business_model": "标准化自助订阅",
+            "audience": "个人、小公司和企业",
+            "funnel": [
                 {
                     "label": "真实用户数",
                     "value": None,
@@ -671,6 +744,12 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
                     "note": "未接入客户支持系统，当前仅展示占位状态。",
                 },
             ],
+            "subscription_hypotheses": [
+                {"label": "免费体验", "value": None, "note": "额度与功能边界待内部验证，未上线。"},
+                {"label": "个人订阅", "value": None, "note": "标准套餐和计费维度待董事长批准。"},
+                {"label": "团队订阅", "value": None, "note": "面向小公司和企业的自助席位/用量方案，非定制谈判。"},
+                {"label": "单位经济", "value": None, "note": "等待真实 Token、人工复核和支付数据。"},
+            ],
             "kpi_definitions": docs["kpis"],
         },
         "company": {
@@ -685,8 +764,12 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
                 "docs/constitution.md",
             ],
             "mission": {
-                "source": "docs/strategy.md",
-                "lines": docs["strategy"]["lines"],
+                "source": "docs/strategy.md；董事长战略指令与 CEO State 优先覆盖旧定位",
+                "lines": [
+                    "PixWeave 面向个人、小公司和企业用户，提供标准化自助订阅的 AI 图片生成与编辑产品。",
+                    "商业模式以订阅制为主，不依赖逐客户销售谈判、定制报价或商务洽谈。",
+                    "当前处于内部受控 Beta；公开发布、真实定价、收费和外部招募仍由董事长批准。",
+                ],
             },
             "operating_principles": {
                 "source": "docs/constitution.md",
@@ -817,7 +900,11 @@ def _management(snapshot: dict[str, Any]) -> str:
         ("summary", "说明"),
         ("blocked_reason", "阻塞原因"),
     ])
-    task_chart_data = [{"label": label, "value": count} for label, count in mgmt["task_counts_by_status"].items()]
+    task_chart_data = [
+        {"label": _task_status_label(label), "value": count}
+        for label, count in mgmt["task_counts_by_status"].items()
+        if label in {"open", "in_progress", "blocked"}
+    ]
     workload_rows = [
         {
             "label": data["display_label"],
@@ -833,14 +920,6 @@ def _management(snapshot: dict[str, Any]) -> str:
         }
         for data in mgmt["agent_workload"].values()
         if data["token_usage"].get("status_label") == "已采集"
-    ]
-    average_duration_rows = [
-        {
-            "label": data["display_label"],
-            "value": round(float(mgmt["average_execution_seconds_per_ceo_cycle"][agent]) / 60, 2),
-        }
-        for agent, data in mgmt["agent_workload"].items()
-        if mgmt["average_execution_seconds_per_ceo_cycle"].get(agent) is not None
     ]
     timeline_agents = [
         {"agent": agent, "display_label": data["display_label"]}
@@ -923,27 +1002,48 @@ def _management(snapshot: dict[str, Any]) -> str:
             ("total_tokens", "总计"),
         ],
     )
+    activity_table = _table(
+        mgmt["role_activity_timeline"],
+        [("timestamp", "时间"), ("display_label", "角色"), ("activity", "活动"), ("source", "来源"), ("detail", "详情")],
+    )
+    event_table = _table(
+        mgmt["pending_events"],
+        [("id", "ID"), ("event_type", "事件"), ("entity_type", "对象"), ("entity_id", "对象 ID"), ("status", "状态"), ("available_at", "执行时间"), ("last_error", "错误")],
+    )
+    directive_table = _table(
+        mgmt["chairman_directives"],
+        [("directive_version", "版本"), ("directive_type", "类型"), ("objective", "战略目标"), ("priority", "优先级"), ("status", "状态"), ("created_at", "时间")],
+    )
     return f"""
     <section class="grid stats">
-      {_metric_card("技术运行状态", mgmt["technical_health"])}
-      {_metric_card("业务推进状态", mgmt["business_progress"])}
-      {_metric_card("连续空周期", mgmt["consecutive_empty_cycles"])}
-      {_metric_card("战略阶段", mgmt["strategic_phases"][0]["name"] if mgmt["strategic_phases"] else "未规划")}
+      {_metric_card("运行模式", mgmt["operating_model"])}
+      {_metric_card("事件 Worker", mgmt["worker"].get("status") or "不可用", f"已处理 {mgmt['worker'].get('events_processed', 0)}")}
+      {_metric_card("唯一逻辑 CEO", mgmt["ceo_runtime"]["logical_ceo_count"], f"State v{mgmt['ceo_runtime'].get('state_version') or '-'}")}
+      {_metric_card("待处理事件", len(mgmt["pending_events"]))}
+      {_metric_card("业务推进", mgmt["business_progress"])}
+      {_metric_card("待董事长审批", len([row for row in mgmt["approvals"] if row.get("status") == "pending"]))}
     </section>
     <section class="grid stats">
       <div class="chart-card">
-        <h3>任务状态图</h3>
-        {_chart_svg("任务状态图", task_chart_data, "value", "label")}
+        <h3>当前任务状态</h3>
+        {_chart_svg("当前任务状态", task_chart_data, "value", "label")}
       </div>
       <div class="chart-card">
-        <h3>Agent 完成率图</h3>
-        {_chart_svg("Agent 完成率图", workload_rows, "completion_rate", "label")}
+        <h3>常驻角色当前工作量</h3>
+        {_chart_svg("常驻角色当前工作量", [row for row in workload_rows if row["label"] in {_role_label("CEO"), _role_label("Product Engineer"), _role_label("Customer & Revenue")}], "value", "label")}
       </div>
       <div class="chart-card">
         <h3>Token 使用量图</h3>
         {_chart_svg("Token 使用量图", token_rows, "value", "label") if token_rows else '<p class="empty">Token 使用量未采集</p>'}
       </div>
     </section>
+    <section class="band">
+      <h2>角色活动时间线</h2>
+      <p class="legend">汇总 CEO Runtime 判断、角色审计动作和任务执行活动，按时间倒序展示；历史角色仅在确有历史活动时出现。</p>
+      {activity_table}
+    </section>
+    <section class="band"><h2>待处理事件</h2>{event_table}</section>
+    <section class="band"><h2>董事长战略指令</h2>{directive_table}</section>
     <section class="band">
       <h2>战略阶段与业务目标</h2>
       {_table(mgmt["strategic_phases"], [("id", "ID"), ("name", "阶段"), ("status", "状态"), ("objective", "业务目标"), ("success_metrics", "成功指标"), ("deadline", "截止时间"), ("dependencies", "依赖")])}
@@ -952,11 +1052,6 @@ def _management(snapshot: dict[str, Any]) -> str:
       <h2>角色任务执行时间轴</h2>
       <p class="legend">横轴为时间，纵轴为角色；拖动滑块可放大时间轴，横向滚动查看细节。</p>
       {_timeline_html(mgmt["role_execution_timeline"], timeline_agents)}
-    </section>
-    <section class="band">
-      <h2>每个 CEO 周期平均执行时长</h2>
-      <p class="legend">按角色统计有执行记录的 CEO 周期内任务执行总时长平均值，单位：分钟。</p>
-      {_chart_svg("每个 CEO 周期平均执行时长", average_duration_rows, "value", "label") if average_duration_rows else '<p class="empty">暂无可归属到 CEO 周期的执行记录</p>'}
     </section>
     <section class="band">
       <h2>执行健康</h2>
@@ -1002,20 +1097,32 @@ def _project(snapshot: dict[str, Any]) -> str:
 
 
 def _operations(snapshot: dict[str, Any]) -> str:
-    fields = "".join(
-        f"""<article class="placeholder">
-          <span>{_escape(field['label'])}</span>
-          <strong>尚未上线</strong>
-          <p>{_escape(field['note'])}</p>
-        </article>"""
-        for field in snapshot["operations"]["fields"]
-    )
-    kpis = "".join(f"<li>{_escape(line)}</li>" for line in snapshot["operations"]["kpi_definitions"]["lines"])
+    operations = snapshot["operations"]
+    def cards(rows: list[dict[str, Any]]) -> str:
+        return "".join(
+            f"""<article class="placeholder">
+              <span>{_escape(field['label'])}</span>
+              <strong>{_escape(field['value']) if field.get('value') is not None else '未采集'}</strong>
+              <p>{_escape(field['note'])}</p>
+            </article>"""
+            for field in rows
+        )
+    kpis = "".join(f"<li>{_escape(line)}</li>" for line in operations["kpi_definitions"]["lines"])
     return f"""
+    <section class="grid stats">
+      {_metric_card("商业模式", operations["business_model"])}
+      {_metric_card("目标用户", operations["audience"])}
+      {_metric_card("产品阶段", "内部受控 Beta")}
+    </section>
     <section class="band launch">
-      <h2>上线前占位</h2>
-      <p>当前状态为上线前。所有未接入或未发生的运营字段显示为占位，不显示为 0。</p>
-      <div class="placeholder-grid">{fields}</div>
+      <h2>自助订阅漏斗</h2>
+      <p>统一跟踪访问、首次成功、留存、订阅与续费；未知指标保持“未采集”，不虚构为 0。</p>
+      <div class="placeholder-grid">{cards(operations["funnel"])}</div>
+    </section>
+    <section class="band launch">
+      <h2>套餐与单位经济</h2>
+      <p>面向个人、小公司和企业提供标准化套餐，不依赖逐客户谈判或定制报价。</p>
+      <div class="placeholder-grid">{cards(operations["subscription_hypotheses"])}</div>
     </section>
     <section class="band"><h2>KPI 定义来源</h2><ul class="roadmap">{kpis or '<li>暂无 KPI 定义</li>'}</ul></section>
     """
@@ -1038,7 +1145,7 @@ def _company(snapshot: dict[str, Any]) -> str:
     org_lines = _doc_list(company["organization"], "组织说明缺失；请补充 docs/org.md。")
     cadence = _doc_list(
         company["cadence"],
-        "CEO 每 30 分钟恢复运营；08:00、13:00、20:00 向 Chairman 汇报，详见 docs/cadence.md。",
+        "唯一逻辑 CEO 由持久化事件恢复；空闲时 Worker 阻塞等待且不调用 LLM。",
     )
     governance = _doc_list(company["governance"], "治理说明缺失；请补充 docs/versioning-and-records.md。")
     roles = _table(company["roles"], [
@@ -1101,7 +1208,7 @@ def _company(snapshot: dict[str, Any]) -> str:
     <section class="band"><h2>历史角色兼容记录</h2><p class="lede">仅为保留历史任务 owner 与账本关联，不属于当前常驻组织。</p>{historical_roles}</section>
     <section class="band"><h2>RACI / 协作关系</h2>{raci}<p class="source">来源：SQLite raci</p></section>
     <section class="band">
-      <h2>CEO 30 分钟节奏与 08/13/20 汇报</h2>
+      <h2>唯一逻辑 CEO 与事件驱动 7×24 运行</h2>
       <ul class="roadmap">{cadence}</ul>
       {_source_label(company["cadence"]["source"])}
     </section>

@@ -105,12 +105,75 @@ logs = logs
         self.assertEqual(snapshot["management"]["human_dependencies"][0]["approval_id"], 1)
         self.assertEqual(snapshot["project"]["experiments"][0]["name"], "Message test")
         self.assertIn("git", snapshot["project"])
-        self.assertEqual(snapshot["operations"]["launch_state"], "pre_launch")
-        self.assertIsNone(snapshot["operations"]["fields"][0]["value"])
-        self.assertEqual(snapshot["operations"]["fields"][0]["state"], "placeholder")
+        self.assertEqual(snapshot["operations"]["launch_state"], "internal_beta")
+        self.assertIsNone(snapshot["operations"]["funnel"][0]["value"])
+        self.assertEqual(snapshot["operations"]["funnel"][0]["state"], "placeholder")
         sources = {source["id"] for source in snapshot["sources"]}
         self.assertIn("sqlite", sources)
         self.assertIn("git", sources)
+
+    def test_dashboard_reflects_event_driven_ceo_and_self_serve_subscription_model(self) -> None:
+        now = "2026-07-11T01:02:03+00:00"
+        with self.store.connect() as conn:
+            conn.execute(
+                """UPDATE event_worker_state SET status='waiting', worker_id='worker-1',
+                           process_id=123, heartbeat_at=?, events_processed=9 WHERE singleton=1""",
+                (now,),
+            )
+            conn.execute(
+                """INSERT INTO chairman_directives(
+                       directive_version, schema_version, created_at, source_platform,
+                       source_session_id, source_message_id, source_message_sha256,
+                       directive_type, objective, constraints_json, priority, status
+                   ) VALUES (1, 'chairman-directive/v1', ?, 'weixin', 's1', 'm1', ?,
+                             'strategy', '标准化自助订阅，不依赖商业谈判', '[\"订阅制\"]', 100, 'pending')""",
+                (now, "a" * 64),
+            )
+            conn.execute(
+                """INSERT INTO execution_events(
+                       created_at, available_at, event_type, entity_type, entity_id,
+                       payload, status, priority
+                   ) VALUES (?, ?, 'ceo.business_stall_review', 'strategic_phase', '1',
+                             '{}', 'pending', 70)""",
+                (now, "2026-07-12T01:02:03+00:00"),
+            )
+            conn.execute(
+                """INSERT INTO audit_log(ts, actor, action, entity, entity_id, details)
+                   VALUES (?, 'Customer & Revenue', 'prepare_subscription_positioning',
+                           'task', '3', '{}')""",
+                ("2026-07-11T01:03:03+00:00",),
+            )
+
+        snapshot = build_snapshot(self.config)
+        management = snapshot["management"]
+        self.assertEqual(management["operating_model"], "事件驱动 7×24")
+        self.assertEqual(management["worker"]["status"], "waiting")
+        self.assertEqual(management["ceo_runtime"]["logical_ceo_count"], 1)
+        self.assertEqual(management["chairman_directives"][0]["objective"], "标准化自助订阅，不依赖商业谈判")
+        self.assertEqual(management["pending_events"][0]["event_type"], "ceo.business_stall_review")
+        activity = management["role_activity_timeline"]
+        self.assertTrue(any(item["role"] == "Customer & Revenue" for item in activity))
+        self.assertTrue(any(item["source"] == "审计" for item in activity))
+
+        body = DashboardApp(self.config).render_path("/management").body
+        self.assertIn("唯一逻辑 CEO", body)
+        self.assertIn("事件 Worker", body)
+        self.assertIn("待处理事件", body)
+        self.assertIn("董事长战略指令", body)
+        self.assertIn("角色活动时间线", body)
+        self.assertIn("Customer &amp; Revenue", body)
+        self.assertNotIn("每个 CEO 周期平均执行时长", body)
+        self.assertNotIn("Agent 完成率图", body)
+
+        company = DashboardApp(self.config).render_path("/company").body
+        self.assertIn("标准化自助订阅", company)
+        self.assertIn("个人、小公司和企业", company)
+        self.assertNotIn("CEO 30 分钟节奏", company)
+
+        operations = DashboardApp(self.config).render_path("/operations").body
+        self.assertIn("自助订阅漏斗", operations)
+        self.assertIn("套餐与单位经济", operations)
+        self.assertNotIn("上线前占位", operations)
 
     def test_dashboard_pages_are_separate_and_chinese_labeled(self) -> None:
         app = DashboardApp(self.config)
@@ -126,17 +189,15 @@ logs = logs
         self.assertIn("项目状态", project.body)
         self.assertIn("Git 版本", project.body)
         self.assertIn("产品运营", operations.body)
-        self.assertIn("尚未上线", operations.body)
+        self.assertIn("内部受控 Beta", operations.body)
         self.assertEqual(company.status, 200)
         self.assertIn("公司介绍", company.body)
         self.assertIn("使命", company.body)
         self.assertIn("真实商业运营原则", company.body)
         self.assertIn("PixWeave", company.body)
         self.assertIn("组织图", company.body)
-        self.assertIn("CEO 30 分钟节奏", company.body)
-        self.assertIn("08:00", company.body)
-        self.assertIn("13:00", company.body)
-        self.assertIn("20:00", company.body)
+        self.assertNotIn("CEO 30 分钟节奏", company.body)
+        self.assertIn("事件驱动 7×24", company.body)
         self.assertIn("Chairman 保留决策", company.body)
         self.assertIn("Codex 异步资源", company.body)
         self.assertIn("证据 / 版本 / 归档治理", company.body)
@@ -219,7 +280,7 @@ logs = logs
 
         management = DashboardApp(self.config).render_path("/management").body
         self.assertIn("<svg", management)
-        self.assertIn("任务状态图", management)
+        self.assertIn("当前任务状态", management)
         self.assertIn("Agent 工作负载", management)
         self.assertIn("Token 使用量", management)
         self.assertIn("未采集", management)
@@ -266,7 +327,8 @@ logs = logs
 
         management = DashboardApp(self.config).render_path("/management").body
         self.assertIn("角色任务执行时间轴", management)
-        self.assertIn("每个 CEO 周期平均执行时长", management)
+        self.assertNotIn("每个 CEO 周期平均执行时长", management)
+        self.assertIn("角色活动时间线", management)
         self.assertIn('type="range"', management)
         self.assertIn("timeline-viewport", management)
         self.assertIn("首席技术官（CTO）", management)
