@@ -2,8 +2,14 @@
 
 ## Continuous operations
 
-- CEO resumes from durable events. There is no periodic cron pulse; an idle worker
+- CEO resumes from durable events. There is no fixed periodic cron pulse; an idle worker
   blocks on local notification and does not invoke an LLM or manufacture activity.
+- When an active strategic phase has no executable product or commercial work, the worker
+  persists an immediate `ceo.strategic_review` event. A successful review must create bounded
+  phase-linked work or request a Chairman decision; a bare `noop` is rejected and retried.
+- Each strategic review schedules a durable 24-hour `ceo.business_stall_review`. The worker
+  sleeps until that event is due, then reassesses metrics, experiments, completed/cancelled
+  phase work, approvals, and active WIP without fixed polling.
 - Before taking new work, CEO inspects all `in_progress` task executions and records lease health.
 - Active executors must heartbeat and checkpoint durable state with the task execution CLI/API.
 - Stale leases are recovered without killing local processes; PID liveness is advisory and only trusted when the stored process start identity still matches.

@@ -10,7 +10,7 @@ import select
 import socket
 import stat
 from collections.abc import Iterator
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +36,43 @@ class EventEngine:
     def init(self) -> None:
         self.osys.init()
         self._ensure_wake_fifo()
+        self._ensure_strategic_review()
+
+    def _ensure_strategic_review(self) -> bool:
+        """Persist one CEO review when an active phase has no executable work."""
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            phase = conn.execute(
+                "SELECT id FROM strategic_phases WHERE status='active' ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            if phase is None:
+                return False
+            active_work = conn.execute(
+                "SELECT 1 FROM tasks WHERE status IN ('open', 'in_progress', 'blocked') LIMIT 1"
+            ).fetchone()
+            if active_work is not None:
+                return False
+            existing = conn.execute(
+                """SELECT 1 FROM execution_events
+                   WHERE event_type IN ('ceo.strategic_review', 'ceo.business_stall_review')
+                     AND status IN ('pending', 'processing') LIMIT 1"""
+            ).fetchone()
+            if existing is not None:
+                return True
+            event_id = self.store.enqueue_event(
+                conn,
+                "ceo.strategic_review",
+                "strategic_phase",
+                int(phase["id"]),
+                {"reason": "active strategic phase has no executable work"},
+                priority=80,
+            )
+            self.store.audit(
+                conn, "system", "schedule_strategic_review", "execution_event", event_id,
+                {"phase_id": int(phase["id"]), "reason": "active phase work exhausted"},
+            )
+        self.store.notify_worker()
+        return True
 
     def _ensure_wake_fifo(self) -> Path:
         path = self.store.worker_wake_path
@@ -133,7 +170,7 @@ class EventEngine:
             # Opening before the second queue check closes the enqueue/wait race.
             if self._pending_count():
                 return True
-            wait_timeout = self._recovery_timeout(timeout)
+            wait_timeout = self._next_wake_timeout(timeout)
             readable, _, _ = select.select([fd], [], [], wait_timeout)
             if not readable:
                 return self._enqueue_recovery_wake_if_due()
@@ -259,6 +296,8 @@ class EventEngine:
             "delivery_disabled",
         }:
             return self._defer_event(event, ceo, recovered)
+        if event["event_type"] in {"ceo.strategic_review", "ceo.business_stall_review"}:
+            self._schedule_followup_review(event)
         with self.store.connect() as conn:
             processed_at = utcnow()
             conn.execute(
@@ -291,6 +330,27 @@ class EventEngine:
             "dispatch": dispatch,
             "ceo": ceo,
         }
+
+    def _schedule_followup_review(self, event: dict[str, Any]) -> None:
+        due = (datetime.now(timezone.utc) + timedelta(hours=24)).replace(microsecond=0).isoformat()
+        with self.store.connect() as conn:
+            existing = conn.execute(
+                """SELECT 1 FROM execution_events
+                   WHERE event_type='ceo.business_stall_review'
+                     AND status IN ('pending', 'processing') LIMIT 1"""
+            ).fetchone()
+            if existing is not None:
+                return
+            event_id = self.store.enqueue_event(
+                conn, "ceo.business_stall_review", "strategic_phase", event["entity_id"],
+                {"reason": "verify material business progress after strategic review"},
+                priority=70, available_at=due,
+            )
+            self.store.audit(
+                conn, "CEO", "schedule_business_stall_review", "execution_event", event_id,
+                {"available_at": due, "phase_id": event["entity_id"]},
+            )
+        self.store.notify_worker()
 
     def _defer_event(self, event: dict[str, Any], ceo: dict[str, Any], recovered: int) -> dict[str, Any]:
         error = ceo.get("error") or (
@@ -369,6 +429,23 @@ class EventEngine:
             (utcnow(),),
         )
         return int(row["count"])
+
+    def _next_wake_timeout(self, requested: float | None) -> float | None:
+        recovery_timeout = self._recovery_timeout(requested)
+        row = self.store.fetch_one(
+            "SELECT MIN(available_at) AS due_at FROM execution_events WHERE status='pending'"
+        )
+        if row is None or row["due_at"] is None:
+            return recovery_timeout
+        try:
+            due = datetime.fromisoformat(str(row["due_at"]))
+        except ValueError:
+            due_seconds = 0.0
+        else:
+            if due.tzinfo is None:
+                due = due.replace(tzinfo=timezone.utc)
+            due_seconds = max(0.0, (due - datetime.now(timezone.utc)).total_seconds())
+        return due_seconds if recovery_timeout is None else min(recovery_timeout, due_seconds)
 
     def _recovery_timeout(self, requested: float | None) -> float | None:
         row = self.store.fetch_one(

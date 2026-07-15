@@ -268,6 +268,67 @@ external_delivery_enabled = true
                 })
         self.assertFalse(Path("/tmp/pwned").exists())
 
+    def test_strategic_review_snapshot_contains_phase_metrics_evidence_and_work_state(self) -> None:
+        now = utcnow()
+        with self.store.connect() as conn:
+            phase = conn.execute(
+                """INSERT INTO strategic_phases(
+                       phase_key, name, objective, success_metrics, deadline,
+                       dependencies, evidence_requirements, status, created_at, activated_at
+                   ) VALUES ('phase-ceo-review', 'Beta validation', 'Obtain customer evidence',
+                             '[\"5 sessions\"]', '2099-01-01T00:00:00+00:00', '[]',
+                             '[\"session records\"]', 'active', ?, ?)""",
+                (now, now),
+            )
+            event_id = self.store.enqueue_event(
+                conn, "ceo.strategic_review", "strategic_phase", int(phase.lastrowid),
+                {"reason": "empty active phase"}, priority=80,
+            )
+        reasoner = FakeReasoner({
+            "schema_version": ACTION_SCHEMA_VERSION,
+            "judgment": "Advance both safe lanes.",
+            "state_patch": {"critical_path": ["Product evidence", "Customer validation"]},
+            "actions": [
+                {
+                    "type": "create_task", "owner": "Product Engineer",
+                    "title": "Produce beta reliability evidence", "domain": "product", "priority": 90,
+                    "acceptance_criteria": "Runnable beta and reliability evidence pass.",
+                },
+                {
+                    "type": "create_task", "owner": "Customer & Revenue",
+                    "title": "Prepare consented beta recruitment decision", "domain": "customer", "priority": 85,
+                    "acceptance_criteria": "Candidate criteria and Chairman approval options are reviewable.",
+                },
+            ],
+        })
+
+        result = EventEngine(
+            self.config, ceo_runtime=CEORuntime(self.config, reasoner=reasoner, sender=FakeSender())
+        ).step()
+
+        self.assertEqual(result["event_id"], event_id)
+        snapshot = json.loads(self.store.fetch_one("SELECT input_snapshot_json FROM ceo_runs ORDER BY id DESC LIMIT 1")["input_snapshot_json"])
+        self.assertEqual(snapshot["strategic_phase"]["objective"], "Obtain customer evidence")
+        self.assertEqual(snapshot["strategic_phase"]["success_metrics"], ["5 sessions"])
+        self.assertEqual(snapshot["work_state"]["active_tasks"], [])
+        self.assertEqual(snapshot["work_state"]["pending_approvals"], 0)
+        self.assertIn("business_evidence", snapshot)
+        self.assertEqual(self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks")["c"], 2)
+
+    def test_strategic_review_rejects_noop_without_next_review(self) -> None:
+        reasoner = FakeReasoner()
+        runtime = CEORuntime(self.config, reasoner=reasoner, sender=FakeSender())
+        with self.store.connect() as conn:
+            self.store.enqueue_event(
+                conn, "ceo.strategic_review", "strategic_phase", 1,
+                {"reason": "business stalled"}, priority=80,
+            )
+
+        result = EventEngine(self.config, ceo_runtime=runtime).step()
+
+        self.assertEqual(result["ceo"]["status"], "retry_scheduled")
+        self.assertIn("strategic review", result["ceo"]["error"])
+
     def test_new_chairman_directive_supersedes_stale_reasoning_without_actions(self) -> None:
         reasoner = FakeReasoner({
             "schema_version": ACTION_SCHEMA_VERSION,

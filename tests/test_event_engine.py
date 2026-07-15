@@ -138,6 +138,45 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.assertEqual(self.store.fetch_one("SELECT COUNT(*) AS count FROM cycles")["count"], before_cycles)
         self.assertEqual(self.store.fetch_one("SELECT COUNT(*) AS count FROM tasks")["count"], before_tasks)
 
+    def test_empty_active_phase_schedules_immediate_strategic_review(self) -> None:
+        now = utcnow()
+        with self.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO strategic_phases(
+                       phase_key, name, objective, success_metrics, deadline,
+                       dependencies, evidence_requirements, status, created_at, activated_at
+                   ) VALUES ('phase-review', 'Customer validation', 'Produce customer evidence',
+                             '[\"5 sessions\"]', '2099-01-01T00:00:00+00:00', '[]',
+                             '[\"session records\"]', 'active', ?, ?)""",
+                (now, now),
+            )
+
+        engine = EventEngine(self.config)
+        engine.init()
+
+        event = self.store.fetch_one(
+            """SELECT event_type, entity_type, entity_id, status, available_at
+               FROM execution_events WHERE event_type='ceo.strategic_review'"""
+        )
+        self.assertIsNotNone(event)
+        self.assertEqual(event["entity_type"], "strategic_phase")
+        self.assertEqual(event["status"], "pending")
+        self.assertLessEqual(event["available_at"], utcnow())
+
+    def test_future_strategic_review_wakes_worker_when_due(self) -> None:
+        with self.store.connect() as conn:
+            self.store.enqueue_event(
+                conn,
+                "ceo.strategic_review",
+                "strategic_phase",
+                1,
+                {"reason": "scheduled business review"},
+                available_at="2000-01-01T00:00:00+00:00",
+                priority=80,
+            )
+
+        self.assertTrue(EventEngine(self.config).wait_for_wake(timeout=30))
+
     def test_init_backfills_wake_events_for_active_pre_engine_tasks(self) -> None:
         task_id = self._insert_task("Pre-engine task", "Product Engineer", "engineering")
         with self.store.connect() as conn:

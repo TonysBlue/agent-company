@@ -31,6 +31,8 @@ COMPLEX_EVENT_TYPES = {
     "task.failed",
     "task.recovered",
     "ceo.fixture",
+    "ceo.strategic_review",
+    "ceo.business_stall_review",
 }
 
 
@@ -369,6 +371,37 @@ class CEORuntime:
                     (event["entity_id"],),
                 ).fetchone()
                 entity = dict(row) if row else None
+            elif event["entity_type"] == "strategic_phase" and event["entity_id"]:
+                row = conn.execute(
+                    "SELECT * FROM strategic_phases WHERE id=?", (event["entity_id"],)
+                ).fetchone()
+                entity = dict(row) if row else None
+            strategic_phase = conn.execute(
+                "SELECT * FROM strategic_phases WHERE status='active' ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            active_tasks = [
+                dict(row) for row in conn.execute(
+                    """SELECT id, owner, title, domain, status, priority, acceptance_criteria,
+                              strategic_phase_id, business_outcome
+                       FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')
+                       ORDER BY priority DESC, id"""
+                )
+            ]
+            metrics = [dict(row) for row in conn.execute("SELECT name, value, unit, ts FROM metrics ORDER BY id DESC LIMIT 20")]
+            experiments = [dict(row) for row in conn.execute("SELECT * FROM experiments ORDER BY id DESC LIMIT 10")]
+            completed_phase_tasks = [
+                dict(row) for row in conn.execute(
+                    """SELECT id, owner, title, status, business_outcome, result
+                       FROM tasks WHERE strategic_phase_id=? AND status IN ('done', 'cancelled')
+                       ORDER BY id""",
+                    (strategic_phase["id"],),
+                )
+            ] if strategic_phase else []
+            phase_snapshot = None
+            if strategic_phase:
+                phase_snapshot = dict(strategic_phase)
+                for key in ("success_metrics", "dependencies", "evidence_requirements"):
+                    phase_snapshot[key] = json.loads(phase_snapshot[key])
             snapshot = {
                 "schema_version": "ceo-input-snapshot/v1",
                 "source_tag": SOURCE_TAG,
@@ -389,6 +422,18 @@ class CEORuntime:
                 },
                 "directives": directives,
                 "entity": entity,
+                "strategic_phase": phase_snapshot,
+                "work_state": {
+                    "active_tasks": active_tasks,
+                    "pending_approvals": int(conn.execute(
+                        "SELECT COUNT(*) FROM approvals WHERE status='pending'"
+                    ).fetchone()[0]),
+                },
+                "business_evidence": {
+                    "metrics": metrics,
+                    "experiments": experiments,
+                    "completed_phase_tasks": completed_phase_tasks,
+                },
             }
             return snapshot, int(state["version"]), int(state["active_directive_version"])
 
@@ -420,6 +465,15 @@ class CEORuntime:
         try:
             response = self.reasoner.reason(self._prompt(snapshot))
             payload = self.validate_protocol(response.payload)
+            if event["event_type"] in {"ceo.strategic_review", "ceo.business_stall_review"}:
+                has_forward_action = any(
+                    action["type"] in {"create_task", "request_approval"}
+                    for action in payload["actions"]
+                )
+                if not has_forward_action:
+                    raise ProtocolError(
+                        "strategic review must create bounded work or request Chairman approval"
+                    )
         except Exception as exc:
             retryable = (
                 isinstance(exc, (subprocess.TimeoutExpired, ProtocolError))
@@ -554,10 +608,20 @@ class CEORuntime:
                     action_results.append({"type": "create_task", "status": "already_exists", "task_id": existing["id"]})
                     continue
                 now = utcnow()
+                active_phase = conn.execute(
+                    "SELECT id, objective FROM strategic_phases WHERE status='active' ORDER BY id DESC LIMIT 1"
+                ).fetchone()
                 cursor = conn.execute(
-                    """INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority, acceptance_criteria)
-                       VALUES (?, ?, ?, ?, ?, 'open', ?, ?)""",
-                    (now, now, action["owner"], action["title"].strip(), action["domain"], action["priority"], action["acceptance_criteria"].strip()),
+                    """INSERT INTO tasks(
+                           created_at, updated_at, owner, title, domain, status, priority,
+                           acceptance_criteria, strategic_phase_id, business_outcome
+                       ) VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?, ?)""",
+                    (
+                        now, now, action["owner"], action["title"].strip(), action["domain"],
+                        action["priority"], action["acceptance_criteria"].strip(),
+                        active_phase["id"] if active_phase else None,
+                        f"推进战略阶段目标：{active_phase['objective']}" if active_phase else None,
+                    ),
                 )
                 action_results.append({"type": "create_task", "status": "created", "task_id": int(cursor.lastrowid)})
             else:

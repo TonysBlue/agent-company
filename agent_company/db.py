@@ -480,6 +480,7 @@ class Store:
         entity_id: Any,
         payload: dict[str, Any],
         priority: int = 10,
+        available_at: str | None = None,
     ) -> int:
         now = utcnow()
         cursor = conn.execute(
@@ -489,7 +490,7 @@ class Store:
                ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)""",
             (
                 now,
-                now,
+                available_at or now,
                 event_type,
                 entity_type,
                 str(entity_id) if entity_id is not None else None,
