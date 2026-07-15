@@ -445,6 +445,11 @@ class CEORuntime:
             "external, irreversible, financial, legal, pricing, publication, production, customer-data, "
             "or shell actions. Return exactly one JSON object conforming to ceo-actions/v1. Allowed actions: "
             "noop, update_state, create_task for a bounded internal task, or request_approval. "
+            "create_task exact keys: type, owner, title, domain, priority, acceptance_criteria. "
+            "Allowed owners are Product Engineer and Customer & Revenue; allowed domains are product, "
+            "engineering, gtm, revenue, customer, commercial. Do not add reason, phase, outcome, deadline, "
+            "or evidence fields to create_task. For strategic reviews, create at most one product task and "
+            "one commercial task, or request Chairman approval; noop alone is invalid. "
             "Top-level keys must be schema_version, judgment, state_patch, actions.\nSNAPSHOT:\n"
             + _canonical(snapshot)
         )

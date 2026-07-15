@@ -268,6 +268,15 @@ external_delivery_enabled = true
                 })
         self.assertFalse(Path("/tmp/pwned").exists())
 
+    def test_strategic_review_prompt_declares_exact_create_task_schema(self) -> None:
+        prompt = self.runtime._prompt({"event": {"event_type": "ceo.strategic_review"}})
+
+        self.assertIn(
+            'create_task exact keys: type, owner, title, domain, priority, acceptance_criteria',
+            prompt,
+        )
+        self.assertIn("Do not add reason, phase, outcome, deadline, or evidence fields", prompt)
+
     def test_strategic_review_snapshot_contains_phase_metrics_evidence_and_work_state(self) -> None:
         now = utcnow()
         with self.store.connect() as conn:
