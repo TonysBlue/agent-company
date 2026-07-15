@@ -449,7 +449,10 @@ class CEORuntime:
             "priority must be a JSON integer from 1 through 100. "
             "Allowed owners are Product Engineer and Customer & Revenue; allowed domains are product, "
             "engineering, gtm, revenue, customer, commercial. Do not add reason, phase, outcome, deadline, "
-            "or evidence fields to create_task. For strategic reviews, create at most one product task and "
+            "or evidence fields to create_task. Example create_task: "
+            "{\"type\":\"create_task\",\"owner\":\"Product Engineer\",\"title\":\"Bounded work\","
+            "\"domain\":\"product\",\"priority\":90,\"acceptance_criteria\":"
+            "\"Non-empty evidence-based completion criteria\"}. For strategic reviews, create at most one product task and "
             "one commercial task, or request Chairman approval; noop alone is invalid. "
             "Top-level keys must be schema_version, judgment, state_patch, actions.\nSNAPSHOT:\n"
             + _canonical(snapshot)

@@ -277,6 +277,7 @@ external_delivery_enabled = true
         )
         self.assertIn("Do not add reason, phase, outcome, deadline, or evidence fields", prompt)
         self.assertIn("priority must be a JSON integer from 1 through 100", prompt)
+        self.assertIn('"acceptance_criteria":"Non-empty evidence-based completion criteria"', prompt)
 
     def test_strategic_review_snapshot_contains_phase_metrics_evidence_and_work_state(self) -> None:
         now = utcnow()
