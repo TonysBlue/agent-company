@@ -6,6 +6,7 @@ import json
 import os
 import sqlite3
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -165,7 +166,7 @@ codex_enabled = true
         execution = self.osys.inspect_execution(task_id)["execution"]
         self.assertEqual(execution["recovery_status"], "exhausted")
 
-    def test_run_cycle_renews_valid_in_progress_leases_without_new_dispatch(self) -> None:
+    def test_run_cycle_leaves_valid_in_progress_leases_to_the_executor(self) -> None:
         task_id = self._create_task()
         other_task = self._create_task("Customer & Revenue")
         with patch("agent_company.ops._process_start_identity", return_value="current-start"):
@@ -183,7 +184,7 @@ codex_enabled = true
             cycle = self.osys.run_cycle()
 
             after = self.osys.inspect_execution(task_id)["execution"]["lease_expires_at"]
-        self.assertGreater(after, before)
+        self.assertEqual(after, before)
         self.assertEqual(cycle["recovered"], [])
         self.assertNotIn(other_task, cycle["progressed"])
         self.assertEqual(
@@ -194,7 +195,7 @@ codex_enabled = true
             "SELECT * FROM audit_log WHERE action='renew_task_execution' AND entity_id=?",
             (str(task_id),),
         )
-        self.assertIsNotNone(audit)
+        self.assertIsNone(audit)
 
     def test_run_cycle_does_not_claim_work_without_a_real_executor(self) -> None:
         task_id = self._create_task()
@@ -211,7 +212,7 @@ codex_enabled = true
         )
         self.assertEqual(audit["action"], "task_ready_for_executor")
 
-    def test_run_cycle_recovers_fresh_lease_when_recorded_pid_identity_mismatches(self) -> None:
+    def test_run_cycle_does_not_recover_valid_lease_when_recorded_pid_identity_mismatches(self) -> None:
         task_id = self._create_task()
         other_task = self._create_task("Customer & Revenue")
         self.osys.claim_task(
@@ -226,27 +227,27 @@ codex_enabled = true
 
         cycle = self.osys.run_cycle()
 
-        self.assertIn(task_id, cycle["recovered"])
+        self.assertNotIn(task_id, cycle["recovered"])
         self.assertNotIn(other_task, cycle["progressed"])
         inspection = self.osys.inspect_execution(task_id)
-        self.assertEqual(inspection["task"]["status"], "open")
-        self.assertEqual(inspection["execution"]["recovery_status"], "requeued")
-        self.assertEqual(inspection["execution"]["attempt_count"], 1)
+        self.assertEqual(inspection["task"]["status"], "in_progress")
+        self.assertEqual(inspection["execution"]["recovery_status"], "running")
+        self.assertEqual(inspection["execution"]["attempt_count"], 0)
 
-    def test_run_cycle_recovers_fresh_local_execution_without_recorded_pid(self) -> None:
+    def test_run_cycle_does_not_recover_valid_local_lease_without_recorded_pid(self) -> None:
         task_id = self._create_task()
         other_task = self._create_task("Customer & Revenue")
         self.osys.claim_task(task_id, "Product Engineer", executor_id="exec-1", backend="local", lease_seconds=600)
 
         cycle = self.osys.run_cycle()
 
-        self.assertIn(task_id, cycle["recovered"])
+        self.assertNotIn(task_id, cycle["recovered"])
         self.assertNotIn(other_task, cycle["progressed"])
         inspection = self.osys.inspect_execution(task_id)
-        self.assertEqual(inspection["task"]["status"], "open")
-        self.assertEqual(inspection["execution"]["recovery_status"], "requeued")
+        self.assertEqual(inspection["task"]["status"], "in_progress")
+        self.assertEqual(inspection["execution"]["recovery_status"], "running")
 
-    def test_run_cycle_recovers_fresh_local_execution_without_recorded_pid_identity(self) -> None:
+    def test_run_cycle_does_not_recover_valid_local_lease_without_recorded_pid_identity(self) -> None:
         task_id = self._create_task()
         other_task = self._create_task("Customer & Revenue")
         self.osys.claim_task(
@@ -260,11 +261,11 @@ codex_enabled = true
 
         cycle = self.osys.run_cycle()
 
-        self.assertIn(task_id, cycle["recovered"])
+        self.assertNotIn(task_id, cycle["recovered"])
         self.assertNotIn(other_task, cycle["progressed"])
         inspection = self.osys.inspect_execution(task_id)
-        self.assertEqual(inspection["task"]["status"], "open")
-        self.assertEqual(inspection["execution"]["recovery_status"], "requeued")
+        self.assertEqual(inspection["task"]["status"], "in_progress")
+        self.assertEqual(inspection["execution"]["recovery_status"], "running")
 
     def test_run_cycle_recovers_failed_execution_without_waiting_for_lease_expiry(self) -> None:
         task_id = self._create_task()
@@ -310,6 +311,121 @@ codex_enabled = true
         self.assertEqual(inspection["task"]["status"], "in_progress")
         self.assertEqual(inspection["execution"]["recovery_status"], "running")
         self.assertEqual(inspection["execution"]["attempt_count"], 0)
+
+    def test_expired_executor_cannot_renew_or_complete_its_lease(self) -> None:
+        task_id = self._create_task()
+        evidence = self.root / "expired-evidence.txt"
+        evidence.write_text("not accepted\n", encoding="utf-8")
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="expired-exec", backend="codex")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                "UPDATE task_executions SET lease_expires_at=? WHERE task_id=?",
+                ("2026-07-10T00:01:00+00:00", task_id),
+            )
+
+        with self.assertRaisesRegex(ValueError, "lease has expired"):
+            self.osys.heartbeat_task(task_id, "expired-exec")
+        with self.assertRaisesRegex(ValueError, "lease has expired"):
+            self.osys.complete_task(task_id, "Product Engineer", "too late", [evidence])
+
+        inspection = self.osys.inspect_execution(task_id)
+        self.assertEqual(inspection["task"]["status"], "in_progress")
+        self.assertEqual(inspection["execution"]["recovery_status"], "running")
+
+    def test_completion_rejects_missing_execution_without_partial_task_update(self) -> None:
+        task_id = self._create_task()
+        evidence = self.root / "completion-evidence.txt"
+        evidence.write_text("verified\n", encoding="utf-8")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET status='in_progress' WHERE id=?", (task_id,))
+
+        with self.assertRaisesRegex(ValueError, "no active execution"):
+            self.osys.complete_task(task_id, "Product Engineer", "verified", [evidence])
+
+        task = Store(self.config.db_path).fetch_one("SELECT status, result FROM tasks WHERE id=?", (task_id,))
+        self.assertEqual(task["status"], "in_progress")
+        self.assertIsNone(task["result"])
+
+    def test_completion_rolls_back_task_and_execution_when_audit_fails(self) -> None:
+        task_id = self._create_task()
+        evidence = self.root / "rollback-evidence.txt"
+        evidence.write_text("verified\n", encoding="utf-8")
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="real-exec", backend="codex")
+
+        with patch.object(self.osys.store, "audit", side_effect=RuntimeError("audit unavailable")):
+            with self.assertRaisesRegex(RuntimeError, "audit unavailable"):
+                self.osys.complete_task(task_id, "Product Engineer", "verified", [evidence])
+
+        inspection = self.osys.inspect_execution(task_id)
+        self.assertEqual(inspection["task"]["status"], "in_progress")
+        self.assertIsNone(inspection["task"]["result"])
+        self.assertEqual(inspection["execution"]["recovery_status"], "running")
+
+    def test_concurrent_real_executors_cannot_duplicate_claim(self) -> None:
+        task_id = self._create_task()
+        barrier = threading.Barrier(2)
+        results: list[str] = []
+
+        def claim(executor_id: str) -> None:
+            barrier.wait()
+            try:
+                self.osys.claim_task(task_id, "Product Engineer", executor_id=executor_id, backend="codex")
+            except ValueError:
+                results.append("rejected")
+            else:
+                results.append(executor_id)
+
+        threads = [threading.Thread(target=claim, args=(f"real-exec-{index}",)) for index in range(2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results.count("rejected"), 1)
+        execution = self.osys.inspect_execution(task_id)["execution"]
+        self.assertIn(execution["executor_id"], {"real-exec-0", "real-exec-1"})
+
+    def test_local_end_to_end_stale_recovery_reclaim_and_atomic_completion(self) -> None:
+        task_id = self._create_task()
+        first = self.osys.claim_task(
+            task_id,
+            "Product Engineer",
+            executor_id="real-exec-1",
+            backend="codex",
+            lease_seconds=60,
+        )
+        renewed = self.osys.heartbeat_task(task_id, "real-exec-1", lease_seconds=120)
+        self.assertGreater(renewed["lease_expires_at"], first["lease_expires_at"])
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                "UPDATE task_executions SET lease_expires_at=? WHERE task_id=?",
+                ("2026-07-10T00:01:00+00:00", task_id),
+            )
+
+        cycle = self.osys.run_cycle()
+        self.assertIn(task_id, cycle["recovered"])
+        claimed = self.osys.claim_task(
+            task_id,
+            "Product Engineer",
+            executor_id="real-exec-2",
+            backend="codex",
+        )
+        self.assertEqual(claimed["executor_id"], "real-exec-2")
+        evidence = self.root / "e2e-evidence.txt"
+        evidence.write_text("verified locally\n", encoding="utf-8")
+
+        completed = self.osys.complete_task(task_id, "Product Engineer", "verified", [evidence])
+
+        self.assertEqual(completed["status"], "done")
+        inspection = self.osys.inspect_execution(task_id)
+        self.assertEqual(inspection["task"]["status"], "done")
+        self.assertEqual(inspection["execution"]["recovery_status"], "completed")
+        executor_ids = {
+            row["executor_id"]
+            for row in Store(self.config.db_path).fetch_all("SELECT executor_id FROM task_executions")
+        }
+        self.assertFalse(any(executor_id.startswith("cycle-") for executor_id in executor_ids))
 
     def test_recorded_pid_is_not_considered_alive_when_start_identity_differs(self) -> None:
         task_id = self._create_task()

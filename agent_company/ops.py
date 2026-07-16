@@ -314,6 +314,7 @@ class CompanyOS:
         if lease_seconds <= 0:
             raise ValueError("lease_seconds must be positive")
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             task, execution = self._active_execution(conn, task_id, executor_id)
             now = utcnow()
             lease_expires = _iso_add(now, lease_seconds)
@@ -331,6 +332,7 @@ class CompanyOS:
         if not checkpoint.strip() or not next_action.strip():
             raise ValueError("checkpoint and next_action must not be empty")
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             task, _ = self._active_execution(conn, task_id, executor_id)
             now = utcnow()
             conn.execute(
@@ -347,6 +349,7 @@ class CompanyOS:
         if not error.strip():
             raise ValueError("error must not be empty")
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             task, _ = self._active_execution(conn, task_id, executor_id)
             now = utcnow()
             status = "failed" if recoverable else "exhausted"
@@ -410,6 +413,7 @@ class CompanyOS:
         if missing:
             raise ValueError(f"evidence files do not exist: {missing}")
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None:
                 raise ValueError(f"task not found: {task_id}")
@@ -417,15 +421,28 @@ class CompanyOS:
                 raise ValueError(f"task {task_id} is owned by {task['owner']}, not {actor}")
             if task["status"] != "in_progress":
                 raise ValueError(f"task {task_id} is not in_progress: {task['status']}")
+            execution = conn.execute(
+                "SELECT * FROM task_executions WHERE task_id=? AND recovery_status='running'",
+                (task_id,),
+            ).fetchone()
+            if execution is None:
+                raise ValueError(f"task {task_id} has no active execution")
+            if self._execution_lease_expired(self._execution_details(execution)):
+                raise ValueError(f"task {task_id} execution lease has expired")
             result = {"summary": summary.strip(), "evidence": [str(path) for path in resolved]}
-            conn.execute(
-                "UPDATE tasks SET status='done',updated_at=?,result=? WHERE id=?",
-                (utcnow(), json.dumps(result, sort_keys=True), task_id),
-            )
-            conn.execute(
-                "UPDATE task_executions SET recovery_status='completed', evidence_paths=?, updated_at=? WHERE task_id=?",
-                (json.dumps(result["evidence"], sort_keys=True), utcnow(), task_id),
-            )
+            now = utcnow()
+            execution_updated = conn.execute(
+                """UPDATE task_executions
+                   SET recovery_status='completed', evidence_paths=?, updated_at=?
+                   WHERE task_id=? AND recovery_status='running'""",
+                (json.dumps(result["evidence"], sort_keys=True), now, task_id),
+            ).rowcount
+            task_updated = conn.execute(
+                "UPDATE tasks SET status='done', updated_at=?, result=? WHERE id=? AND status='in_progress'",
+                (now, json.dumps(result, sort_keys=True), task_id),
+            ).rowcount
+            if execution_updated != 1 or task_updated != 1:
+                raise ValueError(f"task {task_id} completion state changed concurrently")
             self.store.audit(conn, actor, "complete_task", "task", task_id, result)
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             if execution is not None:
@@ -757,8 +774,10 @@ class CompanyOS:
             raise ValueError(f"task {task_id} has no execution state")
         if execution["executor_id"] != executor_id:
             raise ValueError(f"task {task_id} is claimed by {execution['executor_id']}, not {executor_id}")
-        if execution["recovery_status"] not in {"running", "failed"}:
+        if execution["recovery_status"] != "running":
             raise ValueError(f"task {task_id} execution is not active: {execution['recovery_status']}")
+        if self._execution_lease_expired(self._execution_details(execution)):
+            raise ValueError(f"task {task_id} execution lease has expired")
         return task, execution
 
     def _claim_task_execution(
@@ -849,22 +868,6 @@ class CompanyOS:
         details = self._execution_details(execution)
         stale = self._execution_needs_recovery(details)
         if not stale:
-            if not require_stale:
-                return None
-            now = utcnow()
-            conn.execute(
-                "UPDATE task_executions SET lease_expires_at=?, updated_at=? WHERE task_id=?",
-                (_iso_add(now, 600), now, task_id),
-            )
-            updated = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
-            self.store.audit(
-                conn,
-                actor,
-                "renew_task_execution",
-                "task_execution",
-                task_id,
-                {**self._execution_details(updated), "reason": "lease still valid"},
-            )
             return None
         now = utcnow()
         next_attempt = int(execution["attempt_count"]) + 1
@@ -906,13 +909,7 @@ class CompanyOS:
     def _execution_needs_recovery(self, execution: dict[str, object]) -> bool:
         if execution["recovery_status"] == "failed":
             return True
-        if self._execution_lease_expired(execution):
-            return True
-        if execution["backend"] == "local":
-            if execution.get("process_id") is None or not execution.get("process_started_at"):
-                return True
-            return self._process_status(execution)["alive"] is not True
-        return False
+        return self._execution_lease_expired(execution)
 
     def _execution_lease_expired(self, execution: dict[str, object]) -> bool:
         lease = str(execution["lease_expires_at"])
