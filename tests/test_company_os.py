@@ -265,7 +265,10 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
             self.osys.cancel_task(task_id, "CFO", "Not my task.")
 
     def test_validate_passes(self) -> None:
+        self.osys.init()
+        before = self.config.db_path.read_bytes()
         self.assertEqual(self.osys.validate(), [])
+        self.assertEqual(self.config.db_path.read_bytes(), before)
 
     def test_reserved_classifier_uses_word_boundaries(self) -> None:
         self.assertIsNone(classify_reserved_action("Design first ICP and offer backlog", self.config))

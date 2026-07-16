@@ -1,0 +1,142 @@
+{
+  "schema_version": "pixweave-beta-session-economics/v1",
+  "dataset_kind": "synthetic",
+  "currency": "USD",
+  "human_review_hourly_cost": 30,
+  "sessions": [
+    {
+      "schema_version": "pixweave-beta-session/v1",
+      "protocol_version": "pixweave-controlled-beta/v1.0",
+      "session_id": "synthetic-session-001",
+      "approval_reference": "internal-synthetic-only",
+      "participant_pseudonym": "synthetic-reviewer-001",
+      "feedback_id": "synthetic-feedback-001",
+      "consent": {
+        "granted": true,
+        "recorded_at": "2026-07-16T09:00:00+08:00",
+        "withdrawal_route_recorded": true
+      },
+      "asset_rights": {
+        "attested": true,
+        "provenance": "locally generated synthetic fixture"
+      },
+      "contains_sensitive_data": false,
+      "scenario": "source-image-edit",
+      "intended_outcome": "Exercise local evidence capture",
+      "started_at": "2026-07-16T09:01:00+08:00",
+      "ended_at": "2026-07-16T09:11:00+08:00",
+      "task_outcome": "success",
+      "token_usage": {
+        "input_tokens": 100,
+        "output_tokens": 40,
+        "cache_tokens": 10,
+        "reasoning_tokens": 5,
+        "total_tokens": 155,
+        "cost": 0.12,
+        "currency": "USD",
+        "source": "synthetic-local-usage-log"
+      },
+      "human_review_minutes": {
+        "value": 6,
+        "source": "synthetic-review-timer"
+      },
+      "quality_score": {
+        "value": 4,
+        "scale_max": 5,
+        "source": "synthetic-rubric-v1"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "synthetic-artifact-001",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "quality_review": {"passed": true},
+      "issues": [],
+      "retention_status": "retained"
+    },
+    {
+      "schema_version": "pixweave-beta-session/v1",
+      "protocol_version": "pixweave-controlled-beta/v1.0",
+      "session_id": "synthetic-session-002",
+      "approval_reference": "internal-synthetic-only",
+      "participant_pseudonym": "synthetic-reviewer-002",
+      "feedback_id": "synthetic-feedback-002",
+      "consent": {
+        "granted": true,
+        "recorded_at": "2026-07-16T10:00:00+08:00",
+        "withdrawal_route_recorded": true
+      },
+      "asset_rights": {
+        "attested": true,
+        "provenance": "locally generated synthetic fixture"
+      },
+      "contains_sensitive_data": false,
+      "scenario": "source-image-edit",
+      "intended_outcome": "Exercise local evidence capture",
+      "started_at": "2026-07-16T10:01:00+08:00",
+      "ended_at": "2026-07-16T10:06:00+08:00",
+      "task_outcome": "failure",
+      "token_usage": {
+        "input_tokens": 100,
+        "output_tokens": 40,
+        "cache_tokens": 10,
+        "reasoning_tokens": 5,
+        "total_tokens": 155,
+        "cost": 0.08,
+        "currency": "USD",
+        "source": "synthetic-local-usage-log"
+      },
+      "human_review_minutes": {
+        "value": 3,
+        "source": "synthetic-review-timer"
+      },
+      "quality_score": {
+        "value": 5,
+        "scale_max": 5,
+        "source": "synthetic-rubric-v1"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "synthetic-artifact-002",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "quality_review": {"passed": false},
+      "issues": [{"issue_id": "synthetic-issue-001", "severity": "low"}],
+      "retention_status": "retained"
+    },
+    {
+      "schema_version": "pixweave-beta-session/v1",
+      "protocol_version": "pixweave-controlled-beta/v1.0",
+      "session_id": "synthetic-session-003",
+      "approval_reference": "internal-synthetic-only",
+      "participant_pseudonym": "synthetic-reviewer-003",
+      "feedback_id": "synthetic-feedback-003",
+      "consent": {
+        "granted": true,
+        "recorded_at": "2026-07-16T11:00:00+08:00",
+        "withdrawal_route_recorded": true
+      },
+      "asset_rights": {
+        "attested": true,
+        "provenance": "locally generated synthetic fixture"
+      },
+      "contains_sensitive_data": false,
+      "scenario": "variant-review-feedback",
+      "intended_outcome": "Verify missing evidence semantics",
+      "started_at": "2026-07-16T11:01:00+08:00",
+      "ended_at": "2026-07-16T11:11:00+08:00",
+      "task_outcome": "failure",
+      "artifacts": [
+        {
+          "artifact_id": "synthetic-artifact-003",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        }
+      ],
+      "quality_review": {"passed": false},
+      "issues": [],
+      "retention_status": "retained"
+    }
+  ]
+}

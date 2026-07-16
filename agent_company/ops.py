@@ -575,36 +575,40 @@ class CompanyOS:
         return {"before": before, "cycle": cycle, "after": after}
 
     def validate(self) -> list[str]:
-        self.init()
         errors: list[str] = []
+        if not self.config.db_path.is_file():
+            errors.append(f"Database does not exist: {self.config.db_path}")
+            return errors
         required_tables = {"audit_log", "roles", "raci", "tasks", "approvals", "metrics", "experiments", "cycles", "task_executions", "token_usage", "strategic_phases", "execution_events", "event_worker_state"}
-        rows = self.store.fetch_all("SELECT name FROM sqlite_master WHERE type='table'")
-        present = {row["name"] for row in rows}
-        missing = required_tables - present
-        if missing:
-            errors.append(f"Missing tables: {sorted(missing)}")
-        chairman = self.store.fetch_one("SELECT kind FROM roles WHERE name='Chairman'")
-        if chairman is None or chairman["kind"] != "human":
-            errors.append("Chairman must be the only human role")
-        humans = self.store.fetch_all("SELECT name FROM roles WHERE kind='human'")
-        if [row["name"] for row in humans] != ["Chairman"]:
-            errors.append("Non-Chairman human roles are not allowed")
-        resident_agents = {
-            row["name"]
-            for row in self.store.fetch_all(
-                "SELECT name FROM roles WHERE kind='agent' AND status='resident'"
-            )
-        }
-        expected_agents = {"CEO", "Product Engineer", "Customer & Revenue"}
-        if resident_agents != expected_agents:
-            errors.append(f"Resident agents must be exactly: {sorted(expected_agents)}")
-        active_domains = [
-            row["domain"]
-            for row in self.store.fetch_all(
-                """SELECT domain FROM tasks
-                   WHERE status IN ('open', 'in_progress', 'blocked')"""
-            )
-        ]
+        with self.store.connect_readonly() as conn:
+            rows = list(conn.execute("SELECT name FROM sqlite_master WHERE type='table'"))
+            present = {row["name"] for row in rows}
+            missing = required_tables - present
+            if missing:
+                errors.append(f"Missing tables: {sorted(missing)}")
+                return errors
+            chairman = conn.execute("SELECT kind FROM roles WHERE name='Chairman'").fetchone()
+            if chairman is None or chairman["kind"] != "human":
+                errors.append("Chairman must be the only human role")
+            humans = list(conn.execute("SELECT name FROM roles WHERE kind='human'"))
+            if [row["name"] for row in humans] != ["Chairman"]:
+                errors.append("Non-Chairman human roles are not allowed")
+            resident_agents = {
+                row["name"]
+                for row in conn.execute(
+                    "SELECT name FROM roles WHERE kind='agent' AND status='resident'"
+                )
+            }
+            expected_agents = {"CEO", "Product Engineer", "Customer & Revenue"}
+            if resident_agents != expected_agents:
+                errors.append(f"Resident agents must be exactly: {sorted(expected_agents)}")
+            active_domains = [
+                row["domain"]
+                for row in conn.execute(
+                    """SELECT domain FROM tasks
+                       WHERE status IN ('open', 'in_progress', 'blocked')"""
+                )
+            ]
         lanes = [self._wip_lane(domain) for domain in active_domains]
         if lanes.count("product") > 1 or lanes.count("commercial") > 1 or None in lanes:
             errors.append("Active WIP must contain at most one product and one commercial task")

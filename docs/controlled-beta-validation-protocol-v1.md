@@ -75,7 +75,7 @@ The CEO owns protocol interpretation and response tracking; Product Engineer own
 
 ## Evidence Record
 
-Each session record must bind: protocol version, approval reference, participant pseudonym, consent record, asset-rights attestation, scenario, intended outcome, timestamps, task outcome, satisfaction response or missing status, artifact IDs/checksums, quality review, feedback ID, defect IDs, token observations or `not_collected`, human review/support duration or `not_collected`, and retention/deletion status.
+Each session record must bind: protocol version, approval reference, participant pseudonym, consent record, asset-rights attestation, scenario, intended outcome, timestamps, task outcome, satisfaction response or missing status, artifact IDs/checksums, quality review, feedback ID, defect IDs, token observations or `not_collected`, human review/support duration or `not_collected`, quality score or `not_collected`, and retention/deletion status. Collected token, duration, review-effort, and quality observations retain their source and `session_id`; token components must reconcile to the recorded total.
 
 Phase reporting must include denominators, missing values, exclusions with reasons, and unresolved defects. Internal demos and synthetic fixtures are product evidence but do not count as real beta sessions or customer satisfaction evidence.
 

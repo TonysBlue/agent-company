@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .backend import LocalBackend
 from .beta_launch import evaluate_beta_launch_package_file
-from .beta_session import capture_session_file
+from .beta_session import capture_session_file, summarize_session_economics_file
 from .config import load_config
 from .feedback import capture_feedback_file, triage_feedback_file
 from .ops import CompanyOS
@@ -163,6 +163,9 @@ def build_parser() -> argparse.ArgumentParser:
     beta_session = sub.add_parser("beta-session-capture", help="Validate and retain a controlled-beta session record")
     beta_session.add_argument("input", type=Path)
     beta_session.add_argument("--output", type=Path, required=True)
+    beta_economics = sub.add_parser("beta-session-economics", help="Summarize local synthetic beta-session evidence")
+    beta_economics.add_argument("input", type=Path)
+    beta_economics.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -356,6 +359,8 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(evaluate_beta_launch_package_file(args.input, args.output), indent=2, sort_keys=True))
         elif args.command == "beta-session-capture":
             print(json.dumps(capture_session_file(args.input, args.output), indent=2, sort_keys=True))
+        elif args.command == "beta-session-economics":
+            print(json.dumps(summarize_session_economics_file(args.input, args.output), indent=2, sort_keys=True))
         else:
             raise AssertionError(args.command)
     except Exception as exc:
