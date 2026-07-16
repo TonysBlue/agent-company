@@ -134,13 +134,17 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         self.osys.init()
         result = self.osys.run_cycle()
         self.assertGreater(result["processed"], 0)
-        self.assertGreaterEqual(len(result["progressed"]), 1)
+        self.assertEqual(result["progressed"], [])
         status = self.osys.status()
         self.assertGreaterEqual(status["cycles"], 1)
         metrics = Store(self.config.db_path).fetch_all("SELECT * FROM metrics")
         self.assertGreaterEqual(len(metrics), 3)
         active = Store(self.config.db_path).fetch_all("SELECT * FROM tasks WHERE status='in_progress'")
-        self.assertGreaterEqual(len(active), 1)
+        self.assertEqual(active, [])
+        ready = Store(self.config.db_path).fetch_all(
+            "SELECT * FROM audit_log WHERE action='task_ready_for_executor'"
+        )
+        self.assertGreaterEqual(len(ready), 1)
 
     def test_reserved_action_blocks_and_writes_chairman_inbox(self) -> None:
         self.osys.init()
@@ -193,19 +197,20 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         )["id"]
 
         self.assertNotIn(task_id, cycle["escalated"])
-        self.assertIn(task_id, cycle["progressed"])
+        self.assertNotIn(task_id, cycle["progressed"])
         duplicate = [
             item for item in self.osys.chairman_inbox()
             if item["summary"].endswith("Change price tier")
         ]
         self.assertEqual(duplicate, [])
         task = Store(self.config.db_path).fetch_one("SELECT status FROM tasks WHERE title='Change price tier'")
-        self.assertEqual(task["status"], "in_progress")
+        self.assertEqual(task["status"], "open")
 
     def test_task_completion_requires_existing_evidence(self) -> None:
         self.osys.init()
-        task_id = self.osys.run_cycle()["progressed"][0]
-        task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE id=?", (task_id,))
+        task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE status='open' ORDER BY priority DESC, id")
+        task_id = task["id"]
+        self.osys.claim_task(task_id, task["owner"], executor_id="test-executor", backend="local")
         with self.assertRaisesRegex(ValueError, "evidence files do not exist"):
             self.osys.complete_task(task_id, task["owner"], "done", [self.root / "missing.md"])
 
@@ -241,7 +246,9 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
 
     def test_task_cancel_closes_work_without_claiming_completion(self) -> None:
         self.osys.init()
-        task_id = self.osys.run_cycle()["progressed"][0]
+        task_id = Store(self.config.db_path).fetch_one(
+            "SELECT id FROM tasks WHERE status='open' ORDER BY priority DESC, id"
+        )["id"]
         result = self.osys.cancel_task(task_id, "CEO", "Superseded by reviewed task 42.")
         self.assertEqual(result["status"], "cancelled")
         self.assertFalse(result["completed"])
@@ -251,7 +258,9 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
 
     def test_task_cancel_rejects_unrelated_actor(self) -> None:
         self.osys.init()
-        task_id = self.osys.run_cycle()["progressed"][0]
+        task_id = Store(self.config.db_path).fetch_one(
+            "SELECT id FROM tasks WHERE status='open' ORDER BY priority DESC, id"
+        )["id"]
         with self.assertRaisesRegex(ValueError, "may only be cancelled"):
             self.osys.cancel_task(task_id, "CFO", "Not my task.")
 
@@ -265,8 +274,9 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
     def test_cycle_does_not_replenish_backlog_after_reviewed_work_completes(self) -> None:
         self.osys.init()
         cycle = self.osys.run_cycle()
-        for task_id in cycle["progressed"]:
-            task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE id=?", (task_id,))
+        for task in Store(self.config.db_path).fetch_all("SELECT * FROM tasks WHERE status='open'"):
+            task_id = task["id"]
+            self.osys.claim_task(task_id, task["owner"], executor_id=f"test-executor-{task_id}", backend="local")
             evidence = self.root / f"replenish-{task_id}.md"
             evidence.write_text("verified\n", encoding="utf-8")
             self.osys.complete_task(task_id, task["owner"], "Verified bounded result.", [evidence])

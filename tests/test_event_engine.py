@@ -73,9 +73,11 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
     def test_task_lifecycle_and_chairman_decision_enqueue_durable_events(self) -> None:
         task_id = self._insert_task("Internal product improvement", "Product Engineer", "engineering")
         self.osys.run_cycle()
-        self.osys.fail_task(task_id, f"cycle-1-task-{task_id}", "transient", recoverable=True)
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="real-executor-1", backend="local")
+        self.osys.fail_task(task_id, "real-executor-1", "transient", recoverable=True)
         self.osys.recover_task(task_id, "CEO", "executor restart")
         self.osys.run_cycle()
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="real-executor-2", backend="local")
         evidence = self.root / "evidence.txt"
         evidence.write_text("verified\n", encoding="utf-8")
         self.osys.complete_task(task_id, "Product Engineer", "done", [evidence])
@@ -124,8 +126,13 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         )
         self.assertEqual(
             self.store.fetch_one("SELECT status FROM tasks WHERE id=?", (safe_id,))["status"],
-            "in_progress",
+            "open",
         )
+        ready = self.store.fetch_one(
+            "SELECT action FROM audit_log WHERE action='task_ready_for_executor' AND entity_id=?",
+            (str(safe_id),),
+        )
+        self.assertIsNotNone(ready)
 
     def test_idle_wait_blocks_without_running_cycles_or_creating_work(self) -> None:
         engine = EventEngine(self.config)

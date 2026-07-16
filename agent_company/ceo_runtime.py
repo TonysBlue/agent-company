@@ -449,7 +449,8 @@ class CEORuntime:
             "priority must be a JSON integer from 1 through 100. "
             "Allowed owners are Product Engineer and Customer & Revenue; allowed domains are product, "
             "engineering, gtm, revenue, customer, commercial. Do not add reason, phase, outcome, deadline, "
-            "or evidence fields to create_task. Example create_task: "
+            "or evidence fields to create_task. noop and update_state exact keys are type and reason; "
+            "state changes belong only in the top-level state_patch object. Example create_task: "
             "{\"type\":\"create_task\",\"owner\":\"Product Engineer\",\"title\":\"Bounded work\","
             "\"domain\":\"product\",\"priority\":90,\"acceptance_criteria\":"
             "\"Non-empty evidence-based completion criteria\"}. For strategic reviews, create at most one product task and "
@@ -484,19 +485,22 @@ class CEORuntime:
                         "strategic review must create bounded work or request Chairman approval"
                     )
         except Exception as exc:
+            protocol_rejected = isinstance(exc, ProtocolError) and int(event["attempts"]) >= 3
             retryable = (
                 isinstance(exc, (subprocess.TimeoutExpired, ProtocolError))
                 or "524" in str(exc)
                 or "timeout" in str(exc).lower()
+            ) and not protocol_rejected
+            status = "retry_scheduled" if retryable else (
+                "protocol_rejected" if protocol_rejected else "failed"
             )
-            status = "retry_scheduled" if retryable else "failed"
             error = f"timeout: {exc}" if isinstance(exc, subprocess.TimeoutExpired) else str(exc)
             with self.store.connect() as conn:
                 conn.execute(
                     "UPDATE ceo_runs SET finished_at=?, status=?, error=? WHERE id=?",
                     (utcnow(), status, error, run_id),
                 )
-            if retryable:
+            if retryable or protocol_rejected:
                 return {"status": status, "run_id": run_id, "error": error}
             raise
         with self.writer_lock(), self.store.connect() as conn:
@@ -615,6 +619,24 @@ class CEORuntime:
                 existing = conn.execute("SELECT id FROM tasks WHERE title=?", (action["title"].strip(),)).fetchone()
                 if existing:
                     action_results.append({"type": "create_task", "status": "already_exists", "task_id": existing["id"]})
+                    continue
+                lane = "product" if action["domain"] in {"product", "engineering"} else "commercial"
+                active_domains = [
+                    row["domain"]
+                    for row in conn.execute(
+                        "SELECT domain FROM tasks WHERE status IN ('open', 'in_progress', 'blocked')"
+                    )
+                ]
+                active_lanes = {
+                    "product" if domain in {"product", "engineering"} else "commercial"
+                    for domain in active_domains
+                }
+                if lane in active_lanes:
+                    action_results.append({
+                        "type": "create_task",
+                        "status": "wip_lane_occupied",
+                        "lane": lane,
+                    })
                     continue
                 now = utcnow()
                 active_phase = conn.execute(

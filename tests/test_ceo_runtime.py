@@ -420,6 +420,75 @@ external_delivery_enabled = true
         self.assertGreater(event["available_at"], utcnow())
         self.assertIn("allowlisted", event["last_error"])
 
+    def test_invalid_model_protocol_is_dead_lettered_after_three_attempts(self) -> None:
+        reasoner = FakeReasoner({
+            "schema_version": ACTION_SCHEMA_VERSION,
+            "judgment": "invalid state update",
+            "state_patch": {"unsupported": "field"},
+            "actions": [{"type": "noop", "reason": "invalid"}],
+        })
+        event_id = self._event("task.failed")
+        engine = EventEngine(
+            self.config,
+            ceo_runtime=CEORuntime(self.config, reasoner=reasoner, sender=FakeSender()),
+        )
+
+        for _ in range(3):
+            with self.store.connect() as conn:
+                conn.execute(
+                    "UPDATE execution_events SET available_at=? WHERE id=?",
+                    ("2000-01-01T00:00:00+00:00", event_id),
+                )
+            result = engine.step()
+
+        self.assertEqual(result["ceo"]["status"], "protocol_rejected")
+        event = self.store.fetch_one(
+            "SELECT status, attempts, last_error FROM execution_events WHERE id=?",
+            (event_id,),
+        )
+        self.assertEqual(event["status"], "failed")
+        self.assertEqual(event["attempts"], 3)
+        self.assertIn("unsupported fields", event["last_error"])
+        self.assertEqual(len(reasoner.calls), 3)
+
+    def test_ceo_task_action_respects_existing_wip_lane(self) -> None:
+        now = utcnow()
+        with self.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO tasks(
+                       created_at, updated_at, owner, title, domain, status,
+                       priority, acceptance_criteria
+                   ) VALUES (?, ?, 'Product Engineer', 'Existing product WIP',
+                             'engineering', 'open', 90, 'Existing work finishes.')""",
+                (now, now),
+            )
+            conn.execute("UPDATE execution_events SET status='processed', processed_at=?", (now,))
+        reasoner = FakeReasoner({
+            "schema_version": ACTION_SCHEMA_VERSION,
+            "judgment": "Create another product task.",
+            "state_patch": {},
+            "actions": [{
+                "type": "create_task",
+                "owner": "Product Engineer",
+                "title": "Duplicate product WIP",
+                "domain": "engineering",
+                "priority": 80,
+                "acceptance_criteria": "Should not be created while lane is occupied.",
+            }],
+        })
+        self._event("task.failed")
+
+        result = EventEngine(
+            self.config,
+            ceo_runtime=CEORuntime(self.config, reasoner=reasoner, sender=FakeSender()),
+        ).step()
+
+        action = result["ceo"]["result"]["actions"][0]
+        self.assertEqual(action["status"], "wip_lane_occupied")
+        self.assertIsNone(
+            self.store.fetch_one("SELECT id FROM tasks WHERE title='Duplicate product WIP'")
+        )
+
     def test_pending_approval_delivery_is_idempotent_retryable_and_does_not_block_safe_event(self) -> None:
         sender = FakeSender(failures=1)
         runtime = CEORuntime(self.config, reasoner=FakeReasoner(), sender=sender)

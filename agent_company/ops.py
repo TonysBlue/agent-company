@@ -98,19 +98,16 @@ class CompanyOS:
                         escalated.append(task["id"])
                         occupied.add(lane)
                         continue
-                    details = self._claim_task_execution(
+                    self.store.audit(
                         conn,
-                        task,
-                        actor="CEO",
-                        executor_id=f"cycle-{cycle_id}-task-{task['id']}",
-                        backend="cycle",
-                        lease_seconds=600,
+                        "CEO",
+                        "task_ready_for_executor",
+                        "task",
+                        task["id"],
+                        {"owner": task["owner"], "lane": lane},
                     )
-                    self.store.audit(conn, "CEO", "dispatch_task", "task", task["id"], {"owner": task["owner"]})
-                    self.store.audit(conn, "CEO", "claim_task_execution", "task_execution", task["id"], details)
-                    progressed.append(task["id"])
                     occupied.add(lane)
-                    if len(progressed) == 2:
+                    if inspected == 2:
                         break
             self._record_metrics(conn)
             summary = {

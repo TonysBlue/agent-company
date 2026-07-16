@@ -296,6 +296,8 @@ class EventEngine:
             "delivery_disabled",
         }:
             return self._defer_event(event, ceo, recovered)
+        if ceo["status"] == "protocol_rejected":
+            return self._dead_letter_event(event, ceo, recovered)
         if event["event_type"] in {"ceo.strategic_review", "ceo.business_stall_review"}:
             self._schedule_followup_review(event)
         with self.store.connect() as conn:
@@ -397,6 +399,40 @@ class EventEngine:
             "entity_type": event["entity_type"],
             "entity_id": event["entity_id"],
             "status": "deferred",
+            "recovered_events": recovered,
+            "dispatch": None,
+            "ceo": ceo,
+        }
+
+    def _dead_letter_event(self, event: dict[str, Any], ceo: dict[str, Any], recovered: int) -> dict[str, Any]:
+        error = ceo.get("error") or ceo["status"]
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                """UPDATE execution_events
+                   SET status='failed', worker_id=NULL, claimed_at=NULL,
+                       processed_at=?, last_error=?
+                   WHERE id=? AND status='processing' AND worker_id=?""",
+                (utcnow(), error, event["id"], self.worker_id),
+            )
+            self.store.audit(
+                conn,
+                "system",
+                "dead_letter_execution_event",
+                "execution_event",
+                event["id"],
+                {
+                    "event_type": event["event_type"],
+                    "attempts": event["attempts"],
+                    "error": error,
+                },
+            )
+        return {
+            "event_id": event["id"],
+            "event_type": event["event_type"],
+            "entity_type": event["entity_type"],
+            "entity_id": event["entity_id"],
+            "status": "failed",
             "recovered_events": recovered,
             "dispatch": None,
             "ceo": ceo,

@@ -185,24 +185,31 @@ codex_enabled = true
             after = self.osys.inspect_execution(task_id)["execution"]["lease_expires_at"]
         self.assertGreater(after, before)
         self.assertEqual(cycle["recovered"], [])
-        self.assertIn(other_task, cycle["progressed"])
+        self.assertNotIn(other_task, cycle["progressed"])
+        self.assertEqual(
+            Store(self.config.db_path).fetch_one("SELECT status FROM tasks WHERE id=?", (other_task,))["status"],
+            "open",
+        )
         audit = Store(self.config.db_path).fetch_one(
             "SELECT * FROM audit_log WHERE action='renew_task_execution' AND entity_id=?",
             (str(task_id),),
         )
         self.assertIsNotNone(audit)
 
-    def test_run_cycle_dispatch_creates_durable_execution_state(self) -> None:
+    def test_run_cycle_does_not_claim_work_without_a_real_executor(self) -> None:
         task_id = self._create_task()
 
         cycle = self.osys.run_cycle()
 
-        self.assertIn(task_id, cycle["progressed"])
+        self.assertNotIn(task_id, cycle["progressed"])
         inspection = self.osys.inspect_execution(task_id)
-        self.assertEqual(inspection["task"]["status"], "in_progress")
-        self.assertIsNotNone(inspection["execution"])
-        self.assertEqual(inspection["execution"]["recovery_status"], "running")
-        self.assertEqual(inspection["execution"]["attempt_count"], 0)
+        self.assertEqual(inspection["task"]["status"], "open")
+        self.assertIsNone(inspection["execution"])
+        audit = Store(self.config.db_path).fetch_one(
+            "SELECT action FROM audit_log WHERE entity='task' AND entity_id=? ORDER BY id DESC LIMIT 1",
+            (str(task_id),),
+        )
+        self.assertEqual(audit["action"], "task_ready_for_executor")
 
     def test_run_cycle_recovers_fresh_lease_when_recorded_pid_identity_mismatches(self) -> None:
         task_id = self._create_task()

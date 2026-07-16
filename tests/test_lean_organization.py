@@ -225,10 +225,10 @@ logs = logs
         cycle = osys.run_cycle()
 
         in_progress = store.fetch_all("SELECT domain FROM tasks WHERE status='in_progress'")
-        self.assertEqual(len(in_progress), 2)
-        self.assertEqual(sum(row["domain"] in {"product", "engineering"} for row in in_progress), 1)
-        self.assertEqual(sum(row["domain"] in {"gtm", "revenue", "customer"} for row in in_progress), 1)
-        self.assertEqual(len(cycle["progressed"]), 2)
+        self.assertEqual(in_progress, [])
+        ready = store.fetch_all("SELECT details FROM audit_log WHERE action='task_ready_for_executor'")
+        self.assertEqual(len(ready), 2)
+        self.assertEqual(len(cycle["progressed"]), 0)
         self.assertEqual(store.fetch_all("SELECT id FROM strategic_phases"), [])
         self.assertEqual(len(store.fetch_all("SELECT id FROM tasks")), 4)
 
