@@ -206,6 +206,23 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         task = Store(self.config.db_path).fetch_one("SELECT status FROM tasks WHERE title='Change price tier'")
         self.assertEqual(task["status"], "open")
 
+    def test_status_marks_unclaimed_open_work_as_stalled(self) -> None:
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DELETE FROM task_executions")
+            conn.execute("UPDATE tasks SET status='done'")
+            now = "2026-01-01T00:00:00+00:00"
+            conn.execute(
+                """INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority)
+                   VALUES (?, ?, 'Customer & Revenue', 'Unclaimed customer work', 'customer', 'open', 90)""",
+                (now, now),
+            )
+
+        status = self.osys.status()
+
+        self.assertEqual(status["business_progress"], "stalled")
+        self.assertEqual(status["unclaimed_tasks"], 1)
+
     def test_task_completion_requires_existing_evidence(self) -> None:
         self.osys.init()
         task = Store(self.config.db_path).fetch_one("SELECT * FROM tasks WHERE status='open' ORDER BY priority DESC, id")

@@ -40,14 +40,33 @@ class CompanyOS:
             if int(summary.get("processed", 0)) or summary.get("progressed") or summary.get("escalated"):
                 break
             consecutive_empty += 1
+        unclaimed = self.store.fetch_one(
+            """SELECT COUNT(*) AS c FROM tasks t
+               WHERE t.status='open' AND NOT EXISTS (
+                   SELECT 1 FROM task_executions e WHERE e.task_id=t.id
+               )"""
+        )["c"]
+        running = self.store.fetch_one(
+            """SELECT COUNT(*) AS c FROM task_executions
+               WHERE recovery_status='running'"""
+        )["c"]
         active_count = open_tasks + in_progress + blocked
-        business_progress = "advancing" if active_count else ("stalled" if consecutive_empty >= 3 else "at_risk")
+        if running:
+            business_progress = "advancing"
+        elif unclaimed or blocked:
+            business_progress = "stalled"
+        elif active_count:
+            business_progress = "ready"
+        else:
+            business_progress = "stalled" if consecutive_empty >= 3 else "at_risk"
         return {
             "product": self.config.product_name,
             "open_tasks": open_tasks,
             "in_progress_tasks": in_progress,
             "active_tasks": active_count,
             "blocked_tasks": blocked,
+            "unclaimed_tasks": unclaimed,
+            "running_executions": running,
             "pending_approvals": approvals,
             "cycles": cycles,
             "technical_health": "healthy",

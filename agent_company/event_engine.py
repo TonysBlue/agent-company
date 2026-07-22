@@ -272,6 +272,9 @@ class EventEngine:
                 dispatch = self.osys.run_cycle()
             else:
                 dispatch = None
+            dispatch_outcome = self._enforce_task_dispatch_outcome(event, ceo, dispatch, recovered)
+            if dispatch_outcome is not None:
+                return dispatch_outcome
         except Exception as exc:
             with self.store.connect() as conn:
                 conn.execute(
@@ -331,6 +334,58 @@ class EventEngine:
             "recovered_events": recovered,
             "dispatch": dispatch,
             "ceo": ceo,
+        }
+
+    def _enforce_task_dispatch_outcome(
+        self,
+        event: dict[str, Any],
+        ceo: dict[str, Any],
+        dispatch: dict[str, Any] | None,
+        recovered: int,
+    ) -> dict[str, Any] | None:
+        if event["event_type"] != "task.created" or not event.get("entity_id"):
+            return None
+        task_id = int(event["entity_id"])
+        with self.store.connect() as conn:
+            task = conn.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
+            execution = conn.execute(
+                "SELECT id FROM task_executions WHERE task_id=? ORDER BY id DESC LIMIT 1",
+                (task_id,),
+            ).fetchone()
+        if task is None or task["status"] in {"blocked", "cancelled", "done"} or execution is not None:
+            return None
+        error = f"no executor claimed task {task_id} after deterministic dispatch"
+        if int(event["attempts"]) >= 3:
+            with self.store.connect() as conn:
+                now = utcnow()
+                reason = "No healthy executor claimed task after 3 dispatch attempts"
+                conn.execute(
+                    "UPDATE tasks SET status='blocked', updated_at=?, blocked_reason=? WHERE id=? AND status='open'",
+                    (now, reason, task_id),
+                )
+                self.store.audit(
+                    conn, "CEO", "block_unclaimed_task", "task", task_id,
+                    {"attempts": event["attempts"], "reason": reason},
+                )
+            return None
+        available_at = (datetime.now(timezone.utc) + timedelta(minutes=5)).replace(microsecond=0).isoformat()
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                """UPDATE execution_events SET status='pending', available_at=?, worker_id=NULL,
+                          claimed_at=NULL, processed_at=NULL, last_error=?
+                   WHERE id=? AND status='processing' AND worker_id=?""",
+                (available_at, error, event["id"], self.worker_id),
+            )
+            self.store.audit(
+                conn, "CEO", "defer_unclaimed_task", "task", task_id,
+                {"available_at": available_at, "attempt": event["attempts"], "reason": error},
+            )
+        return {
+            "event_id": event["id"], "event_type": event["event_type"],
+            "entity_type": event["entity_type"], "entity_id": event["entity_id"],
+            "status": "deferred", "recovered_events": recovered,
+            "dispatch": dispatch, "ceo": ceo,
         }
 
     def _schedule_followup_review(self, event: dict[str, Any]) -> None:

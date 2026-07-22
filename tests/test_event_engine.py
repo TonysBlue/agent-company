@@ -113,6 +113,54 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
             "done",
         )
 
+    def test_unclaimed_task_event_stays_pending_instead_of_reporting_dispatch_success(self) -> None:
+        task_id = self._insert_task(
+            "Prepare bounded commercial evidence", "Customer & Revenue", "customer"
+        )
+
+        result = EventEngine(self.config).step()
+
+        self.assertEqual(result["status"], "deferred")
+        event = self.store.fetch_one(
+            "SELECT status, last_error FROM execution_events WHERE event_type='task.created' AND entity_id=?",
+            (str(task_id),),
+        )
+        self.assertEqual(event["status"], "pending")
+        self.assertIn("no executor claimed task", event["last_error"])
+        self.assertIsNone(self.store.fetch_one("SELECT id FROM task_executions WHERE task_id=?", (task_id,)))
+
+    def test_unclaimed_task_exhaustion_blocks_with_explicit_reason(self) -> None:
+        task_id = self._insert_task(
+            "Prepare bounded commercial evidence", "Customer & Revenue", "customer"
+        )
+        engine = EventEngine(self.config)
+        engine.step()
+        with self.store.connect() as conn:
+            conn.execute(
+                "UPDATE execution_events SET available_at=?, attempts=2 WHERE event_type='task.created' AND entity_id=?",
+                (utcnow(), str(task_id)),
+            )
+
+        result = engine.step()
+
+        self.assertEqual(result["status"], "processed")
+        task = self.store.fetch_one("SELECT status, blocked_reason FROM tasks WHERE id=?", (task_id,))
+        self.assertEqual(task["status"], "blocked")
+        self.assertIn("No healthy executor claimed task", task["blocked_reason"])
+
+    def test_claimed_task_event_can_be_processed(self) -> None:
+        task_id = self._insert_task("Internal product improvement", "Product Engineer", "engineering")
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="runner-1", backend="local")
+
+        result = EventEngine(self.config).step()
+
+        self.assertEqual(result["status"], "processed")
+        event = self.store.fetch_one(
+            "SELECT status FROM execution_events WHERE event_type='task.created' AND entity_id=?",
+            (str(task_id),),
+        )
+        self.assertEqual(event["status"], "processed")
+
     def test_approval_block_only_blocks_linked_task_and_safe_work_dispatches(self) -> None:
         blocked_id = self._insert_task("Change pricing", "Customer & Revenue", "gtm", 100)
         safe_id = self._insert_task("Improve internal editor", "Product Engineer", "engineering", 90)
@@ -251,8 +299,8 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         health = EventEngine(self.config).status()
 
         self.assertEqual(result["entity_id"], str(task_id))
-        self.assertEqual(result["status"], "processed")
-        self.assertEqual(health["pending_events"], 0)
+        self.assertEqual(result["status"], "deferred")
+        self.assertEqual(health["pending_events"], 1)
         self.assertEqual(health["processing_events"], 0)
         recovery = self.store.fetch_one(
             "SELECT action FROM audit_log WHERE action='recover_processing_events'"

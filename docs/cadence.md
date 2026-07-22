@@ -10,6 +10,12 @@
 - Each strategic review schedules a durable 24-hour `ceo.business_stall_review`. The worker
   sleeps until that event is due, then reassesses metrics, experiments, completed/cancelled
   phase work, approvals, and active WIP without fixed polling.
+- A `task.created` event is not complete merely because the CEO inspected the task. It remains
+  pending until a real executor creates a durable `task_executions` claim, the task becomes
+  explicitly blocked, or it closes. Unclaimed work retries on a five-minute SLA and becomes
+  visibly blocked after three unsuccessful dispatch attempts.
+- Business progress is `advancing` only when a real execution is running. Open work with no
+  execution is `stalled`; infrastructure health must never hide this condition.
 - Before taking new work, CEO inspects all `in_progress` task executions and records lease health.
 - Active executors must heartbeat and checkpoint durable state with the task execution CLI/API.
 - Stale leases are recovered without killing local processes; PID liveness is advisory and only trusted when the stored process start identity still matches.
