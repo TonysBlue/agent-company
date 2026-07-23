@@ -74,6 +74,17 @@ class ExecutionRunnerTest(unittest.TestCase):
         executor = self.osys.store.fetch_one("SELECT status FROM executors WHERE executor_id='test-runner'")
         self.assertEqual(executor["status"], "healthy")
 
+    def test_runner_ignores_blocked_work_instead_of_crash_looping(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("UPDATE tasks SET status='blocked', blocked_reason='operator review' WHERE id=?", (self.task_id,))
+        runner = ExecutionRunner(
+            self.config, "test-runner", "Customer & Revenue", ["customer"], poll_seconds=0.01,
+        )
+        with patch("agent_company.runner.subprocess.Popen") as launch:
+            result = runner.run_once()
+        self.assertEqual(result["status"], "idle")
+        launch.assert_not_called()
+
     def test_runner_records_failure_when_child_exits_without_evidence(self) -> None:
         process = FakeProcess()
         process.returncode = 2

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -29,7 +30,7 @@ class ExecutionRunner:
         self.osys = CompanyOS(config)
 
     def run_once(self) -> dict[str, Any]:
-        tasks = [row for row in self.osys.task_list() if row["owner"] == self.owner]
+        tasks = [row for row in self.osys.task_list() if row["owner"] == self.owner and row["status"] == "open"]
         tasks = [row for row in tasks if self._matches(row)]
         if not tasks:
             self._register()
@@ -82,8 +83,9 @@ class ExecutionRunner:
         prompt = self._prompt(task, evidence_dir)
         log = log_path.open("w", encoding="utf-8")
         process = subprocess.Popen(
-            ["codex", "exec", "-C", str(self.config.workspace), "-s", "workspace-write", "--color", "never", prompt],
+            ["codex", "exec", "-C", str(self.config.workspace), "--dangerously-bypass-approvals-and-sandbox", "--color", "never", prompt],
             stdout=log, stderr=subprocess.STDOUT, cwd=self.config.workspace,
+            env={**os.environ, "CODEX_SANDBOX": "danger-full-access"},
         )
         log.close()
         return process

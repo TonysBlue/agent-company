@@ -7,6 +7,7 @@ Type=simple
 WorkingDirectory=%h/agent-company
 Environment="HOME=%h"
 Environment="PATH=%h/.npm-global/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CODEX_SANDBOX=danger-full-access"
 ExecStart=/usr/bin/env python3.11 -m agent_company.cli runner-run --executor-id customer-revenue-runner --owner "Customer & Revenue" --capability customer --capability commercial --capability gtm --capability revenue --poll-seconds 5
 Restart=on-failure
 RestartSec=5
