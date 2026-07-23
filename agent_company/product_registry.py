@@ -23,6 +23,12 @@ class ProductRegistry:
         data = json.loads(path.read_text(encoding="utf-8"))
         if data.get("schema_version") != "agent-company-repositories/v1":
             raise ValueError("unsupported repository registry schema")
+        rows = data.get("repositories")
+        if not isinstance(rows, list) or not rows:
+            raise ValueError("repository registry must contain repositories")
+        ids = [row.get("id") for row in rows]
+        if len(ids) != len(set(ids)):
+            raise ValueError("repository ids must be unique")
         self._specs = {
             row["id"]: RepositorySpec(
                 repository_id=row["id"],
@@ -33,7 +39,7 @@ class ProductRegistry:
                 canonical_test=row["canonical_test"],
                 allowed_roles=tuple(row["allowed_roles"]),
             )
-            for row in data["repositories"]
+            for row in rows
         }
         self._role_defaults = dict(data.get("role_defaults", {}))
         self._domain_defaults = dict(data.get("domain_defaults", {}))
@@ -48,7 +54,7 @@ class ProductRegistry:
         return spec
 
     def for_role(self, role: str, domain: str) -> RepositorySpec:
-        repository_id = self._role_defaults.get(role) or self._domain_defaults.get(domain)
+        repository_id = self._domain_defaults.get(domain) or self._role_defaults.get(role)
         if not repository_id:
             raise ValueError(f"no repository policy for role={role} domain={domain}")
         return self.get(repository_id, role=role)

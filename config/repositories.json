@@ -30,6 +30,7 @@
     "platform": "agent-company",
     "governance": "agent-company",
     "product": "pixweave",
-    "engineering": "pixweave"
+    "engineering": "pixweave",
+    "review": "agent-company"
   }
 }

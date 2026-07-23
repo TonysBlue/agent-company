@@ -19,6 +19,8 @@ class RepositorySeparationTest(unittest.TestCase):
         self.assertEqual(company.repository_id, "agent-company")
         self.assertEqual(company.local_path, Path("/home/tony/agent-company"))
         self.assertEqual(product.repository_id, "pixweave")
+        product_review = registry.for_role("Control & Reliability Reviewer", "product")
+        self.assertEqual(product_review.repository_id, "pixweave")
         self.assertEqual(product.local_path, Path("/home/tony/products/pixweave"))
         self.assertEqual(product.remote, "git@github.com:TonysBlue/PixWeave.git")
 

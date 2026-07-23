@@ -64,8 +64,9 @@ class ExecutionRunnerTest(unittest.TestCase):
             ["customer", "commercial", "gtm"], poll_seconds=0.01,
         )
         with patch.object(runner, "_ensure_workspace"):
-            with patch("agent_company.runner.subprocess.Popen", side_effect=launch):
-                result = runner.run_once()
+            with patch.object(runner, "_publish_delivery", return_value={"repository": "pixweave", "branch": "task/1", "commit": "abc"}):
+                with patch("agent_company.runner.subprocess.Popen", side_effect=launch):
+                    result = runner.run_once()
 
         self.assertEqual(result["status"], "done")
         task = self.osys.store.fetch_one("SELECT status FROM tasks WHERE id=?", (self.task_id,))
@@ -98,9 +99,52 @@ class ExecutionRunnerTest(unittest.TestCase):
         with patch("agent_company.runner.subprocess.run") as run:
             runner._ensure_workspace(repository, workdir)
         self.assertEqual(run.call_count, 2)
-        self.assertEqual(run.call_args_list[0].args[0][0:4], ["git", "clone", "--origin", "origin"])
-        self.assertIn(repository.remote, run.call_args_list[0].args[0])
+        clone_args = run.call_args_list[0].args[0]
+        self.assertEqual(clone_args[0:4], ["git", "clone", "--origin", "origin"])
+        self.assertIn("--branch", clone_args)
+        self.assertIn(repository.default_branch, clone_args)
+        self.assertIn(repository.remote, clone_args)
         self.assertEqual(run.call_args_list[1].args[0][-2:], ["-b", "task/42"])
+
+    def test_runner_launch_uses_external_bwrap_isolation_and_sanitized_environment(self) -> None:
+        runner = ExecutionRunner(
+            self.config, "test-runner", "Product Engineer", ["product"], poll_seconds=0.01,
+        )
+        repository = runner.registry.get("pixweave", role="Product Engineer")
+        workdir = self.root / "task-42-pixweave"
+        evidence = self.root / "evidence"
+        log = self.root / "runner.log"
+        workdir.mkdir()
+        evidence.mkdir()
+        process = FakeProcess()
+        with patch.object(runner, "_prepare_codex_home"):
+            with patch("agent_company.runner.subprocess.Popen", return_value=process) as popen:
+                runner._launch({"id": 42, "title": "x", "acceptance_criteria": "y"}, repository, workdir, evidence, log)
+        command = popen.call_args.args[0]
+        env = popen.call_args.kwargs["env"]
+        self.assertEqual(command[0], "bwrap")
+        self.assertIn("--tmpfs", command)
+        self.assertIn("/home", command)
+        self.assertNotIn("/home/tony/.ssh", command)
+        self.assertNotIn("SSH_AUTH_SOCK", env)
+        self.assertEqual(env["SSL_CERT_FILE"], "/etc/ssl/certs/ca-certificates.crt")
+
+    def test_existing_workspace_requires_expected_origin_branch_and_clean_tree(self) -> None:
+        runner = ExecutionRunner(
+            self.config, "test-runner", "Product Engineer", ["product"], poll_seconds=0.01,
+        )
+        repository = runner.registry.get("pixweave", role="Product Engineer")
+        workdir = self.root / "task-42-pixweave"
+        (workdir / ".git").mkdir(parents=True)
+        with patch.object(runner, "_git", side_effect=["git@example.invalid:wrong.git", "task/42", ""]):
+            with self.assertRaisesRegex(ValueError, "origin mismatch"):
+                runner._ensure_workspace(repository, workdir)
+        with patch.object(runner, "_git", side_effect=[repository.remote, "main", ""]):
+            with self.assertRaisesRegex(ValueError, "branch mismatch"):
+                runner._ensure_workspace(repository, workdir)
+        with patch.object(runner, "_git", side_effect=[repository.remote, "task/42", " M file.py"]):
+            with self.assertRaisesRegex(ValueError, "dirty"):
+                runner._ensure_workspace(repository, workdir)
 
     def test_runner_ignores_blocked_work_instead_of_crash_looping(self) -> None:
         with self.osys.store.connect() as conn:
