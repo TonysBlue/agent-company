@@ -10,6 +10,13 @@
 - Each strategic review schedules a durable 24-hour `ceo.business_stall_review`. The worker
   sleeps until that event is due, then reassesses metrics, experiments, completed/cancelled
   phase work, approvals, and active WIP without fixed polling.
+- Executors are durable registered workers with explicit owner, capability, capacity, process
+  identity, session reference, and heartbeat. Dispatch may only be credited to a claimed execution.
+- Every claim receives a new generation and fencing token. A previous executor cannot heartbeat
+  or mutate the task after a new generation is issued.
+- If a tracker reports failure while the recorded process identity is still alive, execution enters
+  `unknown` and its executor is quarantined. The task must not be requeued until process death or
+  explicit operator resolution is verified.
 - A `task.created` event is not complete merely because the CEO inspected the task. It remains
   pending until a real executor creates a durable `task_executions` claim, the task becomes
   explicitly blocked, or it closes. Unclaimed work retries on a five-minute SLA and becomes

@@ -42,7 +42,17 @@ def build_parser() -> argparse.ArgumentParser:
     ceo_step = sub.add_parser("ceo-step", help="Process at most one event through the CEO-aware engine")
     ceo_step.add_argument("--fixture", type=Path, default=None)
     ceo_step.add_argument("--disable-external-delivery", action="store_true")
-    sub.add_parser("task-list", help="List active tasks")
+    sub.add_parser("executor-list", help="List registered execution workers")
+    register_executor = sub.add_parser("executor-register", help="Register or refresh an execution worker")
+    register_executor.add_argument("--executor-id", required=True)
+    register_executor.add_argument("--owner", required=True)
+    register_executor.add_argument("--backend", required=True)
+    register_executor.add_argument("--capability", action="append", required=True)
+    register_executor.add_argument("--capacity", type=int, default=1)
+    register_executor.add_argument("--process-id", type=int, default=None)
+    register_executor.add_argument("--process-started-at", default=None)
+    register_executor.add_argument("--session-ref", default=None)
+    task_list = sub.add_parser("task-list", help="List active tasks")
     create = sub.add_parser("task-create", help="Create one reviewed backlog task")
     create.add_argument("--actor", required=True)
     create.add_argument("--owner", required=True)
@@ -239,6 +249,14 @@ def main(argv: list[str] | None = None) -> int:
                         priority=101,
                     )
             print(json.dumps(EventEngine(osys.config, ceo_runtime=runtime).step(), indent=2, sort_keys=True))
+        elif args.command == "executor-list":
+            print(json.dumps(osys.executor_list(), indent=2, sort_keys=True))
+        elif args.command == "executor-register":
+            print(json.dumps(osys.register_executor(
+                args.executor_id, args.owner, args.backend, args.capability,
+                capacity=args.capacity, process_id=args.process_id,
+                process_started_at=args.process_started_at, session_ref=args.session_ref,
+            ), indent=2, sort_keys=True))
         elif args.command == "task-list":
             print(json.dumps(osys.task_list(), indent=2, sort_keys=True))
         elif args.command == "task-create":

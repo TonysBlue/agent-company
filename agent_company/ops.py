@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
@@ -266,6 +267,49 @@ class CompanyOS:
         self.store.notify_worker()
         return result
 
+    def register_executor(
+        self,
+        executor_id: str,
+        owner: str,
+        backend: str,
+        capabilities: list[str],
+        capacity: int = 1,
+        process_id: int | None = None,
+        process_started_at: str | None = None,
+        session_ref: str | None = None,
+    ) -> dict[str, object]:
+        self.init()
+        if not executor_id.strip() or not owner.strip() or not backend.strip():
+            raise ValueError("executor_id, owner, and backend must not be empty")
+        if capacity <= 0 or not capabilities:
+            raise ValueError("capacity must be positive and capabilities must not be empty")
+        now = utcnow()
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
+                """INSERT INTO executors(
+                       executor_id, owner, backend, capabilities, capacity, status,
+                       process_id, process_started_at, session_ref, heartbeat_at,
+                       registered_at, updated_at
+                   ) VALUES (?, ?, ?, ?, ?, 'healthy', ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(executor_id) DO UPDATE SET
+                       owner=excluded.owner, backend=excluded.backend,
+                       capabilities=excluded.capabilities, capacity=excluded.capacity,
+                       status='healthy', process_id=excluded.process_id,
+                       process_started_at=excluded.process_started_at,
+                       session_ref=excluded.session_ref, heartbeat_at=excluded.heartbeat_at,
+                       updated_at=excluded.updated_at""",
+                (executor_id.strip(), owner.strip(), backend.strip(), json.dumps(sorted(set(capabilities))),
+                 capacity, process_id, process_started_at, session_ref, now, now, now),
+            )
+            row = conn.execute("SELECT * FROM executors WHERE executor_id=?", (executor_id.strip(),)).fetchone()
+            self.store.audit(conn, owner, "register_executor", "executor", executor_id, dict(row))
+            return dict(row)
+
+    def executor_list(self) -> list[dict[str, object]]:
+        self.init()
+        return [dict(row) for row in self.store.fetch_all("SELECT * FROM executors ORDER BY executor_id")]
+
     def claim_task(
         self,
         task_id: int,
@@ -328,18 +372,25 @@ class CompanyOS:
             self.store.audit(conn, actor, "claim_task_execution", "task_execution", task_id, details)
             return {"task_id": task_id, "status": "in_progress", "owner": actor, **details}
 
-    def heartbeat_task(self, task_id: int, executor_id: str, lease_seconds: int = 600) -> dict[str, object]:
+    def heartbeat_task(
+        self, task_id: int, executor_id: str, lease_seconds: int = 600,
+        fencing_token: str | None = None,
+    ) -> dict[str, object]:
         self.init()
         if lease_seconds <= 0:
             raise ValueError("lease_seconds must be positive")
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            task, execution = self._active_execution(conn, task_id, executor_id)
+            task, execution = self._active_execution(conn, task_id, executor_id, fencing_token=fencing_token)
             now = utcnow()
             lease_expires = _iso_add(now, lease_seconds)
             conn.execute(
                 "UPDATE task_executions SET heartbeat_at=?, lease_expires_at=?, recovery_status='running', updated_at=? WHERE task_id=?",
                 (now, lease_expires, now, task_id),
+            )
+            conn.execute(
+                "UPDATE executors SET heartbeat_at=?, status='healthy', updated_at=? WHERE executor_id=?",
+                (now, now, executor_id),
             )
             updated = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             details = self._execution_details(updated)
@@ -363,13 +414,16 @@ class CompanyOS:
             self.store.audit(conn, task["owner"], "checkpoint_task_execution", "task_execution", task_id, details)
             return {"task_id": task_id, **details}
 
-    def fail_task(self, task_id: int, executor_id: str, error: str, recoverable: bool = True) -> dict[str, object]:
+    def fail_task(
+        self, task_id: int, executor_id: str, error: str, recoverable: bool = True,
+        fencing_token: str | None = None,
+    ) -> dict[str, object]:
         self.init()
         if not error.strip():
             raise ValueError("error must not be empty")
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            task, _ = self._active_execution(conn, task_id, executor_id)
+            task, _ = self._active_execution(conn, task_id, executor_id, fencing_token=fencing_token)
             now = utcnow()
             status = "failed" if recoverable else "exhausted"
             task_status = "in_progress" if recoverable else "blocked"
@@ -788,7 +842,9 @@ class CompanyOS:
                 }
         return {"agents": summary}
 
-    def _active_execution(self, conn, task_id: int, executor_id: str):
+    def _active_execution(
+        self, conn, task_id: int, executor_id: str, fencing_token: str | None = None,
+    ):
         task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
         if task is None:
             raise ValueError(f"task not found: {task_id}")
@@ -797,6 +853,8 @@ class CompanyOS:
             raise ValueError(f"task {task_id} has no execution state")
         if execution["executor_id"] != executor_id:
             raise ValueError(f"task {task_id} is claimed by {execution['executor_id']}, not {executor_id}")
+        if fencing_token is not None and execution["fencing_token"] != fencing_token:
+            raise ValueError(f"task {task_id} rejected stale fencing token")
         if execution["recovery_status"] != "running":
             raise ValueError(f"task {task_id} execution is not active: {execution['recovery_status']}")
         if self._execution_lease_expired(self._execution_details(execution)):
@@ -821,6 +879,11 @@ class CompanyOS:
         now = utcnow()
         task_id = int(task["id"])
         lease_expires = _iso_add(now, lease_seconds)
+        previous = conn.execute(
+            "SELECT generation FROM task_executions WHERE task_id=?", (task_id,)
+        ).fetchone()
+        generation = int(previous["generation"] or 0) + 1 if previous else 1
+        fencing_token = f"{generation}:{secrets.token_hex(16)}"
         updated = conn.execute(
             "UPDATE tasks SET status='in_progress', updated_at=? WHERE id=? AND status='open'",
             (now, task_id),
@@ -832,8 +895,8 @@ class CompanyOS:
                    task_id, executor_id, backend, process_id, process_started_at,
                    session_ref, claimed_at, heartbeat_at, lease_expires_at,
                    attempt_count, max_attempts, evidence_paths, log_paths,
-                   recovery_status, created_at, updated_at
-               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'running', ?, ?)
+                   recovery_status, fencing_token, generation, created_at, updated_at
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'running', ?, ?, ?, ?)
                ON CONFLICT(task_id) DO UPDATE SET
                    executor_id=excluded.executor_id,
                    backend=excluded.backend,
@@ -846,6 +909,8 @@ class CompanyOS:
                    max_attempts=excluded.max_attempts,
                    evidence_paths=excluded.evidence_paths,
                    log_paths=excluded.log_paths,
+                   fencing_token=excluded.fencing_token,
+                   generation=excluded.generation,
                    last_error=NULL,
                    recovery_status='running',
                    updated_at=excluded.updated_at
@@ -863,6 +928,8 @@ class CompanyOS:
                 max_attempts,
                 evidence_json,
                 log_json,
+                fencing_token,
+                generation,
                 now,
                 now,
             ),
@@ -892,6 +959,24 @@ class CompanyOS:
         stale = self._execution_needs_recovery(details)
         if not stale:
             return None
+        process = self._process_status(details)
+        if execution["recovery_status"] == "failed" and process.get("alive") is True:
+            now = utcnow()
+            conn.execute(
+                "UPDATE task_executions SET recovery_status='unknown', last_error=?, updated_at=? WHERE task_id=?",
+                (f"Execution outcome uncertain while process remains alive: {reason}", now, task_id),
+            )
+            conn.execute(
+                "UPDATE executors SET status='quarantined', updated_at=? WHERE executor_id=?",
+                (now, execution["executor_id"]),
+            )
+            self.store.audit(
+                conn, actor, "quarantine_unknown_execution", "task_execution", task_id,
+                {"reason": reason, "process": process, "executor_id": execution["executor_id"]},
+            )
+            return {"task_id": task_id, "status": "unknown", **self._execution_details(
+                conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+            )}
         now = utcnow()
         next_attempt = int(execution["attempt_count"]) + 1
         max_attempts = int(execution["max_attempts"])
@@ -971,6 +1056,8 @@ class CompanyOS:
             "log_paths": loads(execution["log_paths"]),
             "last_error": execution["last_error"],
             "recovery_status": execution["recovery_status"],
+            "fencing_token": execution["fencing_token"],
+            "generation": int(execution["generation"] or 0),
         }
 
     def _process_status(self, execution: dict[str, object] | None) -> dict[str, object]:

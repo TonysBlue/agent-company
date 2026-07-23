@@ -75,6 +75,64 @@ codex_enabled = true
         stored = Store(self.config.db_path).fetch_one("SELECT title FROM tasks WHERE id=?", (task_id,))
         self.assertEqual(stored["title"], "Continuity task Product Engineer")
 
+    def test_registered_executor_claim_issues_fencing_token_and_rejects_stale_generation(self) -> None:
+        task_id = self._create_task()
+        registered = self.osys.register_executor(
+            "exec-registered", "Product Engineer", "local",
+            capabilities=["product", "engineering"], capacity=1,
+            process_id=os.getpid(), process_started_at="current-start",
+            session_ref="session-1",
+        )
+        self.assertEqual(registered["status"], "healthy")
+
+        with patch("agent_company.ops._process_start_identity", return_value="current-start"):
+            claim = self.osys.claim_task(
+                task_id, "Product Engineer", executor_id="exec-registered", backend="local",
+                process_id=os.getpid(), process_started_at="current-start", session_ref="session-1",
+            )
+        token = claim["fencing_token"]
+        self.assertTrue(token)
+        self.osys.heartbeat_task(task_id, "exec-registered", fencing_token=token)
+
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                "UPDATE task_executions SET recovery_status='requeued', attempt_count=1 WHERE task_id=?",
+                (task_id,),
+            )
+            conn.execute("UPDATE tasks SET status='open' WHERE id=?", (task_id,))
+        second = self.osys.claim_task(
+            task_id, "Product Engineer", executor_id="exec-registered", backend="local"
+        )
+        self.assertNotEqual(second["fencing_token"], token)
+        with self.assertRaisesRegex(ValueError, "stale fencing token"):
+            self.osys.heartbeat_task(task_id, "exec-registered", fencing_token=token)
+
+    def test_live_process_failure_enters_unknown_quarantine_instead_of_requeue(self) -> None:
+        task_id = self._create_task()
+        self.osys.register_executor(
+            "exec-live", "Product Engineer", "local", capabilities=["engineering"],
+            capacity=1, process_id=os.getpid(), process_started_at="current-start", session_ref="live",
+        )
+        with patch("agent_company.ops._process_start_identity", return_value="current-start"):
+            claim = self.osys.claim_task(
+                task_id, "Product Engineer", executor_id="exec-live", backend="local",
+                process_id=os.getpid(), process_started_at="current-start",
+            )
+            self.osys.fail_task(
+                task_id, "exec-live", "tracker lost", recoverable=True,
+                fencing_token=claim["fencing_token"],
+            )
+            cycle = self.osys.run_cycle()
+
+        self.assertNotIn(task_id, cycle["recovered"])
+        inspection = self.osys.inspect_execution(task_id)
+        self.assertEqual(inspection["task"]["status"], "in_progress")
+        self.assertEqual(inspection["execution"]["recovery_status"], "unknown")
+        executor = Store(self.config.db_path).fetch_one(
+            "SELECT status FROM executors WHERE executor_id='exec-live'"
+        )
+        self.assertEqual(executor["status"], "quarantined")
+
     def test_claim_is_atomic_and_records_runtime_identity(self) -> None:
         task_id = self._create_task()
 
@@ -267,7 +325,7 @@ codex_enabled = true
         self.assertEqual(inspection["task"]["status"], "in_progress")
         self.assertEqual(inspection["execution"]["recovery_status"], "running")
 
-    def test_run_cycle_recovers_failed_execution_without_waiting_for_lease_expiry(self) -> None:
+    def test_run_cycle_quarantines_failed_execution_when_process_is_still_alive(self) -> None:
         task_id = self._create_task()
         other_task = self._create_task("Customer & Revenue")
         with patch("agent_company.ops._process_start_identity", return_value="current-start"):
@@ -284,12 +342,12 @@ codex_enabled = true
 
             cycle = self.osys.run_cycle()
 
-        self.assertIn(task_id, cycle["recovered"])
+        self.assertNotIn(task_id, cycle["recovered"])
         self.assertNotIn(other_task, cycle["progressed"])
         inspection = self.osys.inspect_execution(task_id)
-        self.assertEqual(inspection["task"]["status"], "open")
-        self.assertEqual(inspection["execution"]["recovery_status"], "requeued")
-        self.assertEqual(inspection["execution"]["attempt_count"], 1)
+        self.assertEqual(inspection["task"]["status"], "in_progress")
+        self.assertEqual(inspection["execution"]["recovery_status"], "unknown")
+        self.assertEqual(inspection["execution"]["attempt_count"], 0)
 
     def test_manual_recovery_rejects_fresh_live_local_execution(self) -> None:
         task_id = self._create_task()

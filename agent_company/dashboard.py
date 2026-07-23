@@ -149,6 +149,7 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         "ceo_state_versions": [],
         "ceo_runs": [],
         "chairman_directives": [],
+        "executors": [],
     }
     if not config.db_path.exists():
         empty["database"]["error"] = "database file not found"
@@ -169,6 +170,9 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
             ).fetchone()
             ceo_table = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='ceo_state_versions'"
+            ).fetchone()
+            executor_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='executors'"
             ).fetchone()
             return {
                 "database": {
@@ -218,6 +222,9 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "chairman_directives": _row_dicts(list(conn.execute(
                     "SELECT * FROM chairman_directives ORDER BY directive_version DESC LIMIT 20"
                 ))) if ceo_table else [],
+                "executors": _row_dicts(list(conn.execute(
+                    "SELECT * FROM executors ORDER BY status, executor_id"
+                ))) if executor_table else [],
             }
     except sqlite3.Error as exc:
         empty["database"]["error"] = str(exc)
@@ -255,6 +262,7 @@ def _recovery_status_label(value: Any) -> str:
         "exhausted": "已耗尽",
         "completed": "已完成",
         "cancelled": "已取消",
+        "unknown": "状态未知 / 已隔离",
     }
     return mapping.get(str(value), str(value))
 
@@ -674,6 +682,9 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             },
             "chairman_directives": sqlite_data["chairman_directives"],
             "pending_events": pending_events,
+            "executors": sqlite_data["executors"],
+            "quarantined_executors": [row for row in sqlite_data["executors"] if row.get("status") == "quarantined"],
+            "unknown_executions": [row for row in sqlite_data["task_executions"] if row.get("recovery_status") == "unknown"],
             "role_activity_timeline": role_activity_timeline,
             "consecutive_empty_cycles": consecutive_empty_cycles,
             "role_execution_timeline": execution_timeline,
@@ -1014,12 +1025,18 @@ def _management(snapshot: dict[str, Any]) -> str:
         mgmt["chairman_directives"],
         [("directive_version", "版本"), ("directive_type", "类型"), ("objective", "战略目标"), ("priority", "优先级"), ("status", "状态"), ("created_at", "时间")],
     )
+    executor_table = _table(
+        mgmt["executors"],
+        [("executor_id", "执行器"), ("owner", "角色"), ("backend", "后端"), ("capabilities", "能力"), ("capacity", "容量"), ("status", "状态"), ("process_id", "PID"), ("heartbeat_at", "心跳")],
+    )
     return f"""
     <section class="grid stats">
       {_metric_card("运行模式", mgmt["operating_model"])}
       {_metric_card("事件 Worker", mgmt["worker"].get("status") or "不可用", f"已处理 {mgmt['worker'].get('events_processed', 0)}")}
       {_metric_card("唯一逻辑 CEO", mgmt["ceo_runtime"]["logical_ceo_count"], f"State v{mgmt['ceo_runtime'].get('state_version') or '-'}")}
       {_metric_card("待处理事件", len(mgmt["pending_events"]))}
+      {_metric_card("隔离执行器", len(mgmt["quarantined_executors"]))}
+      {_metric_card("未知执行", len(mgmt["unknown_executions"]))}
       {_metric_card("业务推进", mgmt["business_progress"])}
       {_metric_card("待董事长审批", len([row for row in mgmt["approvals"] if row.get("status") == "pending"]))}
     </section>
@@ -1037,6 +1054,7 @@ def _management(snapshot: dict[str, Any]) -> str:
         {_chart_svg("Token 使用量图", token_rows, "value", "label") if token_rows else '<p class="empty">Token 使用量未采集</p>'}
       </div>
     </section>
+    <section class="band"><h2>注册执行器与容量</h2>{executor_table}</section>
     <section class="band">
       <h2>角色活动时间线</h2>
       <p class="legend">汇总 CEO Runtime 判断、角色审计动作和任务执行活动，按时间倒序展示；历史角色仅在确有历史活动时出现。</p>

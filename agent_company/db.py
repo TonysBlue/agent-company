@@ -121,6 +121,20 @@ class Store:
                     finished_at TEXT,
                     summary TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS executors (
+                    executor_id TEXT PRIMARY KEY,
+                    owner TEXT NOT NULL,
+                    backend TEXT NOT NULL,
+                    capabilities TEXT NOT NULL,
+                    capacity INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    process_id INTEGER,
+                    process_started_at TEXT,
+                    session_ref TEXT,
+                    heartbeat_at TEXT NOT NULL,
+                    registered_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS task_executions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id INTEGER NOT NULL,
@@ -140,6 +154,8 @@ class Store:
                     log_paths TEXT NOT NULL DEFAULT '[]',
                     last_error TEXT,
                     recovery_status TEXT NOT NULL,
+                    fencing_token TEXT,
+                    generation INTEGER NOT NULL DEFAULT 0,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
@@ -315,6 +331,11 @@ class Store:
             role_columns = {row[1] for row in conn.execute("PRAGMA table_info(roles)")}
             if "status" not in role_columns:
                 conn.execute("ALTER TABLE roles ADD COLUMN status TEXT NOT NULL DEFAULT 'resident'")
+            execution_columns = {row[1] for row in conn.execute("PRAGMA table_info(task_executions)")}
+            if "fencing_token" not in execution_columns:
+                conn.execute("ALTER TABLE task_executions ADD COLUMN fencing_token TEXT")
+            if "generation" not in execution_columns:
+                conn.execute("ALTER TABLE task_executions ADD COLUMN generation INTEGER NOT NULL DEFAULT 0")
             event_columns = {row[1] for row in conn.execute("PRAGMA table_info(execution_events)")}
             if "priority" not in event_columns:
                 conn.execute("ALTER TABLE execution_events ADD COLUMN priority INTEGER NOT NULL DEFAULT 10")
