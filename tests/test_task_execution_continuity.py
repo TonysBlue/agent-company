@@ -75,6 +75,31 @@ codex_enabled = true
         stored = Store(self.config.db_path).fetch_one("SELECT title FROM tasks WHERE id=?", (task_id,))
         self.assertEqual(stored["title"], "Continuity task Product Engineer")
 
+    def test_stale_generation_cannot_complete_after_reclaim(self) -> None:
+        task_id = self._create_task()
+        first = self.osys.claim_task(
+            task_id, "Product Engineer", executor_id="exec-1", backend="local"
+        )
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE task_executions SET recovery_status='requeued' WHERE task_id=?", (task_id,))
+            conn.execute("UPDATE tasks SET status='open' WHERE id=?", (task_id,))
+        second = self.osys.claim_task(
+            task_id, "Product Engineer", executor_id="exec-2", backend="local"
+        )
+        evidence = self.root / "fenced-evidence.txt"
+        evidence.write_text("reviewable\n", encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "stale fencing token"):
+            self.osys.complete_task(
+                task_id, "Product Engineer", "stale", [evidence],
+                fencing_token=first["fencing_token"],
+            )
+        completed = self.osys.complete_task(
+            task_id, "Product Engineer", "current", [evidence],
+            fencing_token=second["fencing_token"],
+        )
+        self.assertEqual(completed["status"], "done")
+
     def test_registered_executor_claim_issues_fencing_token_and_rejects_stale_generation(self) -> None:
         task_id = self._create_task()
         registered = self.osys.register_executor(

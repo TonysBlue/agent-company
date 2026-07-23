@@ -42,6 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
     ceo_step = sub.add_parser("ceo-step", help="Process at most one event through the CEO-aware engine")
     ceo_step.add_argument("--fixture", type=Path, default=None)
     ceo_step.add_argument("--disable-external-delivery", action="store_true")
+    runner = sub.add_parser("runner-run", help="Run one resident role execution worker")
+    runner.add_argument("--executor-id", required=True)
+    runner.add_argument("--owner", required=True)
+    runner.add_argument("--capability", action="append", required=True)
+    runner.add_argument("--poll-seconds", type=float, default=5.0)
     sub.add_parser("executor-list", help="List registered execution workers")
     register_executor = sub.add_parser("executor-register", help="Register or refresh an execution worker")
     register_executor.add_argument("--executor-id", required=True)
@@ -249,6 +254,13 @@ def main(argv: list[str] | None = None) -> int:
                         priority=101,
                     )
             print(json.dumps(EventEngine(osys.config, ceo_runtime=runtime).step(), indent=2, sort_keys=True))
+        elif args.command == "runner-run":
+            from .runner import ExecutionRunner
+
+            ExecutionRunner(
+                osys.config, args.executor_id, args.owner, args.capability,
+                poll_seconds=args.poll_seconds,
+            ).run_forever()
         elif args.command == "executor-list":
             print(json.dumps(osys.executor_list(), indent=2, sort_keys=True))
         elif args.command == "executor-register":

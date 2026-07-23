@@ -1,0 +1,18 @@
+[Unit]
+Description=Agent Company Customer & Revenue execution runner
+After=local-fs.target agent-company-worker.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/agent-company
+Environment="HOME=%h"
+Environment="PATH=%h/.npm-global/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/usr/bin/env python3.11 -m agent_company.cli runner-run --executor-id customer-revenue-runner --owner "Customer & Revenue" --capability customer --capability commercial --capability gtm --capability revenue --poll-seconds 5
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

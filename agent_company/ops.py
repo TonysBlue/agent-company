@@ -477,7 +477,10 @@ class CompanyOS:
         self.store.notify_worker()
         return result
 
-    def complete_task(self, task_id: int, actor: str, summary: str, evidence: list[Path]) -> dict[str, object]:
+    def complete_task(
+        self, task_id: int, actor: str, summary: str, evidence: list[Path],
+        fencing_token: str | None = None,
+    ) -> dict[str, object]:
         self.init()
         if not summary.strip():
             raise ValueError("summary must not be empty")
@@ -500,6 +503,8 @@ class CompanyOS:
             ).fetchone()
             if execution is None:
                 raise ValueError(f"task {task_id} has no active execution")
+            if fencing_token is not None and execution["fencing_token"] != fencing_token:
+                raise ValueError(f"task {task_id} rejected stale fencing token")
             if self._execution_lease_expired(self._execution_details(execution)):
                 raise ValueError(f"task {task_id} execution lease has expired")
             result = {"summary": summary.strip(), "evidence": [str(path) for path in resolved]}
