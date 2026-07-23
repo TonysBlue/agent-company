@@ -11,7 +11,6 @@ from datetime import datetime, timedelta, timezone
 from .config import CompanyConfig
 from .db import Store, utcnow
 from .governance import DISCLAIMER, classify_reserved_action
-from .models import ON_DEMAND_CAPABILITIES
 
 
 class CompanyOS:
@@ -150,8 +149,6 @@ class CompanyOS:
     def _wip_lane(domain: str) -> str | None:
         if domain in {"product", "engineering"}:
             return "product"
-        if domain in {"platform", "governance", "review"}:
-            return "platform"
         if domain in {"gtm", "revenue", "customer", "commercial"}:
             return "commercial"
         return None
@@ -234,21 +231,11 @@ class CompanyOS:
             raise ValueError("priority must be between 1 and 100")
         lane = self._wip_lane(domain.strip())
         if lane is None:
-            raise ValueError("domain must belong to the product, commercial, or platform WIP lane")
-        permitted_owners = {
-            "product": {"Product Engineer"},
-            "commercial": {"Customer & Revenue"},
-            "platform": {"Company Platform Engineer", "Control & Reliability Reviewer"},
-        }
-        if owner not in permitted_owners[lane]:
-            raise ValueError(f"owner {owner} is not authorized for the {lane} WIP lane")
+            raise ValueError("domain must belong to the product or commercial WIP lane")
         with self.store.connect() as conn:
-            if lane in {"product", "commercial"}:
-                role = conn.execute("SELECT kind, status FROM roles WHERE name=?", (owner,)).fetchone()
-                if role is None or role["kind"] != "agent" or role["status"] != "resident":
-                    raise ValueError(f"owner must be a registered resident agent: {owner}")
-            elif owner not in ON_DEMAND_CAPABILITIES:
-                raise ValueError(f"owner must be a registered on-demand capability: {owner}")
+            role = conn.execute("SELECT kind, status FROM roles WHERE name=?", (owner,)).fetchone()
+            if role is None or role["kind"] != "agent" or role["status"] != "resident":
+                raise ValueError(f"owner must be a registered agent: {owner}")
             if conn.execute("SELECT 1 FROM tasks WHERE title=?", (title.strip(),)).fetchone():
                 raise ValueError(f"task title already exists: {title.strip()}")
             active_domains = [

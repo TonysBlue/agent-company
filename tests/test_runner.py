@@ -63,9 +63,8 @@ class ExecutionRunnerTest(unittest.TestCase):
             self.config, "test-runner", "Customer & Revenue",
             ["customer", "commercial", "gtm"], poll_seconds=0.01,
         )
-        with patch.object(runner, "_ensure_workspace"):
-            with patch("agent_company.runner.subprocess.Popen", side_effect=launch):
-                result = runner.run_once()
+        with patch("agent_company.runner.subprocess.Popen", side_effect=launch):
+            result = runner.run_once()
 
         self.assertEqual(result["status"], "done")
         task = self.osys.store.fetch_one("SELECT status FROM tasks WHERE id=?", (self.task_id,))
@@ -74,33 +73,6 @@ class ExecutionRunnerTest(unittest.TestCase):
         self.assertEqual(execution["recovery_status"], "completed")
         executor = self.osys.store.fetch_one("SELECT status FROM executors WHERE executor_id='test-runner'")
         self.assertEqual(executor["status"], "healthy")
-
-    def test_platform_tasks_are_owned_only_by_platform_roles(self) -> None:
-        platform = self.osys.create_task(
-            actor="CEO", owner="Company Platform Engineer",
-            title="Maintain the company control plane", domain="platform", priority=70,
-            acceptance_criteria="Control-plane tests and review evidence pass.",
-        )
-        self.assertEqual(platform["owner"], "Company Platform Engineer")
-        with self.assertRaisesRegex(ValueError, "not authorized"):
-            self.osys.create_task(
-                actor="CEO", owner="Product Engineer",
-                title="Wrongly route platform work", domain="governance", priority=60,
-                acceptance_criteria="Must not be accepted.",
-            )
-
-    def test_runner_creates_remote_backed_task_branch_workspace(self) -> None:
-        runner = ExecutionRunner(
-            self.config, "test-runner", "Customer & Revenue", ["customer"], poll_seconds=0.01,
-        )
-        repository = runner.registry.get("pixweave", role="Customer & Revenue")
-        workdir = self.root / "workspaces" / "customer-revenue" / "task-42-pixweave"
-        with patch("agent_company.runner.subprocess.run") as run:
-            runner._ensure_workspace(repository, workdir)
-        self.assertEqual(run.call_count, 2)
-        self.assertEqual(run.call_args_list[0].args[0][0:4], ["git", "clone", "--origin", "origin"])
-        self.assertIn(repository.remote, run.call_args_list[0].args[0])
-        self.assertEqual(run.call_args_list[1].args[0][-2:], ["-b", "task/42"])
 
     def test_runner_ignores_blocked_work_instead_of_crash_looping(self) -> None:
         with self.osys.store.connect() as conn:
@@ -120,9 +92,8 @@ class ExecutionRunnerTest(unittest.TestCase):
             self.config, "test-runner", "Customer & Revenue",
             ["customer"], poll_seconds=0.01,
         )
-        with patch.object(runner, "_ensure_workspace"):
-            with patch("agent_company.runner.subprocess.Popen", return_value=process):
-                result = runner.run_once()
+        with patch("agent_company.runner.subprocess.Popen", return_value=process):
+            result = runner.run_once()
 
         self.assertEqual(result["status"], "failed")
         execution = self.osys.inspect_execution(self.task_id)["execution"]

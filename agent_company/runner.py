@@ -9,8 +9,6 @@ from typing import Any
 
 from .config import CompanyConfig
 from .ops import CompanyOS
-from .product_registry import ProductRegistry
-from .workspace_manager import WorkspaceManager
 
 
 class ExecutionRunner:
@@ -30,11 +28,6 @@ class ExecutionRunner:
         self.capabilities = capabilities
         self.poll_seconds = poll_seconds
         self.osys = CompanyOS(config)
-        registry_path = config.workspace / "config" / "repositories.json"
-        if not registry_path.exists():
-            registry_path = Path(__file__).resolve().parents[1] / "config" / "repositories.json"
-        self.registry = ProductRegistry(registry_path)
-        self.workspaces = WorkspaceManager(Path.home() / "agent-workspaces")
 
     def run_once(self) -> dict[str, Any]:
         tasks = [row for row in self.osys.task_list() if row["owner"] == self.owner and row["status"] == "open"]
@@ -43,13 +36,10 @@ class ExecutionRunner:
             self._register()
             return {"status": "idle"}
         task = tasks[0]
-        repository = self.registry.for_role(self.owner, str(task["domain"]))
-        workdir = self.workspaces.path_for(self.owner, int(task["id"]), repository.repository_id)
         evidence_dir = self.config.workspace / "evidence" / f"task-{task['id']}"
         log_path = self.config.workspace / "logs" / f"task-{task['id']}-{self.executor_id}.log"
         evidence_dir.mkdir(parents=True, exist_ok=True)
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        self._ensure_workspace(repository, workdir)
         self._register()
         claim = self.osys.claim_task(
             int(task["id"]), self.owner, executor_id=self.executor_id,
@@ -57,7 +47,7 @@ class ExecutionRunner:
             lease_seconds=1800, evidence_paths=[evidence_dir], log_paths=[log_path],
         )
         token = str(claim["fencing_token"])
-        process = self._launch(task, repository, workdir, evidence_dir, log_path)
+        process = self._launch(task, evidence_dir, log_path)
         self._attach_process(int(task["id"]), process)
         while process.poll() is None:
             self.osys.heartbeat_task(int(task["id"]), self.executor_id, 600, token)
@@ -86,30 +76,15 @@ class ExecutionRunner:
     def _matches(self, task: dict[str, Any]) -> bool:
         return str(task["domain"]) in set(self.capabilities) or str(task["domain"]) in {"commercial", "customer", "gtm"} and "commercial" in self.capabilities
 
-    def _ensure_workspace(self, repository: Any, workdir: Path) -> None:
-        workdir.parent.mkdir(parents=True, exist_ok=True)
-        if workdir.exists():
-            if not (workdir / ".git").exists():
-                raise ValueError(f"workspace exists but is not a git checkout: {workdir}")
-            return
-        subprocess.run(
-            ["git", "clone", "--origin", "origin", repository.remote, str(workdir)],
-            check=True, capture_output=True, text=True,
-        )
-        subprocess.run(
-            ["git", "-C", str(workdir), "checkout", "-b", f"task/{workdir.name.split('-', 2)[1]}"],
-            check=True, capture_output=True, text=True,
-        )
-
     def _register(self) -> None:
         self.osys.register_executor(self.executor_id, self.owner, "local", self.capabilities, 1, session_ref=f"runner:{self.executor_id}")
 
-    def _launch(self, task: dict[str, Any], repository: Any, workdir: Path, evidence_dir: Path, log_path: Path):
-        prompt = self._prompt(task, repository, workdir, evidence_dir)
+    def _launch(self, task: dict[str, Any], evidence_dir: Path, log_path: Path):
+        prompt = self._prompt(task, evidence_dir)
         log = log_path.open("w", encoding="utf-8")
         process = subprocess.Popen(
-            ["codex", "exec", "-C", str(workdir), "--dangerously-bypass-approvals-and-sandbox", "--color", "never", prompt],
-            stdout=log, stderr=subprocess.STDOUT, cwd=workdir,
+            ["codex", "exec", "-C", str(self.config.workspace), "--dangerously-bypass-approvals-and-sandbox", "--color", "never", prompt],
+            stdout=log, stderr=subprocess.STDOUT, cwd=self.config.workspace,
             env={**os.environ, "CODEX_SANDBOX": "danger-full-access"},
         )
         log.close()
@@ -130,16 +105,5 @@ class ExecutionRunner:
         except (FileNotFoundError, IndexError, ValueError):
             return None
 
-    def _prompt(self, task: dict[str, Any], repository: Any, workdir: Path, evidence_dir: Path) -> str:
-        return json.dumps({
-            "role": self.owner,
-            "task_id": task["id"],
-            "title": task["title"],
-            "acceptance_criteria": task["acceptance_criteria"],
-            "target_repository": repository.repository_id,
-            "repository_remote": repository.remote,
-            "workspace": str(workdir),
-            "canonical_test": repository.canonical_test,
-            "evidence_dir": str(evidence_dir),
-            "constraints": "Commit and push verified changes only to the target repository. Internal evidence only; no external contact, pricing, publication, payment, customer data, or legal commitments.",
-        }, ensure_ascii=False)
+    def _prompt(self, task: dict[str, Any], evidence_dir: Path) -> str:
+        return json.dumps({"role": self.owner, "task_id": task["id"], "title": task["title"], "acceptance_criteria": task["acceptance_criteria"], "evidence_dir": str(evidence_dir), "constraints": "Internal evidence only; no external contact, pricing, publication, payment, customer data, or legal commitments."}, ensure_ascii=False)

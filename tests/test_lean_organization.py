@@ -124,8 +124,6 @@ logs = logs
         self.assertEqual(
             set(ON_DEMAND_CAPABILITIES),
             {
-                "Company Platform Engineer",
-                "Control & Reliability Reviewer",
                 "Finance & Risk Reviewer",
                 "Legal/Compliance Specialist",
                 "Independent Quality Reviewer",

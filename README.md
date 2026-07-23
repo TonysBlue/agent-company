@@ -8,14 +8,6 @@ Brand line: **让商业视觉稳定、批量、可控地产生。**
 
 This repository operates a real commercial venture rather than a business simulation. Plans, deterministic metadata, and internal drafts are not customer evidence or shipped product. Completion requires reviewable evidence such as runnable code, passing tests, sourced research, approved real customer records, or measured operating results.
 
-## Repository and asset boundaries
-
-- `TonysBlue/agent-company` is the company control plane: CEO runtime, ledger, approvals, runners, workspace policy, and management dashboard.
-- `TonysBlue/PixWeave` is the standalone product repository: PixWeave source, tests, product docs, examples, and service templates.
-- Runtime product data lives outside Git under `/home/tony/product-data/pixweave`.
-- Role execution uses task-scoped clones under `/home/tony/agent-workspaces/<role>/task-<id>-<repository>`.
-- Company Platform Engineer maintains this repository under CEO accountability. Control & Reliability Reviewer independently verifies material control-plane changes. Product Engineer maintains PixWeave.
-
 ## CLI
 
 ```bash
