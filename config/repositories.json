@@ -1,0 +1,35 @@
+{
+  "schema_version": "agent-company-repositories/v1",
+  "repositories": [
+    {
+      "id": "agent-company",
+      "kind": "control-plane",
+      "remote": "git@github.com:TonysBlue/agent-company.git",
+      "local_path": "/home/tony/agent-company",
+      "default_branch": "main",
+      "canonical_test": "python3.11 -m unittest discover -s tests -v",
+      "allowed_roles": ["Company Platform Engineer", "Control & Reliability Reviewer"]
+    },
+    {
+      "id": "pixweave",
+      "kind": "product",
+      "remote": "git@github.com:TonysBlue/PixWeave.git",
+      "local_path": "/home/tony/products/pixweave",
+      "default_branch": "main",
+      "canonical_test": "python3.11 -m unittest discover -s tests -v",
+      "allowed_roles": ["Product Engineer", "Customer & Revenue", "Control & Reliability Reviewer"]
+    }
+  ],
+  "role_defaults": {
+    "Company Platform Engineer": "agent-company",
+    "Control & Reliability Reviewer": "agent-company",
+    "Product Engineer": "pixweave",
+    "Customer & Revenue": "pixweave"
+  },
+  "domain_defaults": {
+    "platform": "agent-company",
+    "governance": "agent-company",
+    "product": "pixweave",
+    "engineering": "pixweave"
+  }
+}
