@@ -613,7 +613,7 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
         "org": _read_doc(config.workspace / "docs" / "org.md", max_lines=28),
         "raci": _read_doc(config.workspace / "docs" / "raci.md", max_lines=14),
         "cadence": _read_doc(config.workspace / "docs" / "cadence.md", max_lines=22),
-        "local_beta_product": _read_doc(config.workspace / "docs" / "local-beta-product.md", max_lines=24),
+        "product_registry": _read_doc(config.workspace / "config" / "repositories.json", max_lines=40),
         "versioning_records": _read_doc(config.workspace / "docs" / "versioning-and-records.md", max_lines=28),
         "constitution": _read_doc(config.workspace / "docs" / "constitution.md", max_lines=18),
     }
@@ -787,10 +787,10 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
                 "lines": docs["constitution"]["lines"],
             },
             "product": {
-                "source": "docs/local-beta-product.md",
+                "source": "config/repositories.json",
                 "name": "织象 PixWeave",
-                "lines": docs["local_beta_product"]["lines"],
-                "status": "internal_local_beta",
+                "lines": docs["product_registry"]["lines"],
+                "status": "standalone_internal_beta",
             },
             "organization": {
                 "source": "docs/org.md",
@@ -1159,7 +1159,7 @@ def _company(snapshot: dict[str, Any]) -> str:
     company = snapshot["company"]
     mission = _doc_list(company["mission"], "使命说明缺失；请补充 docs/strategy.md。")
     principles = _doc_list(company["operating_principles"], "运营原则缺失；请补充 docs/constitution.md。")
-    product = _doc_list(company["product"], "产品说明缺失；请补充 docs/local-beta-product.md。")
+    product = _doc_list(company["product"], "产品注册信息缺失；请补充 config/repositories.json。")
     org_lines = _doc_list(company["organization"], "组织说明缺失；请补充 docs/org.md。")
     cadence = _doc_list(
         company["cadence"],
@@ -1204,7 +1204,7 @@ def _company(snapshot: dict[str, Any]) -> str:
     </section>
     <section class="band">
       <h2>当前产品 PixWeave</h2>
-      <p class="lede">状态：内部本地 beta。({_escape(company["product"]["status"])}) 本区只汇总仓库文档描述，不声明外部上线、收入或客户结果。</p>
+      <p class="lede">状态：独立仓内部 beta。({_escape(company["product"]["status"])}) 本区汇总产品注册信息，不声明外部上线、收入或客户结果。</p>
       <ul class="roadmap">{product}</ul>
       {_source_label(company["product"]["source"])}
     </section>

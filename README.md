@@ -47,28 +47,10 @@ python3.11 -m agent_company.cli chairman-inbox
 python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
 python3.11 -m agent_company.cli report
 python3.11 -m agent_company.cli dashboard --host 0.0.0.0 --port 18080
-python3.11 -m agent_company.cli beta-product --host 127.0.0.1 --port 18112
 python3.11 -m agent_company.cli demo
 python3.11 -m agent_company.cli validate
-python3.11 -m agent_company.cli validate-brand-kit examples/brand-kit.json
-python3.11 -m agent_company.cli campaign-manifest examples/campaign.json
-python3.11 -m agent_company.cli campaign-render examples/campaign.json
-python3.11 -m agent_company.cli campaign-render-verify data/artifacts/campaign-render-v2-95ca21758bde
-python3.11 -m agent_company.cli campaign-review data/artifacts/campaign-render-v2-95ca21758bde examples/campaign-review-decisions.json
-python3.11 -m agent_company.cli prompt-pack examples/prompt-pack.json
-python3.11 -m agent_company.cli unit-economics examples/unit-economics.json
-python3.11 -m agent_company.cli product-shot-workflow examples/product-shot-workflow.json
-python3.11 -m agent_company.cli visual-qa-scorecard examples/visual-qa-scorecard.json
-python3.11 -m agent_company.cli feedback-capture examples/feedback-submission.json --output data/artifacts/feedback-submission.json
-python3.11 -m agent_company.cli feedback-triage data/artifacts/feedback-submission.json examples/feedback-triage.json --output data/artifacts/feedback-triage.json
-python3.11 -m agent_company.cli beta-launch-readiness examples/beta-launch-package.json
-python3.11 -m agent_company.cli beta-session-capture examples/beta-session.json --output data/artifacts/beta-session.json
-python3.11 -m agent_company.cli beta-session-economics examples/beta-session-economics.json --output data/artifacts/beta-session-economics.json
 ```
 
-`campaign-render` turns a validated, provenance-gated campaign into deterministic internal-draft SVG creatives through the dependency-free `local-svg` image rendering provider, with per-variant render provenance, media type, checksums, and a self-contained offline `review-gallery.html` for internal review. It does not authorize publishing or claim measured visual quality.
-`campaign-render-verify` fails closed unless a retained `campaign-render/v2` bundle has a valid manifest, gallery, exact SVG inventory, stable variant filenames, matching SHA-256 checksums, provider/provenance binding, and draft/no-publish controls.
-`campaign-review` consumes a verified `campaign-render/v2` bundle plus complete per-variant approve/reject decisions, validates reviewer metadata and rejection reasons, and writes a deterministic internal review record bound to the bundle and SVG checksums. It explicitly records no external publication authorization.
 
 `run-cycle` is governance dispatch only: it moves eligible work to `in_progress` and never
 claims that work is complete. Agents must use `task-claim` for still-open work and
@@ -123,12 +105,8 @@ The unit-economics command calculates internal low/base/high cost sensitivity fr
 Product-shot workflow manifests validate required source provenance, explicit controls, ordered stages, and acceptance checks across at least three scenario inputs before writing deterministic internal workflow metadata.
 Visual QA scorecards calculate pass/fail/stop results from explicitly measured edit-fidelity and brand-consistency observations. These tools do not measure images directly and do not measure or claim actual image quality.
 Feedback capture rejects declared sensitive data and anti-abuse honeypots, requires explicit consent before retaining optional contact data, and binds submissions to product/workflow/artifact context. Feedback triage records acknowledgement-through-release states and requires backlog/release linkage for those claims; neither command authorizes outreach or publication.
-`beta-launch-readiness` evaluates a versioned internal readiness package with pinned evidence for product capability, feedback controls, risk review, onboarding, support ownership, observability, rollback, security/privacy, unit economics, and reserved-action approvals. It fails closed on malformed, missing, or tampered evidence and always records `launch_authorized: false`; it never authorizes production deployment, publication, pricing, payment, outreach, or launch.
-`beta-session-capture` validates and retains a local controlled-beta session record with explicit consent, asset provenance, observed timing, task outcome, auditable token/cost observations, human review effort, quality scores, artifact checksums, quality review, feedback and issue linkage, and retention status. Every metric observation is linked to its session and source. Missing observations remain `not_collected`, and the record never authorizes external action.
 
-`beta-session-economics` validates local synthetic/sample sessions and writes a reproducible cost, efficiency, quality, and evidence-coverage summary. It excludes incomplete sessions from fully costed unit economics instead of imputing zero, rejects non-synthetic datasets, and never authorizes pricing, billing, outreach, deployment, or any external action.
 
-`beta-product` runs a local-only internal HTTP interface for campaign render, review, feedback capture, and source-image edit review at `http://127.0.0.1:18112/beta` by default. It composes the existing validated campaign, dependency-free local SVG render provider, review, feedback, and bounded source edit domain functions, writes only local artifacts under `data/artifacts/local-beta/`, rejects review paths outside that root, shows draft/no-publish controls, and records no production deployment, publication, pricing, payment, outreach, or legal authorization. Source-image edits accept only bounded PNG/JPEG uploads with safe provenance metadata, validate signatures, dimensions, and polyglot trailing data, then produce internal draft SVG crop and branded-overlay review outputs with source/output SHA-256 lineage.
 
 ## Read-only dashboard
 
