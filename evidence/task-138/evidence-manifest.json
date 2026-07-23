@@ -1,0 +1,36 @@
+{
+  "schema_version": "internal-audit-evidence-manifest/v1",
+  "package_id": "TASK-138-CBETA-CHAIR-20260723-V1",
+  "generated_on": "2026-07-23",
+  "scope": "Internal evidence only; no external action or customer data",
+  "package_artifacts": [
+    {"path": "evidence/task-138/README.md", "sha256": "8c976815418856de903d7307942a60ca63fc4c8025cffa4324c6c76c61c95ec8", "purpose": "package index and boundary"},
+    {"path": "evidence/task-138/chairman-approval-package.md", "sha256": "32af25ca4064e4d29b733cc300393d8a9f0fbdf82a7fc8824293cddc01b90945", "purpose": "decision-ready Chairman package"},
+    {"path": "evidence/task-138/decision-form.json", "sha256": "df2f1d8a0fe0caea3e8c0a9f9bf7d57965a758175acb3f6b11a32e0a79245a34", "purpose": "pending structured decision transcription template"},
+    {"path": "evidence/task-138/session-evidence-plan.json", "sha256": "dc67f04bc7755ab7c591ab13d87e788bbf9a27e818fcdb66ebd5db52185dde9f", "purpose": "six-session plan and evidence checklist"},
+    {"path": "evidence/task-138/verification-report.md", "sha256": "b68ae25fcc1498ebe7df36df19a28bf5fb81356324ee96458d3e27bdd80a9462", "purpose": "acceptance and test verification"}
+  ],
+  "source_evidence": [
+    {"path": "docs/constitution.md", "sha256": "d731689560ab85f2563559e5d77cacc7263f1aaeba7f37ba0daac20b9208b26c", "supports": "reserved actions and Chairman/CEO authority"},
+    {"path": "docs/gtm.md", "sha256": "3a6273719264705cfc0dd210780ab54cd58af455eae8f95d375fb743bc9e7168", "supports": "ICP and offer hypothesis"},
+    {"path": "docs/internal-icp-evidence-review.md", "sha256": "46076af9fdea9b6e1d3f1b1baeaf855fd3cdda308ee2c051c3a91b2ff10dc5db", "supports": "unvalidated demand and evidence limits"},
+    {"path": "docs/controlled-beta-validation-protocol-v1.md", "sha256": "7a1f42945cac426bc67a2214a1b9c6d6f1bc92453a29ed8208a58a2befb981bd", "supports": "participant, session, metrics, success and stop rules"},
+    {"path": "docs/controlled-beta-privacy-consent-check-v1.md", "sha256": "7f76c7820be949a52c201c257feff4e1d014c762bbc8d367686a1de65e3aa1df", "supports": "quoted consent draft, data boundaries, retention and decision points"},
+    {"path": "docs/controlled-beta-issue-sla-v1.md", "sha256": "00605662513dfcee6b098fcd7d5741f741eb28bdf5826a9b64e2789752ec0891", "supports": "issue severity, ownership, response and recurrence rules"},
+    {"path": "docs/provenance-gate.md", "sha256": "c75bec2c1fa6fe699e77c959ce0fcc42d1b57038fa949f4f726b2b0da55d2b12", "supports": "asset provenance fail-closed controls and limits"},
+    {"path": "docs/product-risk-control-review.md", "sha256": "57ab48753bc19108e513a575c4f5f1ef394ee055d74804db519928c9dedf63ff", "supports": "source-rights, likeness, trademark and escalation risks"},
+    {"path": "docs/beta-launch-readiness.md", "sha256": "b67a3963ea4edaa581a7de1233c64648bccf400f038354cf5388d83e4d04b6f7", "supports": "readiness evidence is not execution authorization"},
+    {"path": "docs/versioning-and-records.md", "sha256": "98625744549c847f6fde3a7370715e302ab3d7c75deb56be02aa2516c285c236", "supports": "sources of truth, sensitive-data exclusion, audit and archive policy"},
+    {"path": "docs/local-beta-product.md", "sha256": "98166eae19577a5fd8d9834fbefa16c634a2a8c42bf36f126d0afe201963ff05", "supports": "local interface behavior, retention location and no-publish boundaries"},
+    {"path": "agent_company/beta_session.py", "sha256": "ea2ab7da1c67a8b21dc700e3fc5e7d2198d69fbb07414511a8c87c0787fba7b3", "supports": "current enforced session fields, metric evidence semantics and technical gaps"}
+  ],
+  "manifest_self_hash": "not_included_to_avoid_self_reference",
+  "external_action_authorized": false,
+  "outreach_executed": false,
+  "external_accounts_enabled": false,
+  "customer_data_processed": false,
+  "publication_authorized": false,
+  "pricing_authorized": false,
+  "payment_authorized": false,
+  "legal_commitment_authorized": false
+}

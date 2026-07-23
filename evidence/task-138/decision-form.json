@@ -1,0 +1,90 @@
+{
+  "schema_version": "pixweave-chairman-beta-decision-draft/v1",
+  "package_id": "TASK-138-CBETA-CHAIR-20260723-V1",
+  "package_status": "internal_draft_pending_chairman_decision",
+  "prepared_by_role": "Customer & Revenue",
+  "formal_recording_owner": "CEO",
+  "decision_authority": "Chairman",
+  "selected_package_option": "pending",
+  "allowed_package_options": [
+    "A_plan_only_hold_external_execution",
+    "B_conditional_limited_outreach_and_sessions",
+    "C_return_for_revision",
+    "D_deny_real_customer_beta"
+  ],
+  "recommended_package_option": "A_plan_only_hold_external_execution",
+  "decisions": [
+    {
+      "decision_id": "D1",
+      "subject": "adopt_validation_plan_as_internal_baseline",
+      "allowed_values": ["approve", "deny", "revise"],
+      "decision": "pending",
+      "recommended": "approve",
+      "external_action_authorized": false
+    },
+    {
+      "decision_id": "D2",
+      "subject": "outreach_to_up_to_8_approved_candidate_organizations",
+      "allowed_values": ["conditional_approve", "hold", "deny"],
+      "decision": "pending",
+      "recommended": "hold",
+      "effective_only_after_all_gates": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"],
+      "outreach_authorized_now": false
+    },
+    {
+      "decision_id": "D3",
+      "subject": "run_5_to_6_controlled_sessions_across_at_least_5_organizations",
+      "allowed_values": ["conditional_approve", "hold", "deny"],
+      "decision": "pending",
+      "recommended": "hold",
+      "effective_only_after_all_gates": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"],
+      "session_execution_authorized_now": false
+    },
+    {
+      "decision_id": "D4",
+      "subject": "process_minimized_real_participant_and_rights_cleared_asset_data",
+      "allowed_values": ["conditional_approve", "hold", "deny"],
+      "decision": "pending",
+      "recommended": "hold",
+      "effective_only_after_all_gates": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"],
+      "customer_data_processing_authorized_now": false
+    },
+    {
+      "decision_id": "D5",
+      "subject": "enable_new_external_accounts_or_processors",
+      "allowed_values": ["not_requested", "deny"],
+      "decision": "pending",
+      "recommended": "not_requested",
+      "external_accounts_authorized": false
+    },
+    {
+      "decision_id": "D6",
+      "subject": "publication_production_or_model_training",
+      "allowed_values": ["not_requested", "deny"],
+      "decision": "pending",
+      "recommended": "not_requested",
+      "publication_authorized": false,
+      "production_deploy_authorized": false,
+      "model_training_authorized": false
+    },
+    {
+      "decision_id": "D7",
+      "subject": "pricing_payment_compensation_contract_or_legal_commitment",
+      "allowed_values": ["not_requested", "deny"],
+      "decision": "pending",
+      "recommended": "not_requested",
+      "pricing_authorized": false,
+      "payment_authorized": false,
+      "compensation_authorized": false,
+      "legal_commitment_authorized": false
+    }
+  ],
+  "chairman_conditions": [],
+  "chairman_decided_at": null,
+  "chairman_identity_record_reference": null,
+  "ledger_approval_reference": null,
+  "ledger_audit_event_reference": null,
+  "ceo_gate_certificate_reference": null,
+  "external_action_authorized": false,
+  "notice": "Template only. It is not a Chairman inbox/outbox record or an approval. The CEO must record an actual Chairman decision in the operational ledger and archive it before any approved reserved action can become eligible."
+}

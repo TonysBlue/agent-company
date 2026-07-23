@@ -1,0 +1,95 @@
+{
+  "schema_version": "pixweave-controlled-beta-session-plan/v1",
+  "package_id": "TASK-138-CBETA-CHAIR-20260723-V1",
+  "protocol_version": "pixweave-controlled-beta/v1.0",
+  "dataset_kind": "internal_plan_no_customer_data",
+  "minimum_eligible_sessions": 5,
+  "maximum_sessions": 6,
+  "minimum_distinct_organizations": 5,
+  "candidate_organization_cap": 8,
+  "minimum_core_scenarios": 2,
+  "candidate_pool": [
+    {"candidate_slots": ["C01", "C02", "C03"], "profile": "small_brand_or_ecommerce_content_team", "identity_or_contact_data_present": false},
+    {"candidate_slots": ["C04", "C05", "C06"], "profile": "small_design_or_content_agency", "identity_or_contact_data_present": false},
+    {"candidate_slots": ["C07", "C08"], "profile": "qualified_backup_from_either_profile", "identity_or_contact_data_present": false}
+  ],
+  "planned_sessions": [
+    {"session_slot": "S01", "candidate_profile": "small_brand_or_ecommerce_content_team", "organization_uniqueness_required": true, "primary_scenario": "campaign-generation", "secondary_scenario": "variant-review-feedback", "status": "not_scheduled"},
+    {"session_slot": "S02", "candidate_profile": "small_brand_or_ecommerce_content_team", "organization_uniqueness_required": true, "primary_scenario": "source-image-edit", "secondary_scenario": "variant-review-feedback", "status": "not_scheduled"},
+    {"session_slot": "S03", "candidate_profile": "small_brand_or_ecommerce_content_team", "organization_uniqueness_required": true, "primary_scenario": "campaign-generation", "secondary_scenario": "source-image-edit", "status": "not_scheduled"},
+    {"session_slot": "S04", "candidate_profile": "small_design_or_content_agency", "organization_uniqueness_required": true, "primary_scenario": "variant-review-feedback", "secondary_scenario": "campaign-generation", "status": "not_scheduled"},
+    {"session_slot": "S05", "candidate_profile": "small_design_or_content_agency", "organization_uniqueness_required": true, "primary_scenario": "source-image-edit", "secondary_scenario": "variant-review-feedback", "status": "not_scheduled"},
+    {"session_slot": "S06", "candidate_profile": "qualified_independent_organization", "organization_uniqueness_required": false, "primary_scenario": "campaign-generation", "secondary_scenario": "variant-review-feedback", "status": "not_scheduled"}
+  ],
+  "required_pre_session_evidence": [
+    "package_id_and_sha256",
+    "protocol_version",
+    "ledger_approval_reference",
+    "candidate_eligibility_record_reference",
+    "facilitator_and_reviewer",
+    "approved_product_version_and_configuration_sha256",
+    "approved_storage_and_access_check",
+    "consent_text_version_and_sha256",
+    "affirmative_consent_timestamp",
+    "participant_pseudonym",
+    "approved_purpose_data_categories_retention_class_and_withdrawal_route",
+    "asset_provenance_rights_likeness_trademark_sensitive_data_and_review_decision",
+    "scenario_and_participant_stated_intended_outcome"
+  ],
+  "required_in_session_evidence": [
+    "start_end_and_interruption_timestamps",
+    "event_or_operation_log_references",
+    "facilitator_intervention_type",
+    "artifact_ids_media_types_sha256_lineage_and_no_publish_state",
+    "deterministic_checks_and_reviewer_decision",
+    "task_outcome_or_not_evaluable_reason",
+    "satisfaction_1_to_5_or_not_collected_or_declined",
+    "feedback_and_issue_links",
+    "observed_token_duration_support_review_sources_or_not_collected"
+  ],
+  "required_post_session_evidence": [
+    "retention_or_deletion_status_and_expiry",
+    "deletion_request_operator_completion_and_backup_expiry",
+    "incident_timeline_containment_root_cause_corrective_action_and_resume_approval_if_applicable",
+    "session_and_artifact_sha256",
+    "access_and_export_log_references",
+    "exclusions_and_missing_values"
+  ],
+  "phase_report_required_fields": [
+    "eligible_and_evaluable_denominators",
+    "distinct_organization_and_scenario_coverage",
+    "task_success_rate",
+    "quality_pass_rate",
+    "satisfaction_count_distribution_median_and_missing_count",
+    "open_high_and_critical_issues",
+    "metric_collection_coverage",
+    "exclusion_reasons",
+    "limitations"
+  ],
+  "success_thresholds": {
+    "eligible_sessions_minimum": 5,
+    "distinct_organizations_minimum": 5,
+    "core_scenarios_minimum": 2,
+    "evaluable_tasks_minimum": 5,
+    "task_success_rate_minimum": 0.8,
+    "satisfaction_collected_minimum": 4,
+    "satisfaction_median_minimum": 4,
+    "quality_pass_rate_minimum": 0.8,
+    "open_critical_maximum": 0,
+    "unresolved_relevant_high_maximum": 0
+  },
+  "stop_conditions": [
+    "any_critical_defect_or_suspected_consent_rights_privacy_or_unauthorized_exposure_event",
+    "two_high_defects_in_same_workflow_within_three_consecutive_sessions",
+    "task_success_rate_below_0_6_after_at_least_5_evaluable_tasks",
+    "median_satisfaction_below_3_after_at_least_4_collected_ratings",
+    "required_evidence_cannot_be_reproduced",
+    "access_backup_recovery_or_deletion_verification_failure",
+    "scope_requires_unapproved_account_processor_publication_production_pricing_payment_compensation_or_legal_commitment"
+  ],
+  "all_sessions_are_plans_not_results": true,
+  "outreach_executed": false,
+  "external_accounts_enabled": false,
+  "customer_data_processed": false,
+  "external_action_authorized": false
+}
