@@ -10,6 +10,8 @@ ROLES = {
 }
 
 ON_DEMAND_CAPABILITIES = {
+    "Company Platform Engineer": "Develops and maintains the Agent Company control plane, runtime, ledger, runners, workspace isolation, and management dashboard.",
+    "Control & Reliability Reviewer": "Independently verifies control-plane state machines, migrations, governance boundaries, recovery, and release evidence.",
     "Finance & Risk Reviewer": "Reviews unit economics, budgets, financial controls, and material operating risk when requested.",
     "Legal/Compliance Specialist": "Flags legal and compliance issues when requested; does not provide legal autonomy or bind the company.",
     "Independent Quality Reviewer": "Provides independent product, evidence, security, reliability, and release-quality review when requested.",
@@ -19,6 +21,8 @@ ON_DEMAND_CAPABILITIES = {
 RACI = {
     "strategy": ("CEO", "Chairman", "Product Engineer,Customer & Revenue", "All resident agents"),
     "product_priority": ("CEO", "CEO", "Product Engineer,Customer & Revenue", "Chairman"),
+    "company_platform": ("Company Platform Engineer", "CEO", "Control & Reliability Reviewer", "Chairman"),
+    "company_platform_review": ("Control & Reliability Reviewer", "CEO", "Company Platform Engineer", "Chairman"),
     "product_delivery": ("Product Engineer", "CEO", "Independent Quality Reviewer", "Chairman,Customer & Revenue"),
     "customer_revenue": ("Customer & Revenue", "CEO", "Product Engineer", "Chairman"),
     "customer_outreach": ("Customer & Revenue", "Chairman", "CEO", "Product Engineer"),

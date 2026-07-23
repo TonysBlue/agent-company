@@ -1,0 +1,19 @@
+[Unit]
+Description=Agent Company control and reliability review runner
+After=local-fs.target agent-company-worker.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/agent-company
+Environment="HOME=%h"
+Environment="PATH=%h/.npm-global/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="CODEX_SANDBOX=danger-full-access"
+ExecStart=/usr/bin/env python3.11 -m agent_company.cli runner-run --executor-id control-review-runner --owner "Control & Reliability Reviewer" --capability review --capability platform --capability governance --poll-seconds 5
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target
