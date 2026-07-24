@@ -335,22 +335,33 @@ class AssuranceKernel:
             if not required_kinds <= approved_kinds:
                 missing = sorted(required_kinds - approved_kinds)
                 raise AssuranceError(f"gate {gate} missing approved artifact kinds: {missing}")
-            content_by_kind = {
-                row["kind"]: json.loads(row["content_json"])["content"]
-                for row in conn.execute(
-                    """SELECT kind, content_json FROM assurance_artifacts
-                       WHERE initiative_id=? AND status='approved'""",
-                    (initiative_id,),
+            content_by_kind: dict[str, list[dict[str, Any]]] = {}
+            for artifact_row in conn.execute(
+                """SELECT kind, content_json FROM assurance_artifacts
+                   WHERE initiative_id=? AND status='approved'""",
+                (initiative_id,),
+            ):
+                content_by_kind.setdefault(artifact_row["kind"], []).append(
+                    json.loads(artifact_row["content_json"])["content"]
                 )
-            }
             if gate in {"G5", "G6", "G7"}:
-                review = content_by_kind.get("review_decision")
-                if not review or review["decision"] not in {"approve", "pass"} or review["findings"]:
-                    raise AssuranceError(f"gate {gate} requires an approving review with no blocking findings")
+                reviews = content_by_kind.get("review_decision", [])
+                if not reviews or any(
+                    review["decision"] not in {"approve", "pass"} or review["findings"]
+                    for review in reviews
+                ):
+                    raise AssuranceError(
+                        f"gate {gate} requires every approved review to approve with no blocking findings"
+                    )
             if gate == "G6":
-                release = content_by_kind.get("release_decision")
-                if not release or release["decision"] not in {"enable_internal", "controlled_beta", "production_release"}:
-                    raise AssuranceError("gate G6 requires an affirmative release decision")
+                releases = content_by_kind.get("release_decision", [])
+                if not releases or any(
+                    release["decision"] not in {
+                        "enable_internal", "controlled_beta", "production_release"
+                    }
+                    for release in releases
+                ):
+                    raise AssuranceError("gate G6 requires every approved release decision to be affirmative")
             all_refs = {f"{row['artifact_id']}:v{row['version']}" for row in rows}
             if set(artifact_refs) != all_refs:
                 raise AssuranceError("gate must bind the complete approved initiative artifact set")

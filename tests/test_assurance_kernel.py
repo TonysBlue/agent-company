@@ -320,9 +320,37 @@ class AssuranceKernelTest(unittest.TestCase):
                 artifact, actor="Company Platform Engineer", principal_id="principal-platform"
             )
             self.kernel.approve_artifact(artifact_id, 1, actor="CEO", principal_id="principal-ceo")
-        with self.assertRaisesRegex(AssuranceError, "approving review"):
+        with self.assertRaisesRegex(AssuranceError, "every approved review"):
             self.kernel.record_gate(
                 "release-guard", "G6", "pass", ["review-reject:v1", "release-hold:v1"],
+                actor="CEO", principal_id="principal-ceo",
+            )
+
+    def test_g6_rejects_contradictory_approved_decisions_even_when_positive_decisions_exist(self) -> None:
+        self.kernel.create_initiative(
+            "contradictory-release", "Contradictory release", "control-plane-reliability", "C3",
+            actor="CEO", principal_id="principal-ceo",
+        )
+        items = [
+            ("review_decision", "review-negative", "reject"),
+            ("review_decision", "review-positive", "approve"),
+            ("release_decision", "release-negative", "hold"),
+            ("release_decision", "release-positive", "production_release"),
+        ]
+        refs = []
+        for kind, artifact_id, decision in items:
+            artifact = self.artifact(kind, artifact_id)
+            artifact["initiative_id"] = "contradictory-release"
+            artifact["risk_class"] = "C3"
+            artifact["content"]["decision"] = decision
+            self.kernel.register_artifact(
+                artifact, actor="Company Platform Engineer", principal_id="principal-platform"
+            )
+            self.kernel.approve_artifact(artifact_id, 1, actor="CEO", principal_id="principal-ceo")
+            refs.append(f"{artifact_id}:v1")
+        with self.assertRaisesRegex(AssuranceError, "every approved review"):
+            self.kernel.record_gate(
+                "contradictory-release", "G6", "pass", refs,
                 actor="CEO", principal_id="principal-ceo",
             )
 
