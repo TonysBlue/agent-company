@@ -157,7 +157,7 @@ documented in `docs/event-worker-deployment.md`.
 - `data/chairman/outbox`: Chairman decision files.
 - `docs/`: constitution, operating model, architecture, development assurance design, and plans.
 - `docs/development-assurance-system-design.md`: Chairman-review draft for goal/design/spec/eval-driven product and control-plane development; it does not authorize implementation.
-- `docs/templates/`: proposed versioned Goal, Design, Behavior Spec, Eval, Baseline, Review, and Release document templates.
+- `docs/templates/`: proposed versioned Goal, Design, Behavior Spec, Eval, Baseline, Review, Change, Incident, and Release document templates.
 - `tests/`: unittest coverage.
 - `docs/versioning-and-records.md`: Git change control, evidence, retention, and recovery policy.
 - `scripts/archive_company.py`: consistent SQLite/runtime snapshots with SHA-256 manifests.

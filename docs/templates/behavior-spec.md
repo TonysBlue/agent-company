@@ -2,7 +2,7 @@
 
 - ID: `<spec-id>`
 - Version: `v1`
-- Status: `draft | approved | superseded`
+- Status: `draft | approved | superseded | rejected`
 - Related goal: `<goal-id/version>`
 - Related design: `<design-id/version>`
 - Owner: `<role>`

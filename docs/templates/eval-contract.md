@@ -2,7 +2,7 @@
 
 - ID: `<eval-id>`
 - Version: `v1`
-- Status: `draft | approved | superseded`
+- Status: `draft | approved | superseded | rejected`
 - Profile: `product-competitive | control-plane-reliability`
 - Related goal: `<goal-id/version>`
 - Related design: `<design-id/version>`
@@ -50,7 +50,7 @@ Define deterministic code/state graders, model graders, blind pairwise graders, 
 
 ## Statistical Decision Rule
 
-Define sample size, repetitions/seeds, tie handling, confidence interval or uncertainty rule, minimum practical advantage, aggregation, and missing-data behavior.
+Define the primary estimand, unit of analysis, clustering, minimum practical superiority or non-inferiority margin, power/sample-size rationale, repetitions/seeds, tie handling, confidence interval or uncertainty rule, multiplicity control, aggregation, sequential-look/stopping policy, and missing-not-at-random or failed-run behavior.
 
 ## Regression Policy
 
@@ -62,7 +62,11 @@ Define latency, operation count, token/inference cost, human effort, and resourc
 
 ## Human Calibration
 
-Define gold examples, annotator qualifications, blind protocol, inter-rater agreement target, disagreement resolution, and recalibration cadence.
+Define gold examples, annotator qualifications and sampling, minimum independent ratings, balanced/blind presentation, attention and consistency checks, inter-rater agreement target, model-human drift limit, disagreement/adjudication independence, accessibility/language/cultural coverage, override policy, and recalibration cadence.
+
+## Holdout Custody And Submission Budget
+
+Name the non-implementing custodian or isolated service, protected storage/key reference, access logging, attempt limit, canary leakage checks, contamination declaration, rotation/reconstitution rule, and treatment of every attempted candidate.
 
 ## Anti-Gaming Controls
 
