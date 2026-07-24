@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -41,6 +42,15 @@ class AssuranceCliTest(unittest.TestCase):
         Store(load_config().db_path).init()
         initialized = self.run_cli("assurance-init")
         self.assertEqual(initialized["mode"], "shadow")
+        credential = "test-cli-ceo-credential"
+        os.environ["ASSURANCE_CREDENTIAL_PRINCIPAL_CEO"] = credential
+        with Store(load_config().db_path).connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_principals(
+                       principal_id,actor,authority,credential_sha256,status,created_at
+                   ) VALUES ('principal-ceo','CEO','executive',?,'active','2026-07-24T00:00:00+00:00')""",
+                (hashlib.sha256(credential.encode()).hexdigest(),),
+            )
         result = self.run_cli(
             "assurance-classify", "--actor", "CEO", "--principal-id", "principal-ceo",
             "--title", "Assurance bootstrap", "--persistent-schema",

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
+import os
+import secrets
 from datetime import datetime, timezone
 from typing import Any
 
@@ -100,14 +103,43 @@ class AssuranceKernel:
     def init(self) -> None:
         self.store.init_assurance()
 
-    def _principal(self, conn: Any, actor: str, principal_id: str) -> dict[str, Any]:
+    def register_principal(
+        self, principal_id: str, actor: str, authority: str, *, bootstrap_secret: str,
+    ) -> str:
+        """Bootstrap a principal with a secret supplied through a trusted local channel."""
+        self.init()
+        allowed = {"chairman", "executive", "reviewer", "implementer", "operator"}
+        expected = self.config.workspace / "data" / "assurance-bootstrap.secret"
+        if not expected.exists() or not hmac.compare_digest(expected.read_text().strip(), bootstrap_secret):
+            raise AssuranceError("invalid assurance bootstrap credential")
+        if authority not in allowed or not principal_id.strip() or not actor.strip():
+            raise AssuranceError("invalid assurance principal registration")
+        credential = secrets.token_urlsafe(32)
+        digest = hashlib.sha256(credential.encode("utf-8")).hexdigest()
+        with self.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_principals(
+                       principal_id, actor, authority, credential_sha256, status, created_at
+                   ) VALUES (?, ?, ?, ?, 'active', ?)
+                   ON CONFLICT(principal_id) DO UPDATE SET actor=excluded.actor,
+                     authority=excluded.authority, credential_sha256=excluded.credential_sha256,
+                     status='active'""",
+                (principal_id, actor, authority, digest, utcnow()),
+            )
+        return credential
+
+    def _principal(
+        self, conn: Any, actor: str, principal_id: str, credential: str | None,
+    ) -> dict[str, Any]:
         row = conn.execute(
-            """SELECT principal_id, actor, authority FROM assurance_principals
+            """SELECT principal_id, actor, authority, credential_sha256
+               FROM assurance_principals
                WHERE principal_id=? AND actor=? AND status='active'""",
             (principal_id, actor),
         ).fetchone()
-        if row is None:
-            raise AssuranceError("unregistered or mismatched assurance principal")
+        supplied = hashlib.sha256((credential or "").encode("utf-8")).hexdigest()
+        if row is None or not row["credential_sha256"] or not hmac.compare_digest(row["credential_sha256"], supplied):
+            raise AssuranceError("unauthenticated or mismatched assurance principal")
         return dict(row)
 
     @staticmethod
@@ -116,8 +148,9 @@ class AssuranceKernel:
             raise AssuranceError("principal lacks required assurance authority")
 
     def _assert_principal(self, actor: str, principal_id: str, allowed: set[str]) -> dict[str, Any]:
+        credential = os.environ.get(f"ASSURANCE_CREDENTIAL_{principal_id.upper().replace('-', '_')}")
         with self.store.connect_readonly() as conn:
-            principal = self._principal(conn, actor, principal_id)
+            principal = self._principal(conn, actor, principal_id, credential)
         self._require_authority(principal, allowed)
         return principal
 
@@ -142,11 +175,10 @@ class AssuranceKernel:
             raise AssuranceError("invalid assurance profile or risk class")
         if not all(isinstance(v, str) and v.strip() for v in {initiative_id, title, principal_id}):
             raise AssuranceError("initiative fields must be non-empty")
+        principal = self._assert_principal(actor, principal_id, {"executive", "chairman"})
         now = utcnow()
         try:
             with self.store.connect() as conn:
-                principal = self._principal(conn, actor, principal_id)
-                self._require_authority(principal, {"executive", "chairman"})
                 conn.execute(
                     """INSERT INTO assurance_initiatives(
                            initiative_id, profile, risk_class, title, owner_principal,
@@ -303,6 +335,22 @@ class AssuranceKernel:
             if not required_kinds <= approved_kinds:
                 missing = sorted(required_kinds - approved_kinds)
                 raise AssuranceError(f"gate {gate} missing approved artifact kinds: {missing}")
+            content_by_kind = {
+                row["kind"]: json.loads(row["content_json"])["content"]
+                for row in conn.execute(
+                    """SELECT kind, content_json FROM assurance_artifacts
+                       WHERE initiative_id=? AND status='approved'""",
+                    (initiative_id,),
+                )
+            }
+            if gate in {"G5", "G6", "G7"}:
+                review = content_by_kind.get("review_decision")
+                if not review or review["decision"] not in {"approve", "pass"} or review["findings"]:
+                    raise AssuranceError(f"gate {gate} requires an approving review with no blocking findings")
+            if gate == "G6":
+                release = content_by_kind.get("release_decision")
+                if not release or release["decision"] not in {"enable_internal", "controlled_beta", "production_release"}:
+                    raise AssuranceError("gate G6 requires an affirmative release decision")
             all_refs = {f"{row['artifact_id']}:v{row['version']}" for row in rows}
             if set(artifact_refs) != all_refs:
                 raise AssuranceError("gate must bind the complete approved initiative artifact set")

@@ -41,6 +41,13 @@ class Store:
     def init_assurance(self) -> None:
         """Add shadow assurance tables without touching operational schema or data."""
         with self.connect() as conn:
+            principal_columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(assurance_principals)")
+            } if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assurance_principals'"
+            ).fetchone() else set()
+            if principal_columns and "credential_sha256" not in principal_columns:
+                conn.execute("ALTER TABLE assurance_principals ADD COLUMN credential_sha256 TEXT")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
@@ -56,6 +63,7 @@ class Store:
                     principal_id TEXT PRIMARY KEY,
                     actor TEXT NOT NULL UNIQUE,
                     authority TEXT NOT NULL,
+                    credential_sha256 TEXT,
                     status TEXT NOT NULL DEFAULT 'active',
                     created_at TEXT NOT NULL
                 );
@@ -127,13 +135,6 @@ class Store:
                     mode TEXT NOT NULL DEFAULT 'shadow',
                     created_at TEXT NOT NULL
                 );
-                INSERT OR IGNORE INTO assurance_principals(principal_id, actor, authority, status, created_at) VALUES
-                    ('principal-chairman', 'Chairman', 'chairman', 'active', '2026-07-24T00:00:00+00:00'),
-                    ('principal-ceo', 'CEO', 'executive', 'active', '2026-07-24T00:00:00+00:00'),
-                    ('principal-platform', 'Company Platform Engineer', 'implementer', 'active', '2026-07-24T00:00:00+00:00'),
-                    ('principal-control-reviewer', 'Control & Reliability Reviewer', 'reviewer', 'active', '2026-07-24T00:00:00+00:00'),
-                    ('principal-product', 'Product Engineer', 'implementer', 'active', '2026-07-24T00:00:00+00:00'),
-                    ('principal-customer', 'Customer & Revenue', 'operator', 'active', '2026-07-24T00:00:00+00:00');
                 """
             )
 

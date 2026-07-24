@@ -27,6 +27,22 @@ class AssuranceKernelTest(unittest.TestCase):
         Store(self.config.db_path).init()
         self.kernel = AssuranceKernel(self.config)
         self.kernel.init()
+        principals = [
+            ("principal-chairman", "Chairman", "chairman"),
+            ("principal-ceo", "CEO", "executive"),
+            ("principal-platform", "Company Platform Engineer", "implementer"),
+            ("principal-control-reviewer", "Control & Reliability Reviewer", "reviewer"),
+        ]
+        with Store(self.config.db_path).connect() as conn:
+            for principal_id, actor, authority in principals:
+                credential = f"test-credential-{principal_id}"
+                os.environ[f"ASSURANCE_CREDENTIAL_{principal_id.upper().replace('-', '_')}"] = credential
+                conn.execute(
+                    """INSERT INTO assurance_principals(
+                           principal_id,actor,authority,credential_sha256,status,created_at
+                       ) VALUES (?,?,?,?, 'active','2026-07-24T00:00:00+00:00')""",
+                    (principal_id, actor, authority, hashlib.sha256(credential.encode()).hexdigest()),
+                )
 
     def tearDown(self) -> None:
         os.chdir(self.old_cwd)
@@ -192,6 +208,13 @@ class AssuranceKernelTest(unittest.TestCase):
             self.artifact("design_record", "design-spoof"),
             actor="Company Platform Engineer", principal_id="principal-platform",
         )
+        os.environ.pop("ASSURANCE_CREDENTIAL_PRINCIPAL_CEO", None)
+        with self.assertRaisesRegex(AssuranceError, "unauthenticated"):
+            self.kernel.create_initiative(
+                "spoofed-c3", "Spoofed C3", "control-plane-reliability", "C3",
+                actor="CEO", principal_id="principal-ceo",
+            )
+        os.environ["ASSURANCE_CREDENTIAL_PRINCIPAL_CEO"] = "test-credential-principal-ceo"
         with self.assertRaisesRegex(AssuranceError, "mismatched assurance principal"):
             self.kernel.approve_artifact(
                 "design-spoof", 1, actor="Company Platform Engineer", principal_id="claimed-other"
@@ -279,6 +302,29 @@ class AssuranceKernelTest(unittest.TestCase):
         self.assertEqual(blocked["status"], "blocked")
         resumed = self.kernel.resume("lifecycle-1", actor="CEO", principal_id="principal-ceo")
         self.assertEqual(resumed["status"], "goal_review")
+
+    def test_g6_rejects_negative_review_and_non_release_decision(self) -> None:
+        self.kernel.create_initiative(
+            "release-guard", "Release guard", "control-plane-reliability", "C3",
+            actor="CEO", principal_id="principal-ceo",
+        )
+        for kind, artifact_id, decision in [
+            ("review_decision", "review-reject", "reject"),
+            ("release_decision", "release-hold", "hold"),
+        ]:
+            artifact = self.artifact(kind, artifact_id)
+            artifact["initiative_id"] = "release-guard"
+            artifact["risk_class"] = "C3"
+            artifact["content"]["decision"] = decision
+            self.kernel.register_artifact(
+                artifact, actor="Company Platform Engineer", principal_id="principal-platform"
+            )
+            self.kernel.approve_artifact(artifact_id, 1, actor="CEO", principal_id="principal-ceo")
+        with self.assertRaisesRegex(AssuranceError, "approving review"):
+            self.kernel.record_gate(
+                "release-guard", "G6", "pass", ["review-reject:v1", "release-hold:v1"],
+                actor="CEO", principal_id="principal-ceo",
+            )
 
     def test_gate_decision_binds_artifact_set_and_rejects_author_as_independent_reviewer(self) -> None:
         self.kernel.create_initiative(
