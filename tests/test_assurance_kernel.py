@@ -80,7 +80,7 @@ class AssuranceKernelTest(unittest.TestCase):
             self.kernel.register_artifact(payload, actor="Company Platform Engineer", principal_id="principal-platform")
 
         payload = self.artifact("goal_contract", "goal-control-gate")
-        with self.assertRaisesRegex(AssuranceError, "owner principal"):
+        with self.assertRaisesRegex(AssuranceError, "principal"):
             self.kernel.register_artifact(payload, actor="Company Platform Engineer", principal_id="somebody-else")
 
     def test_shadow_classification_does_not_block_existing_tasks(self) -> None:
@@ -160,12 +160,26 @@ class AssuranceKernelTest(unittest.TestCase):
             self.assertEqual(after, before)
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0], audit_before)
 
+    def test_principal_identity_is_registry_bound_and_cannot_be_spoofed(self) -> None:
+        self.kernel.register_artifact(
+            self.artifact("design_record", "design-spoof"),
+            actor="Company Platform Engineer", principal_id="principal-platform",
+        )
+        with self.assertRaisesRegex(AssuranceError, "mismatched assurance principal"):
+            self.kernel.approve_artifact(
+                "design-spoof", 1, actor="Company Platform Engineer", principal_id="claimed-other"
+            )
+        with self.assertRaisesRegex(AssuranceError, "mismatched assurance principal"):
+            self.kernel.approve_artifact(
+                "design-spoof", 1, actor="Company Platform Engineer", principal_id="principal-ceo"
+            )
+
     def test_author_cannot_approve_own_artifact(self) -> None:
         self.kernel.register_artifact(
             self.artifact("design_record", "design-1"),
             actor="Company Platform Engineer", principal_id="principal-platform",
         )
-        with self.assertRaisesRegex(AssuranceError, "separation of duties"):
+        with self.assertRaisesRegex(AssuranceError, "authority|separation of duties"):
             self.kernel.approve_artifact(
                 "design-1", 1, actor="Company Platform Engineer", principal_id="principal-platform"
             )
@@ -238,7 +252,7 @@ class AssuranceKernelTest(unittest.TestCase):
         artifact["initiative_id"] = "gate-1"
         self.kernel.register_artifact(artifact, actor="Company Platform Engineer", principal_id="principal-platform")
         self.kernel.approve_artifact("goal-gate", 1, actor="CEO", principal_id="principal-ceo")
-        with self.assertRaisesRegex(AssuranceError, "separation of duties"):
+        with self.assertRaisesRegex(AssuranceError, "authority|separation of duties"):
             self.kernel.record_gate(
                 "gate-1", "G0", "pass", ["goal-gate:v1"],
                 actor="Company Platform Engineer", principal_id="principal-platform",

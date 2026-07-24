@@ -70,6 +70,27 @@ class AssuranceKernel:
     def init(self) -> None:
         self.store.init_assurance()
 
+    def _principal(self, conn: Any, actor: str, principal_id: str) -> dict[str, Any]:
+        row = conn.execute(
+            """SELECT principal_id, actor, authority FROM assurance_principals
+               WHERE principal_id=? AND actor=? AND status='active'""",
+            (principal_id, actor),
+        ).fetchone()
+        if row is None:
+            raise AssuranceError("unregistered or mismatched assurance principal")
+        return dict(row)
+
+    @staticmethod
+    def _require_authority(principal: dict[str, Any], allowed: set[str]) -> None:
+        if principal["authority"] not in allowed:
+            raise AssuranceError("principal lacks required assurance authority")
+
+    def _assert_principal(self, actor: str, principal_id: str, allowed: set[str]) -> dict[str, Any]:
+        with self.store.connect_readonly() as conn:
+            principal = self._principal(conn, actor, principal_id)
+        self._require_authority(principal, allowed)
+        return principal
+
     def create_initiative(
         self, initiative_id: str, title: str, profile: str, risk_class: str,
         *, actor: str, principal_id: str,
@@ -82,6 +103,8 @@ class AssuranceKernel:
         now = utcnow()
         try:
             with self.store.connect() as conn:
+                principal = self._principal(conn, actor, principal_id)
+                self._require_authority(principal, {"executive", "chairman"})
                 conn.execute(
                     """INSERT INTO assurance_initiatives(
                            initiative_id, profile, risk_class, title, owner_principal,
@@ -103,6 +126,7 @@ class AssuranceKernel:
         self, initiative_id: str, target: str, *, actor: str, principal_id: str,
     ) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"executive", "chairman", "reviewer"})
         with self.store.connect() as conn:
             row = conn.execute(
                 "SELECT status FROM assurance_initiatives WHERE initiative_id=?", (initiative_id,)
@@ -128,6 +152,7 @@ class AssuranceKernel:
         *, actor: str, principal_id: str,
     ) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"executive", "chairman", "reviewer"})
         with self.store.connect() as conn:
             row = conn.execute(
                 "SELECT status FROM assurance_initiatives WHERE initiative_id=?", (initiative_id,)
@@ -157,6 +182,7 @@ class AssuranceKernel:
 
     def resume(self, initiative_id: str, *, actor: str, principal_id: str) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"executive", "chairman", "reviewer"})
         with self.store.connect() as conn:
             row = conn.execute(
                 """SELECT i.status, b.resume_state FROM assurance_initiatives i
@@ -184,6 +210,7 @@ class AssuranceKernel:
         expires_at: str | None = None,
     ) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"executive", "chairman", "reviewer"})
         if gate not in GATES or decision not in GATE_DECISIONS or not artifact_refs:
             raise AssuranceError("invalid gate decision")
         conditions = conditions or []
@@ -226,6 +253,7 @@ class AssuranceKernel:
         self, artifact_id: str, version: int, *, actor: str, principal_id: str, reason: str,
     ) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"executive", "chairman"})
         if not reason.strip():
             raise AssuranceError("supersession reason must be non-empty")
         invalidated: list[str] = []
@@ -285,6 +313,7 @@ class AssuranceKernel:
         self, payload: dict[str, Any], *, actor: str, principal_id: str,
     ) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"implementer", "executive", "chairman", "reviewer", "operator"})
         self._validate_artifact(payload, principal_id)
         digest = hashlib.sha256(_canonical(payload).encode("ascii")).hexdigest()
         now = utcnow()
@@ -359,6 +388,7 @@ class AssuranceKernel:
         self, artifact_id: str, version: int, *, actor: str, principal_id: str,
     ) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"executive", "chairman", "reviewer"})
         with self.store.connect() as conn:
             row = conn.execute(
                 "SELECT * FROM assurance_artifacts WHERE artifact_id=? AND version=?",
@@ -387,6 +417,7 @@ class AssuranceKernel:
         self, *, actor: str, principal_id: str, title: str, indicators: dict[str, bool],
     ) -> dict[str, Any]:
         self.init()
+        self._assert_principal(actor, principal_id, {"executive", "chairman", "reviewer", "implementer", "operator"})
         allowed = {
             "editorial_only", "local_behavior", "public_contract", "persistent_schema",
             "cross_role", "authorization", "sensitive_data", "production",

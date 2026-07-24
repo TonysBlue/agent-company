@@ -127,6 +127,13 @@ class Store:
                     mode TEXT NOT NULL DEFAULT 'shadow',
                     created_at TEXT NOT NULL
                 );
+                INSERT OR IGNORE INTO assurance_principals(principal_id, actor, authority, status, created_at) VALUES
+                    ('principal-chairman', 'Chairman', 'chairman', 'active', '2026-07-24T00:00:00+00:00'),
+                    ('principal-ceo', 'CEO', 'executive', 'active', '2026-07-24T00:00:00+00:00'),
+                    ('principal-platform', 'Company Platform Engineer', 'implementer', 'active', '2026-07-24T00:00:00+00:00'),
+                    ('principal-control-reviewer', 'Control & Reliability Reviewer', 'reviewer', 'active', '2026-07-24T00:00:00+00:00'),
+                    ('principal-product', 'Product Engineer', 'implementer', 'active', '2026-07-24T00:00:00+00:00'),
+                    ('principal-customer', 'Customer & Revenue', 'operator', 'active', '2026-07-24T00:00:00+00:00');
                 """
             )
 
