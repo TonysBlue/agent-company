@@ -22,7 +22,7 @@ Record immutable ordered actions, commands/tool calls, before/after state, logs,
 
 ## Rollback Or Disablement
 
-Define target known-safe state, data recovery, verification, and current outcome.
+Define target known-safe state, data recovery, verification, and current outcome. If an incident is contained without rollback/disablement, record whether the affected version resumes `enabled_or_deployed`, `outcome_observation`, or `closed`, with authority and evidence.
 
 ## Residual Risk And Monitoring
 

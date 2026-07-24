@@ -7,6 +7,9 @@
 - Decision authority: `<CEO | Chairman>`
 - Timestamp: `<ISO-8601>`
 - Decision: `enable_internal | controlled_beta | production_release | reject | hold | rollback`
+- Decision expires at: `<ISO-8601>`
+- Conditions expire at: `<ISO-8601 | none>`
+- Condition verification: `<condition-verification-id | none>`
 
 ## Scope
 
@@ -18,7 +21,7 @@ Record hard-gate, regression, capability, comparative, reliability, security, co
 
 ## Preconditions
 
-List approvals, migrations, backups, observability, support readiness, and evidence required before action.
+List approvals, migrations, backups, observability, support readiness, and evidence required before action. For a conditional decision, list every condition, its evidence source, verifier principal, verification decision ID, and expiry. `controlled_beta` or production enablement is forbidden until an unexpired verification proves all conditions satisfied.
 
 ## Rollout Plan
 

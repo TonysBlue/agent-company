@@ -94,14 +94,17 @@ independent_evaluation -> implementation        # bounded remediation is valid
 independent_evaluation -> design_draft          # design/goal/eval premise is defective
 independent_evaluation -> evaluation_rejected   # no compliant remediation
 release_decision -> release_rejected | release_approved | release_approved_conditional
-release_approved[_conditional] -> enabled_or_deployed
+release_approved -> enabled_or_deployed
+release_approved_conditional -> conditions_verified -> enabled_or_deployed
 release_approved_conditional -> release_expired # unmet or expired condition
 any nonterminal state -> blocked -> recorded resume_state
 any pre-release state -> cancelled
 release_candidate/enabled_or_deployed/outcome_observation
   -> incident_declared -> rollback_in_progress
   -> rolled_back | disabled | incident_resolved
-rolled_back/disabled/incident_resolved -> reopened -> discovery | design_draft
+rolled_back/disabled -> reopened -> discovery | design_draft
+incident_resolved -> enabled_or_deployed | outcome_observation | closed
+incident_resolved -> reopened -> discovery | design_draft
 outcome_observation -> reopened                 # outcome target missed or new harm found
 ```
 
@@ -114,7 +117,7 @@ A complete transition rule records:
 | authoring forward | previous gate predicates pass | exact approved artifact hashes | designated gate approver |
 | return/remediation | finding identifies failed goal/spec/eval | Review Decision and bounded remediation scope | independent reviewer |
 | blocked/resume | blocker and exact `resume_state` recorded/resolved | Blocker Decision and resolution evidence | accountable owner; reserved blocker by Chairman |
-| release approve/reject | G6 predicates and residual risks complete | Review Decision + Release Decision | CEO internally; Chairman for reserved scope |
+| release approve/reject | G6 predicates and residual risks complete; conditional approval additionally requires an unexpired `conditions_verified` decision that proves every condition against evidence | Review Decision + Release Decision + Condition Verification when conditional | CEO internally; Chairman for reserved scope |
 | incident/rollback/disable | active harm, hard-gate breach, or rollback threshold | Incident Record and immutable observed evidence | incident commander within pre-authorized containment; Chairman notified for reserved scope |
 | reopen | new evidence invalidates closure/release premise | Outcome/Incident/Change Decision | CEO or original decision authority |
 
@@ -733,7 +736,7 @@ Artifact metadata is visible according to governance need, but contents follow l
 
 ### 11.5 Evaluation contract defects and legitimate novelty
 
-An implementation can expose that an Eval Contract is wrong or incomplete. The evaluator must preserve the original result, mark `contract_disputed`, and provide evidence. The contract cannot be edited to make the candidate pass. A separate review decides whether to reject the candidate, amend the contract and rerun every affected baseline/candidate, or accept an explicitly scoped exception. Creative outcomes that outperform the written scenario are therefore reviewable without weakening auditability.
+An implementation can expose that an Eval Contract is wrong or incomplete. The evaluator must preserve the original result, mark `contract_disputed`, and provide evidence. The contract cannot be edited to make the candidate pass. A separate independent review may only: reject the candidate; amend the contract through a Change Decision and rerun every affected baseline/candidate; or accept the candidate when it already passes every unchanged hard gate and the disputed item is proven irrelevant to the approved Goal. This last disposition requires the original decision authority, expires with that candidate/release, cannot alter a threshold, comparator, dataset result, safety/security/data/authorization/governance requirement, or support a broader/public claim, and records the exact predicate and evidence. There is no exception path for a failed hard gate. Creative outcomes that outperform the written scenario are therefore reviewable without weakening auditability.
 
 ### 11.6 Change Decision and store reconciliation
 
@@ -861,7 +864,9 @@ assurance_review_decisions
 
 assurance_release_decisions
   id, initiative_id, review_decision_id, authority,
-  scope_json, decision, conditions_json, rollback_ref, created_at
+  scope_json, decision, conditions_json, decision_expires_at,
+  condition_verification_id, conditions_verified_at,
+  conditions_expire_at, rollback_ref, created_at
 
 assurance_task_bindings
   task_id, execution_generation, initiative_id,
