@@ -261,6 +261,16 @@ class AssuranceKernelTest(unittest.TestCase):
         )
         with self.assertRaisesRegex(AssuranceError, "illegal lifecycle transition"):
             self.kernel.transition("lifecycle-1", "implementation", actor="CEO", principal_id="principal-ceo")
+        with self.assertRaisesRegex(AssuranceError, "requires passing G0"):
+            self.kernel.transition("lifecycle-1", "goal_review", actor="CEO", principal_id="principal-ceo")
+        goal = self.artifact("goal_contract", "goal-lifecycle")
+        goal["initiative_id"] = "lifecycle-1"
+        self.kernel.register_artifact(goal, actor="Company Platform Engineer", principal_id="principal-platform")
+        self.kernel.approve_artifact("goal-lifecycle", 1, actor="CEO", principal_id="principal-ceo")
+        self.kernel.record_gate(
+            "lifecycle-1", "G0", "pass", ["goal-lifecycle:v1"],
+            actor="CEO", principal_id="principal-ceo",
+        )
         self.kernel.transition("lifecycle-1", "goal_review", actor="CEO", principal_id="principal-ceo")
         blocked = self.kernel.block(
             "lifecycle-1", "missing design evidence", "goal_review",

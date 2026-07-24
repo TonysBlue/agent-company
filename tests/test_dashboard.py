@@ -112,6 +112,11 @@ logs = logs
         assurance = snapshot["management"]["context_governance"]["development_assurance"]
         self.assertEqual(assurance["mode"], "shadow")
         self.assertFalse(assurance["blocking_existing_tasks"])
+        serialized_assurance = json.dumps(assurance)
+        self.assertNotIn("owner_principal", serialized_assurance)
+        self.assertNotIn("principal_id", serialized_assurance)
+        self.assertNotIn("conditions_json", serialized_assurance)
+        self.assertNotIn("Assurance bootstrap", serialized_assurance)
         serialized = json.dumps(snapshot["management"]["context_governance"])
         self.assertNotIn("verified_facts_json", serialized)
         self.assertNotIn("open_items_json", serialized)

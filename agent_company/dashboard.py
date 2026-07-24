@@ -252,7 +252,8 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                     "SELECT * FROM handoffs ORDER BY id DESC LIMIT 50"
                 ))) if context_table else [],
                 "assurance_initiatives": _row_dicts(list(conn.execute(
-                    "SELECT * FROM assurance_initiatives ORDER BY updated_at DESC LIMIT 50"
+                    """SELECT initiative_id, profile, risk_class, status, mode, updated_at
+                       FROM assurance_initiatives ORDER BY updated_at DESC LIMIT 50"""
                 ))) if assurance_table else [],
                 "assurance_artifacts": _row_dicts(list(conn.execute(
                     """SELECT artifact_id, initiative_id, kind, version, status, profile,
@@ -261,13 +262,13 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                        FROM assurance_artifacts ORDER BY id DESC LIMIT 100"""
                 ))) if assurance_table else [],
                 "assurance_gate_decisions": _row_dicts(list(conn.execute(
-                    """SELECT id, initiative_id, gate, decision, actor,
+                    """SELECT id, initiative_id, gate, decision,
                               substr(artifact_set_sha256,1,12) AS artifact_set_sha256_prefix,
                               expires_at, created_at
                        FROM assurance_gate_decisions ORDER BY id DESC LIMIT 100"""
                 ))) if assurance_table else [],
                 "assurance_classifications": _row_dicts(list(conn.execute(
-                    """SELECT id, title, risk_class, actor, mode, created_at
+                    """SELECT id, risk_class, mode, created_at
                        FROM assurance_classifications ORDER BY id DESC LIMIT 100"""
                 ))) if assurance_table else [],
             }

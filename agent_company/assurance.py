@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from datetime import datetime, timezone
 from typing import Any
 
 from .config import CompanyConfig
@@ -63,6 +64,22 @@ LIFECYCLE_TRANSITIONS = {
     "incident_resolved": {"enabled_or_deployed", "outcome_observation", "closed", "reopened"},
     "reopened": {"discovery", "design_draft"},
 }
+GATE_FOR_TARGET = {
+    "goal_review": "G0", "design_review": "G1", "eval_contract_approved": "G2",
+    "baseline_recorded": "G3", "approved_for_build": "G4",
+    "release_candidate": "G5", "release_approved": "G6",
+    "release_approved_conditional": "G6", "closed": "G7",
+}
+GATE_REQUIRED_KINDS = {
+    "G0": {"goal_contract"},
+    "G1": {"goal_contract", "design_record"},
+    "G2": {"goal_contract", "design_record", "behavior_spec", "eval_contract"},
+    "G3": {"baseline_report", "eval_contract"},
+    "G4": REQUIRED_MANIFEST_KINDS | {"design_manifest"},
+    "G5": {"review_decision", "eval_contract"},
+    "G6": {"review_decision", "release_decision"},
+    "G7": {"review_decision"},
+}
 ARTIFACT_KEYS = {
     "schema_version", "artifact_id", "kind", "version", "status", "initiative_id",
     "profile", "risk_class", "owner_principal", "repository_id", "content",
@@ -103,6 +120,18 @@ class AssuranceKernel:
             principal = self._principal(conn, actor, principal_id)
         self._require_authority(principal, allowed)
         return principal
+
+    def _initiative_artifact_set_sha256(self, conn: Any, initiative_id: str) -> str:
+        rows = conn.execute(
+            """SELECT artifact_id, version, content_sha256 FROM assurance_artifacts
+               WHERE initiative_id=? AND status='approved'
+               ORDER BY artifact_id, version""",
+            (initiative_id,),
+        ).fetchall()
+        return hashlib.sha256(_canonical([
+            {"ref": f"{row['artifact_id']}:v{row['version']}", "sha256": row["content_sha256"]}
+            for row in rows
+        ]).encode("ascii")).hexdigest()
 
     def create_initiative(
         self, initiative_id: str, title: str, profile: str, risk_class: str,
@@ -147,6 +176,23 @@ class AssuranceKernel:
             if row is None:
                 raise AssuranceError("initiative not found")
             current = row["status"]
+            required_gate = GATE_FOR_TARGET.get(target)
+            if required_gate:
+                gate = conn.execute(
+                    """SELECT decision, artifact_set_sha256, expires_at
+                       FROM assurance_gate_decisions
+                       WHERE initiative_id=? AND gate=?
+                       ORDER BY id DESC LIMIT 1""",
+                    (initiative_id, required_gate),
+                ).fetchone()
+                if gate is None or gate["decision"] not in {"pass", "pass_with_conditions"}:
+                    raise AssuranceError(f"lifecycle transition requires passing {required_gate}")
+                if gate["expires_at"]:
+                    expires = datetime.fromisoformat(gate["expires_at"])
+                    if expires.tzinfo is None or expires <= datetime.now(timezone.utc):
+                        raise AssuranceError(f"lifecycle transition requires unexpired {required_gate}")
+                if gate["artifact_set_sha256"] != self._initiative_artifact_set_sha256(conn, initiative_id):
+                    raise AssuranceError(f"lifecycle transition {required_gate} artifact set is stale")
             if target not in LIFECYCLE_TRANSITIONS.get(current, set()):
                 raise AssuranceError(f"illegal lifecycle transition: {current} -> {target}")
             now = utcnow()
@@ -247,7 +293,20 @@ class AssuranceKernel:
                 if row["owner_principal"] == principal_id:
                     raise AssuranceError("separation of duties forbids author gate approval")
                 ordered.append({"ref": ref, "sha256": row["content_sha256"]})
-            digest = hashlib.sha256(_canonical(ordered).encode("ascii")).hexdigest()
+            required_kinds = GATE_REQUIRED_KINDS[gate]
+            rows = conn.execute(
+                """SELECT kind, artifact_id, version FROM assurance_artifacts
+                   WHERE initiative_id=? AND status='approved'""",
+                (initiative_id,),
+            ).fetchall()
+            approved_kinds = {row["kind"] for row in rows}
+            if not required_kinds <= approved_kinds:
+                missing = sorted(required_kinds - approved_kinds)
+                raise AssuranceError(f"gate {gate} missing approved artifact kinds: {missing}")
+            all_refs = {f"{row['artifact_id']}:v{row['version']}" for row in rows}
+            if set(artifact_refs) != all_refs:
+                raise AssuranceError("gate must bind the complete approved initiative artifact set")
+            digest = self._initiative_artifact_set_sha256(conn, initiative_id)
             now = utcnow()
             cur = conn.execute(
                 """INSERT INTO assurance_gate_decisions(
