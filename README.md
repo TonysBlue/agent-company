@@ -62,6 +62,10 @@ python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally
 python3.11 -m agent_company.cli report
 python3.11 -m agent_company.cli dashboard --host 0.0.0.0 --port 18080
 python3.11 -m agent_company.cli demo
+python3.11 -m agent_company.cli assurance-init
+python3.11 -m agent_company.cli assurance-classify --actor CEO --principal-id principal-ceo --title "Proposed schema change" --persistent-schema
+python3.11 -m agent_company.cli assurance-list
+python3.11 -m agent_company.cli assurance-integrity
 python3.11 -m agent_company.cli validate
 ```
 

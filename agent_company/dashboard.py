@@ -154,6 +154,10 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         "role_continuity": [],
         "project_history": [],
         "handoffs": [],
+        "assurance_initiatives": [],
+        "assurance_artifacts": [],
+        "assurance_gate_decisions": [],
+        "assurance_classifications": [],
     }
     if not config.db_path.exists():
         empty["database"]["error"] = "database file not found"
@@ -180,6 +184,9 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
             ).fetchone()
             context_table = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_contexts'"
+            ).fetchone()
+            assurance_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assurance_artifacts'"
             ).fetchone()
             return {
                 "database": {
@@ -244,6 +251,25 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "handoffs": _row_dicts(list(conn.execute(
                     "SELECT * FROM handoffs ORDER BY id DESC LIMIT 50"
                 ))) if context_table else [],
+                "assurance_initiatives": _row_dicts(list(conn.execute(
+                    "SELECT * FROM assurance_initiatives ORDER BY updated_at DESC LIMIT 50"
+                ))) if assurance_table else [],
+                "assurance_artifacts": _row_dicts(list(conn.execute(
+                    """SELECT artifact_id, initiative_id, kind, version, status, profile,
+                              risk_class, repository_id, substr(content_sha256,1,12) AS sha256_prefix,
+                              approved_at, created_at
+                       FROM assurance_artifacts ORDER BY id DESC LIMIT 100"""
+                ))) if assurance_table else [],
+                "assurance_gate_decisions": _row_dicts(list(conn.execute(
+                    """SELECT id, initiative_id, gate, decision, actor,
+                              substr(artifact_set_sha256,1,12) AS artifact_set_sha256_prefix,
+                              expires_at, created_at
+                       FROM assurance_gate_decisions ORDER BY id DESC LIMIT 100"""
+                ))) if assurance_table else [],
+                "assurance_classifications": _row_dicts(list(conn.execute(
+                    """SELECT id, title, risk_class, actor, mode, created_at
+                       FROM assurance_classifications ORDER BY id DESC LIMIT 100"""
+                ))) if assurance_table else [],
             }
     except sqlite3.Error as exc:
         empty["database"]["error"] = str(exc)
@@ -735,6 +761,14 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
                     for row in sqlite_data["handoffs"]
                 ],
                 "open_handoffs": [row for row in sqlite_data["handoffs"] if row.get("status") in {"offered", "accepted", "needs_clarification"}],
+                "development_assurance": {
+                    "mode": "shadow",
+                    "blocking_existing_tasks": False,
+                    "initiatives": sqlite_data["assurance_initiatives"],
+                    "artifacts": sqlite_data["assurance_artifacts"],
+                    "gate_decisions": sqlite_data["assurance_gate_decisions"],
+                    "classifications": sqlite_data["assurance_classifications"],
+                },
             },
             "quarantined_executors": [row for row in sqlite_data["executors"] if row.get("status") == "quarantined"],
             "unknown_executions": [row for row in sqlite_data["task_executions"] if row.get("recovery_status") == "unknown"],

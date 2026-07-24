@@ -109,6 +109,9 @@ logs = logs
         self.assertIsNone(snapshot["operations"]["funnel"][0]["value"])
         self.assertIn("context_governance", snapshot["management"])
         self.assertIn("active_contexts", snapshot["management"]["context_governance"])
+        assurance = snapshot["management"]["context_governance"]["development_assurance"]
+        self.assertEqual(assurance["mode"], "shadow")
+        self.assertFalse(assurance["blocking_existing_tasks"])
         serialized = json.dumps(snapshot["management"]["context_governance"])
         self.assertNotIn("verified_facts_json", serialized)
         self.assertNotIn("open_items_json", serialized)

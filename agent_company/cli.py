@@ -131,6 +131,19 @@ def build_parser() -> argparse.ArgumentParser:
     dashboard.add_argument("--host", default="0.0.0.0")
     dashboard.add_argument("--port", type=int, default=18080)
     sub.add_parser("validate", help="Validate state and governance")
+    sub.add_parser("assurance-init", help="Initialize shadow development assurance state")
+    sub.add_parser("assurance-list", help="List shadow assurance artifacts")
+    sub.add_parser("assurance-integrity", help="Verify shadow assurance artifact integrity")
+    assurance_classify = sub.add_parser("assurance-classify", help="Classify a proposed change without blocking work")
+    assurance_classify.add_argument("--actor", required=True)
+    assurance_classify.add_argument("--principal-id", required=True)
+    assurance_classify.add_argument("--title", required=True)
+    for indicator in (
+        "editorial-only", "local-behavior", "public-contract", "persistent-schema",
+        "cross-role", "authorization", "sensitive-data", "production",
+        "irreversible-migration", "public-competitive-claim",
+    ):
+        assurance_classify.add_argument(f"--{indicator}", action="store_true")
     return parser
 
 
@@ -292,6 +305,39 @@ def main(argv: list[str] | None = None) -> int:
             serve(osys.config, args.host, args.port)
         elif args.command == "demo":
             print(json.dumps(osys.demo(), indent=2, sort_keys=True))
+        elif args.command == "assurance-init":
+            from .assurance import AssuranceKernel
+
+            kernel = AssuranceKernel(osys.config)
+            kernel.init()
+            print(json.dumps({"initialized": True, "mode": "shadow"}, indent=2, sort_keys=True))
+        elif args.command == "assurance-list":
+            from .assurance import AssuranceKernel
+
+            print(json.dumps(AssuranceKernel(osys.config).list_artifacts(), indent=2, sort_keys=True))
+        elif args.command == "assurance-integrity":
+            from .assurance import AssuranceKernel
+
+            print(json.dumps(AssuranceKernel(osys.config).verify_integrity(), indent=2, sort_keys=True))
+        elif args.command == "assurance-classify":
+            from .assurance import AssuranceKernel
+
+            indicators = {
+                "editorial_only": args.editorial_only,
+                "local_behavior": args.local_behavior,
+                "public_contract": args.public_contract,
+                "persistent_schema": args.persistent_schema,
+                "cross_role": args.cross_role,
+                "authorization": args.authorization,
+                "sensitive_data": args.sensitive_data,
+                "production": args.production,
+                "irreversible_migration": args.irreversible_migration,
+                "public_competitive_claim": args.public_competitive_claim,
+            }
+            print(json.dumps(AssuranceKernel(osys.config).classify_change(
+                actor=args.actor, principal_id=args.principal_id, title=args.title,
+                indicators=indicators,
+            ), indent=2, sort_keys=True))
         elif args.command == "validate":
             errors = osys.validate()
             if errors:
