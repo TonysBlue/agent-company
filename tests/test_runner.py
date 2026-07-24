@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -57,6 +58,17 @@ class ExecutionRunnerTest(unittest.TestCase):
 
         def launch(*args, **kwargs):
             evidence.write_text("reviewable approval package\n", encoding="utf-8")
+            (evidence.parent / "CONTINUITY.json").write_text(json.dumps({
+                "schema_version": "agent-company-continuity/v1",
+                "role": "Customer & Revenue",
+                "summary": "Prepared an internal approval package.",
+                "verified_facts": ["Reviewable package exists"],
+                "open_items": [],
+                "project_summary": None,
+                "project_decisions": [],
+                "known_limits": [],
+                "handoffs": [],
+            }), encoding="utf-8")
             return FakeProcess()
 
         runner = ExecutionRunner(
@@ -64,9 +76,12 @@ class ExecutionRunnerTest(unittest.TestCase):
             ["customer", "commercial", "gtm"], poll_seconds=0.01,
         )
         with patch.object(runner, "_ensure_workspace"):
-            with patch.object(runner, "_publish_delivery", return_value={"repository": "pixweave", "branch": "task/1", "commit": "abc"}):
-                with patch("agent_company.runner.subprocess.Popen", side_effect=launch):
-                    result = runner.run_once()
+            with patch.object(runner.contexts, "compile", return_value={"provenance": {"bundle_sha256": "a" * 64}}):
+                with patch.object(runner.contexts, "materialize", return_value={"bundle_sha256": "a" * 64}):
+                    with patch.object(runner.contexts, "assert_current"):
+                        with patch.object(runner, "_publish_delivery", return_value={"repository": "pixweave", "branch": "task/1", "commit": "abc"}):
+                            with patch("agent_company.runner.subprocess.Popen", side_effect=launch):
+                                result = runner.run_once()
 
         self.assertEqual(result["status"], "done")
         task = self.osys.store.fetch_one("SELECT status FROM tasks WHERE id=?", (self.task_id,))
@@ -115,11 +130,17 @@ class ExecutionRunnerTest(unittest.TestCase):
         evidence = self.root / "evidence"
         log = self.root / "runner.log"
         workdir.mkdir()
+        (workdir / ".git" / "info").mkdir(parents=True)
+        (workdir / ".agent-company").mkdir()
         evidence.mkdir()
         process = FakeProcess()
         with patch.object(runner, "_prepare_codex_home"):
             with patch("agent_company.runner.subprocess.Popen", return_value=process) as popen:
-                runner._launch({"id": 42, "title": "x", "acceptance_criteria": "y"}, repository, workdir, evidence, log)
+                runner._launch(
+                    {"id": 42, "title": "x", "acceptance_criteria": "y"},
+                    repository, workdir, evidence, log,
+                    {"bundle_sha256": "a" * 64},
+                )
         command = popen.call_args.args[0]
         env = popen.call_args.kwargs["env"]
         self.assertEqual(command[0], "bwrap")

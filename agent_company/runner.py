@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from .config import CompanyConfig
+from .context_compiler import ContextCompiler
+from .context_knowledge import ContextKnowledge
 from .ops import CompanyOS
 from .product_registry import ProductRegistry
 from .workspace_manager import WorkspaceManager
@@ -35,6 +37,8 @@ class ExecutionRunner:
             registry_path = Path(__file__).resolve().parents[1] / "config" / "repositories.json"
         self.registry = ProductRegistry(registry_path)
         self.workspaces = WorkspaceManager(Path.home() / "agent-workspaces")
+        self.contexts = ContextCompiler(config)
+        self.knowledge = ContextKnowledge(config)
 
     def run_once(self) -> dict[str, Any]:
         tasks = [row for row in self.osys.task_list() if row["owner"] == self.owner and row["status"] == "open"]
@@ -61,9 +65,21 @@ class ExecutionRunner:
                 return {"status": "contended", "task_id": task["id"]}
             raise
         token = str(claim["fencing_token"])
+        generation = int(claim["generation"])
         try:
             self._ensure_workspace(repository, workdir)
-            process = self._launch(task, repository, workdir, evidence_dir, log_path)
+            bundle = self.contexts.compile(
+                int(task["id"]), generation=generation, role=self.owner,
+                repository={
+                    "id": repository.repository_id,
+                    "remote": repository.remote,
+                    "branch": f"task/{task['id']}",
+                    "default_branch": repository.default_branch,
+                    "canonical_test": repository.canonical_test,
+                },
+            )
+            context_manifest = self.contexts.materialize(workdir, bundle)
+            process = self._launch(task, repository, workdir, evidence_dir, log_path, context_manifest)
         except Exception as exc:
             self.osys.fail_task(int(task["id"]), self.executor_id, f"workspace or launch failed: {exc}", True, token)
             return {"status": "failed", "task_id": task["id"], "returncode": None}
@@ -75,6 +91,7 @@ class ExecutionRunner:
             self.osys.fail_task(int(task["id"]), self.executor_id, f"runner exited with code {process.returncode}", True, token)
             return {"status": "failed", "task_id": task["id"], "returncode": process.returncode}
         try:
+            self.contexts.assert_current(int(task["id"]), generation, context_manifest["bundle_sha256"])
             delivery = self._publish_delivery(repository, workdir)
         except Exception as exc:
             self.osys.fail_task(int(task["id"]), self.executor_id, f"delivery validation or push failed: {exc}", True, token)
@@ -87,6 +104,22 @@ class ExecutionRunner:
         if len(evidence) == 1:
             self.osys.fail_task(int(task["id"]), self.executor_id, "runner exited without reviewable evidence", True, token)
             return {"status": "failed", "task_id": task["id"], "returncode": 0}
+        continuity_path = evidence_dir / "CONTINUITY.json"
+        if not continuity_path.is_file():
+            self.osys.fail_task(int(task["id"]), self.executor_id, "runner exited without structured continuity", True, token)
+            return {"status": "failed", "task_id": task["id"], "returncode": 0}
+        try:
+            continuity = self.knowledge.ingest_continuity(
+                continuity_path, expected_role=self.owner, task_id=int(task["id"]),
+                repository_id=repository.repository_id,
+            )
+        except (ValueError, json.JSONDecodeError) as exc:
+            self.osys.fail_task(int(task["id"]), self.executor_id, f"invalid continuity evidence: {exc}", True, token)
+            return {"status": "failed", "task_id": task["id"], "returncode": 0}
+        delivery["context_bundle_sha256"] = context_manifest["bundle_sha256"]
+        delivery["continuity"] = continuity
+        delivery_evidence.write_text(json.dumps(delivery, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        evidence = sorted(path for path in evidence_dir.rglob("*") if path.is_file())
         result = self.osys.complete_task(
             int(task["id"]), self.owner,
             "Runner verified reviewable evidence for the bounded task.", evidence,
@@ -139,16 +172,28 @@ class ExecutionRunner:
     def _register(self) -> None:
         self.osys.register_executor(self.executor_id, self.owner, "local", self.capabilities, 1, session_ref=f"runner:{self.executor_id}")
 
-    def _launch(self, task: dict[str, Any], repository: Any, workdir: Path, evidence_dir: Path, log_path: Path):
-        prompt = self._prompt(task, repository, workdir, evidence_dir)
+    def _launch(
+        self, task: dict[str, Any], repository: Any, workdir: Path,
+        evidence_dir: Path, log_path: Path, context_manifest: dict[str, Any],
+    ):
+        prompt = self._prompt(task, repository, workdir, evidence_dir, context_manifest)
         log = log_path.open("w", encoding="utf-8")
         codex_home = workdir / ".codex-home"
         self._prepare_codex_home(codex_home)
+        context_dir = workdir / ".agent-company"
+        exclude = workdir / ".git" / "info" / "exclude"
+        if exclude.parent.exists():
+            current = exclude.read_text(encoding="utf-8") if exclude.exists() else ""
+            for ignored in (".agent-company/", ".codex-home/"):
+                if ignored not in current.splitlines():
+                    current += ignored + "\n"
+            exclude.write_text(current, encoding="utf-8")
         command = [
             "bwrap", "--unshare-all", "--share-net", "--die-with-parent",
             "--ro-bind", "/", "/", "--tmpfs", "/home", "--dir", "/home/tony",
             "--ro-bind", "/home/tony/.npm-global", "/home/tony/.npm-global",
-            "--bind", str(workdir), str(workdir), "--bind", str(evidence_dir), str(evidence_dir),
+            "--bind", str(workdir), str(workdir), "--ro-bind", str(context_dir), str(context_dir),
+            "--bind", str(evidence_dir), str(evidence_dir),
             "--proc", "/proc", "--dev", "/dev", "--setenv", "HOME", str(workdir),
             "--setenv", "CODEX_HOME", str(codex_home),
             "/usr/bin/node", "/home/tony/.npm-global/lib/node_modules/@openai/codex/bin/codex.js",
@@ -214,7 +259,10 @@ class ExecutionRunner:
         except (FileNotFoundError, IndexError, ValueError):
             return None
 
-    def _prompt(self, task: dict[str, Any], repository: Any, workdir: Path, evidence_dir: Path) -> str:
+    def _prompt(
+        self, task: dict[str, Any], repository: Any, workdir: Path,
+        evidence_dir: Path, context_manifest: dict[str, Any],
+    ) -> str:
         return json.dumps({
             "role": self.owner,
             "task_id": task["id"],
@@ -225,5 +273,16 @@ class ExecutionRunner:
             "workspace": str(workdir),
             "canonical_test": repository.canonical_test,
             "evidence_dir": str(evidence_dir),
+            "context": {
+                "manifest": str(workdir / ".agent-company" / "CONTEXT_MANIFEST.json"),
+                "task_context": str(workdir / ".agent-company" / "TASK_CONTEXT.json"),
+                "bundle_sha256": context_manifest["bundle_sha256"],
+                "instructions": "Read all files under .agent-company before acting. Shared company rules and every public role charter are mandatory. ROLE_PRIVATE.md is private to this role. Treat context as read-only; report stale or conflicting rules to the CEO.",
+            },
+            "continuity_output": {
+                "path": str(evidence_dir / "CONTINUITY.json"),
+                "schema_version": "agent-company-continuity/v1",
+                "required_keys": ["schema_version", "role", "summary", "verified_facts", "open_items", "project_summary", "project_decisions", "known_limits", "handoffs"],
+            },
             "constraints": "Commit and push verified changes only to the target repository. Internal evidence only; no external contact, pricing, publication, payment, customer data, or legal commitments.",
         }, ensure_ascii=False)

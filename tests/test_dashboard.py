@@ -107,6 +107,8 @@ logs = logs
         self.assertIn("git", snapshot["project"])
         self.assertEqual(snapshot["operations"]["launch_state"], "internal_beta")
         self.assertIsNone(snapshot["operations"]["funnel"][0]["value"])
+        self.assertIn("context_governance", snapshot["management"])
+        self.assertIn("active_contexts", snapshot["management"]["context_governance"])
         self.assertEqual(snapshot["operations"]["funnel"][0]["state"], "placeholder")
         sources = {source["id"] for source in snapshot["sources"]}
         self.assertIn("sqlite", sources)
@@ -157,6 +159,9 @@ logs = logs
 
         body = DashboardApp(self.config).render_path("/management").body
         self.assertIn("唯一逻辑 CEO", body)
+        self.assertIn("Agent 上下文治理", body)
+        self.assertIn("角色连续性记忆", body)
+        self.assertIn("跨角色结构化交接", body)
         self.assertIn("事件 Worker", body)
         self.assertIn("待处理事件", body)
         self.assertIn("董事长战略指令", body)

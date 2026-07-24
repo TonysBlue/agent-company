@@ -8,6 +8,18 @@ Brand line: **让商业视觉稳定、批量、可控地产生。**
 
 This repository operates a real commercial venture rather than a business simulation. Plans, deterministic metadata, and internal drafts are not customer evidence or shipped product. Completion requires reviewable evidence such as runnable code, passing tests, sourced research, approved real customer records, or measured operating results.
 
+## Agent context operating system
+
+Every execution generation receives a versioned context bundle compiled from:
+
+- shared company constitution, governance, evidence, data, and collaboration rules;
+- every role's public charter and RACI relationship;
+- only the executing role's private playbook;
+- current CEO strategy and active Chairman directives;
+- task/repository contract, role continuity, project history, and open handoffs.
+
+The trusted runner materializes this under `.agent-company/` in the task workspace, mounts it read-only inside Bubblewrap, records its SHA-256 and source versions in SQLite, rejects stale/tampered context before delivery, and requires structured `CONTINUITY.json` evidence to update role/project memory and handoffs. The management dashboard exposes context versions, continuity, and handoff status without exposing role-private content or secrets.
+
 ## Repository and asset boundaries
 
 - `TonysBlue/agent-company` is the company control plane: CEO runtime, ledger, approvals, runners, workspace policy, and management dashboard.

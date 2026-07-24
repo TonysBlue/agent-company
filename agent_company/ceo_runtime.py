@@ -397,6 +397,20 @@ class CEORuntime:
                     (strategic_phase["id"],),
                 )
             ] if strategic_phase else []
+            organization = [dict(row) for row in conn.execute(
+                "SELECT name, mandate, status FROM roles ORDER BY status, name"
+            )]
+            raci = [dict(row) for row in conn.execute(
+                "SELECT domain, responsible, accountable, consulted, informed FROM raci ORDER BY domain"
+            )]
+            role_continuity = [dict(row) for row in conn.execute(
+                "SELECT role, summary, open_items_json, source_task_id, version, updated_at FROM role_continuity ORDER BY updated_at DESC"
+            )]
+            open_handoffs = [dict(row) for row in conn.execute(
+                "SELECT id, task_id, from_role, to_role, handoff_type, summary, decision_needed, status FROM handoffs WHERE status IN ('offered','accepted','needs_clarification') ORDER BY id"
+            )]
+            for row in role_continuity:
+                row["open_items"] = json.loads(row.pop("open_items_json"))
             phase_snapshot = None
             if strategic_phase:
                 phase_snapshot = dict(strategic_phase)
@@ -421,6 +435,12 @@ class CEORuntime:
                     "critical_path": json.loads(state["critical_path_json"]),
                 },
                 "directives": directives,
+                "organization_context": {
+                    "roles": organization,
+                    "raci": raci,
+                    "role_continuity": role_continuity,
+                    "open_handoffs": open_handoffs,
+                },
                 "entity": entity,
                 "strategic_phase": phase_snapshot,
                 "work_state": {
@@ -441,6 +461,8 @@ class CEORuntime:
         return (
             "Source tag: agent-company-ceo-background. You are the same logical CEO as the "
             "interactive Hermes default profile, operating as its unattended background form. "
+            "The snapshot includes the public organization map, RACI, role continuity, and open handoffs; "
+            "use them to preserve cross-role coordination and do not absorb another role's accountability. "
             "Do not use tools. Decide only from this self-contained minimal snapshot. Never execute "
             "external, irreversible, financial, legal, pricing, publication, production, customer-data, "
             "or shell actions. Return exactly one JSON object conforming to ceo-actions/v1. Allowed actions: "

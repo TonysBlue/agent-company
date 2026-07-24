@@ -150,6 +150,10 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         "ceo_runs": [],
         "chairman_directives": [],
         "executors": [],
+        "task_contexts": [],
+        "role_continuity": [],
+        "project_history": [],
+        "handoffs": [],
     }
     if not config.db_path.exists():
         empty["database"]["error"] = "database file not found"
@@ -173,6 +177,9 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
             ).fetchone()
             executor_table = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='executors'"
+            ).fetchone()
+            context_table = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_contexts'"
             ).fetchone()
             return {
                 "database": {
@@ -225,6 +232,18 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                 "executors": _row_dicts(list(conn.execute(
                     "SELECT * FROM executors ORDER BY status, executor_id"
                 ))) if executor_table else [],
+                "task_contexts": _row_dicts(list(conn.execute(
+                    "SELECT * FROM task_contexts ORDER BY id DESC LIMIT 50"
+                ))) if context_table else [],
+                "role_continuity": _row_dicts(list(conn.execute(
+                    "SELECT * FROM role_continuity ORDER BY updated_at DESC"
+                ))) if context_table else [],
+                "project_history": _row_dicts(list(conn.execute(
+                    "SELECT * FROM project_history ORDER BY updated_at DESC"
+                ))) if context_table else [],
+                "handoffs": _row_dicts(list(conn.execute(
+                    "SELECT * FROM handoffs ORDER BY id DESC LIMIT 50"
+                ))) if context_table else [],
             }
     except sqlite3.Error as exc:
         empty["database"]["error"] = str(exc)
@@ -683,6 +702,14 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "chairman_directives": sqlite_data["chairman_directives"],
             "pending_events": pending_events,
             "executors": sqlite_data["executors"],
+            "context_governance": {
+                "task_contexts": sqlite_data["task_contexts"],
+                "active_contexts": [row for row in sqlite_data["task_contexts"] if row.get("status") == "active"],
+                "role_continuity": sqlite_data["role_continuity"],
+                "project_history": sqlite_data["project_history"],
+                "handoffs": sqlite_data["handoffs"],
+                "open_handoffs": [row for row in sqlite_data["handoffs"] if row.get("status") in {"offered", "accepted", "needs_clarification"}],
+            },
             "quarantined_executors": [row for row in sqlite_data["executors"] if row.get("status") == "quarantined"],
             "unknown_executions": [row for row in sqlite_data["task_executions"] if row.get("recovery_status") == "unknown"],
             "role_activity_timeline": role_activity_timeline,
@@ -1029,6 +1056,18 @@ def _management(snapshot: dict[str, Any]) -> str:
         mgmt["executors"],
         [("executor_id", "执行器"), ("owner", "角色"), ("backend", "后端"), ("capabilities", "能力"), ("capacity", "容量"), ("status", "状态"), ("process_id", "PID"), ("heartbeat_at", "心跳")],
     )
+    context_table = _table(
+        mgmt["context_governance"]["task_contexts"],
+        [("task_id", "任务"), ("generation", "代次"), ("role", "角色"), ("company_context_version", "公司规则版本"), ("role_context_version", "角色规则版本"), ("directive_version", "指令版本"), ("strategy_version", "战略版本"), ("status", "状态"), ("bundle_sha256", "上下文 SHA")],
+    )
+    continuity_table = _table(
+        mgmt["context_governance"]["role_continuity"],
+        [("role", "角色"), ("version", "版本"), ("summary", "连续性摘要"), ("source_task_id", "来源任务"), ("updated_at", "更新时间")],
+    )
+    handoff_table = _table(
+        mgmt["context_governance"]["handoffs"],
+        [("id", "ID"), ("task_id", "任务"), ("from_role", "发起角色"), ("to_role", "接收角色"), ("handoff_type", "类型"), ("summary", "摘要"), ("decision_needed", "所需决定"), ("status", "状态")],
+    )
     return f"""
     <section class="grid stats">
       {_metric_card("运行模式", mgmt["operating_model"])}
@@ -1039,6 +1078,8 @@ def _management(snapshot: dict[str, Any]) -> str:
       {_metric_card("未知执行", len(mgmt["unknown_executions"]))}
       {_metric_card("业务推进", mgmt["business_progress"])}
       {_metric_card("待董事长审批", len([row for row in mgmt["approvals"] if row.get("status") == "pending"]))}
+      {_metric_card("活跃上下文", len(mgmt["context_governance"]["active_contexts"]))}
+      {_metric_card("待处理交接", len(mgmt["context_governance"]["open_handoffs"]))}
     </section>
     <section class="grid stats">
       <div class="chart-card">
@@ -1055,6 +1096,13 @@ def _management(snapshot: dict[str, Any]) -> str:
       </div>
     </section>
     <section class="band"><h2>注册执行器与容量</h2>{executor_table}</section>
+    <section class="band">
+      <h2>Agent 上下文治理</h2>
+      <p class="legend">每个任务上下文绑定执行代次、公司规则、角色私有规则、董事长指令、战略版本及 SHA-256；历史版本保留审计链。</p>
+      {context_table}
+    </section>
+    <section class="band"><h2>角色连续性记忆</h2>{continuity_table}</section>
+    <section class="band"><h2>跨角色结构化交接</h2>{handoff_table}</section>
     <section class="band">
       <h2>角色活动时间线</h2>
       <p class="legend">汇总 CEO Runtime 判断、角色审计动作和任务执行活动，按时间倒序展示；历史角色仅在确有历史活动时出现。</p>

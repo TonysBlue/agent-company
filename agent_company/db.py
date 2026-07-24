@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from .models import RACI, ROLES, SEED_TASKS
+from .models import ON_DEMAND_CAPABILITIES, RACI, ROLES, SEED_TASKS
 
 
 ORGANIZATION_MIGRATION_VERSION = "lean-org-v1"
@@ -161,6 +161,59 @@ class Store:
                     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                     UNIQUE(task_id)
                 );
+                CREATE TABLE IF NOT EXISTS task_contexts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    generation INTEGER NOT NULL,
+                    role TEXT NOT NULL,
+                    schema_version TEXT NOT NULL,
+                    company_context_version TEXT NOT NULL,
+                    role_context_version TEXT NOT NULL,
+                    directive_version INTEGER NOT NULL,
+                    strategy_version INTEGER NOT NULL,
+                    bundle_sha256 TEXT NOT NULL,
+                    bundle_path TEXT,
+                    source_versions_json TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    superseded_at TEXT,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+                    UNIQUE(task_id, generation)
+                );
+                CREATE TABLE IF NOT EXISTS role_continuity (
+                    role TEXT PRIMARY KEY,
+                    summary TEXT NOT NULL,
+                    verified_facts_json TEXT NOT NULL DEFAULT '[]',
+                    open_items_json TEXT NOT NULL DEFAULT '[]',
+                    source_task_id INTEGER,
+                    version INTEGER NOT NULL DEFAULT 1,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS project_history (
+                    repository_id TEXT PRIMARY KEY,
+                    summary TEXT NOT NULL,
+                    decisions_json TEXT NOT NULL DEFAULT '[]',
+                    known_limits_json TEXT NOT NULL DEFAULT '[]',
+                    version INTEGER NOT NULL DEFAULT 1,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS handoffs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    from_role TEXT NOT NULL,
+                    to_role TEXT NOT NULL,
+                    handoff_type TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    artifact_refs_json TEXT NOT NULL DEFAULT '[]',
+                    decision_needed TEXT,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    accepted_at TEXT,
+                    closed_at TEXT,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE
+                );
+                CREATE INDEX IF NOT EXISTS handoffs_role_status
+                    ON handoffs(to_role, status, id);
                 CREATE TABLE IF NOT EXISTS strategic_phases (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     phase_key TEXT NOT NULL UNIQUE,
@@ -410,7 +463,8 @@ class Store:
             for row in conn.execute("SELECT name, kind, mandate FROM roles")
         }
         resident_names = set(ROLES)
-        historical_names = sorted(set(before) - resident_names)
+        known_names = resident_names | set(ON_DEMAND_CAPABILITIES) - {"Codex workers"}
+        historical_names = sorted(set(before) - known_names)
 
         obsolete_active = list(conn.execute(
             """SELECT id, owner, status FROM tasks
@@ -438,8 +492,8 @@ class Store:
                 )
 
         conn.execute("UPDATE roles SET status='historical' WHERE name NOT IN ({})".format(
-            ",".join("?" for _ in resident_names)
-        ), tuple(sorted(resident_names)))
+            ",".join("?" for _ in known_names)
+        ), tuple(sorted(known_names)))
         for name, mandate in ROLES.items():
             kind = "human" if name == "Chairman" else "agent"
             conn.execute(
@@ -449,6 +503,15 @@ class Store:
                        mandate=excluded.mandate,
                        status='resident'""",
                 (name, kind, mandate),
+            )
+        for name, mandate in ON_DEMAND_CAPABILITIES.items():
+            if name == "Codex workers":
+                continue
+            conn.execute(
+                """INSERT INTO roles(name, kind, mandate, status) VALUES (?, 'agent', ?, 'on_demand')
+                   ON CONFLICT(name) DO UPDATE SET
+                       kind='agent', mandate=excluded.mandate, status='on_demand'""",
+                (name, mandate),
             )
         conn.execute("DELETE FROM raci")
         for domain, values in RACI.items():
