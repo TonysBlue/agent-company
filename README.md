@@ -10,15 +10,17 @@ This repository operates a real commercial venture rather than a business simula
 
 ## Agent context operating system
 
-Every execution generation receives a versioned context bundle compiled from:
+Every execution generation currently receives a versioned context bundle compiled from:
 
 - shared company constitution, governance, evidence, data, and collaboration rules;
-- every role's public charter and RACI relationship;
-- only the executing role's private playbook;
+- all public role charters and RACI relationship;
+- the executing role's private playbook;
 - current CEO strategy and active Chairman directives;
 - task/repository contract, role continuity, project history, and open handoffs.
 
-The trusted runner materializes this under `.agent-company/` in the task workspace, mounts it read-only inside Bubblewrap, records its SHA-256 and source versions in SQLite, rejects stale/tampered context before delivery, and requires structured `CONTINUITY.json` evidence to update role/project memory and handoffs. The management dashboard exposes context versions, continuity, and handoff status without exposing role-private content or secrets.
+The approved future design adds Goal Contract, Design Record, Behavior Specification, Evaluation Contract, and Baseline summary to this bundle before build dispatch.
+
+The trusted runner materializes the currently implemented context under `.agent-company/` in the task workspace, mounts it read-only inside Bubblewrap, records its SHA-256 and source versions in SQLite, rejects stale/tampered context before delivery, and requires structured `CONTINUITY.json` evidence to update role/project memory and handoffs. The management dashboard exposes context versions, continuity, and handoff status without exposing role-private content or secrets. Goal/Design/Spec/Eval/Baseline injection is proposed in `docs/development-assurance-system-design.md` and is not implemented or authorized until Chairman approval.
 
 ## Repository and asset boundaries
 
@@ -153,7 +155,9 @@ documented in `docs/event-worker-deployment.md`.
 - `config/sample.ini`: configurable product, paths, backend, governance.
 - `data/chairman/inbox`: CEO-only approval request files for Chairman.
 - `data/chairman/outbox`: Chairman decision files.
-- `docs/`: constitution, operating model, architecture, and plans.
+- `docs/`: constitution, operating model, architecture, development assurance design, and plans.
+- `docs/development-assurance-system-design.md`: Chairman-review draft for goal/design/spec/eval-driven product and control-plane development; it does not authorize implementation.
+- `docs/templates/`: proposed versioned Goal, Design, Behavior Spec, Eval, Baseline, Review, and Release document templates.
 - `tests/`: unittest coverage.
 - `docs/versioning-and-records.md`: Git change control, evidence, retention, and recovery policy.
 - `scripts/archive_company.py`: consistent SQLite/runtime snapshots with SHA-256 manifests.

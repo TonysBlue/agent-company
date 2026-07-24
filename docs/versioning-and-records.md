@@ -11,6 +11,8 @@
 
 ## Change control
 
+The proposed Development Assurance System is defined in `docs/development-assurance-system-design.md`. Until Chairman approval, it is a design draft and does not authorize runtime implementation. After approval, material product and control-plane changes must link immutable, versioned Goal, Design, Behavior Spec, Eval, Baseline, Review, and Release artifacts appropriate to their risk and development profile. Approved design and evaluation documents are Git-tracked sources of truth; runtime lifecycle, approvals, hashes, and evidence lineage remain in SQLite and archives.
+
 Every material change must follow this sequence:
 
 1. Record the objective and affected business capability.
