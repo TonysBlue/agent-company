@@ -25,6 +25,31 @@ ARTIFACT_KINDS = {
 REQUIRED_MANIFEST_KINDS = {
     "goal_contract", "design_record", "behavior_spec", "eval_contract", "baseline_report",
 }
+GATES = {f"G{i}" for i in range(8)}
+GATE_DECISIONS = {"pass", "pass_with_conditions", "return", "blocked", "reject"}
+LIFECYCLE_TRANSITIONS = {
+    "discovery": {"goal_review", "cancelled"},
+    "goal_review": {"design_draft", "discovery", "cancelled"},
+    "design_draft": {"design_review", "discovery", "cancelled"},
+    "design_review": {"spec_ready", "design_draft", "cancelled"},
+    "spec_ready": {"eval_contract_approved", "design_draft", "cancelled"},
+    "eval_contract_approved": {"baseline_recorded", "design_draft", "cancelled"},
+    "baseline_recorded": {"approved_for_build", "design_draft", "cancelled"},
+    "approved_for_build": {"implementation", "cancelled"},
+    "implementation": {"independent_evaluation", "cancelled"},
+    "independent_evaluation": {"implementation", "design_draft", "evaluation_rejected", "release_candidate"},
+    "release_candidate": {"release_decision", "incident_declared"},
+    "release_decision": {"release_rejected", "release_approved", "release_approved_conditional"},
+    "release_approved": {"enabled_or_deployed"},
+    "release_approved_conditional": {"conditions_verified", "release_expired"},
+    "conditions_verified": {"enabled_or_deployed"},
+    "enabled_or_deployed": {"outcome_observation", "incident_declared"},
+    "outcome_observation": {"closed", "incident_declared", "reopened"},
+    "incident_declared": {"rollback_in_progress"},
+    "rollback_in_progress": {"rolled_back", "disabled", "incident_resolved"},
+    "incident_resolved": {"enabled_or_deployed", "outcome_observation", "closed", "reopened"},
+    "reopened": {"discovery", "design_draft"},
+}
 ARTIFACT_KEYS = {
     "schema_version", "artifact_id", "kind", "version", "status", "initiative_id",
     "profile", "risk_class", "owner_principal", "repository_id", "content",
@@ -44,6 +69,217 @@ class AssuranceKernel:
 
     def init(self) -> None:
         self.store.init()
+
+    def create_initiative(
+        self, initiative_id: str, title: str, profile: str, risk_class: str,
+        *, actor: str, principal_id: str,
+    ) -> dict[str, Any]:
+        self.init()
+        if profile not in PROFILES or risk_class not in RISK_CLASSES:
+            raise AssuranceError("invalid assurance profile or risk class")
+        if not all(isinstance(v, str) and v.strip() for v in {initiative_id, title, principal_id}):
+            raise AssuranceError("initiative fields must be non-empty")
+        now = utcnow()
+        try:
+            with self.store.connect() as conn:
+                conn.execute(
+                    """INSERT INTO assurance_initiatives(
+                           initiative_id, profile, risk_class, title, owner_principal,
+                           status, mode, created_at, updated_at
+                       ) VALUES (?, ?, ?, ?, ?, 'discovery', 'shadow', ?, ?)""",
+                    (initiative_id, profile, risk_class, title.strip(), principal_id, now, now),
+                )
+                self.store.audit(
+                    conn, actor, "assurance_initiative_created", "assurance_initiative",
+                    initiative_id, {"principal_id": principal_id, "risk_class": risk_class, "mode": "shadow"},
+                )
+        except Exception as exc:
+            if "UNIQUE constraint" in str(exc):
+                raise AssuranceError("initiative already exists") from exc
+            raise
+        return {"initiative_id": initiative_id, "status": "discovery", "mode": "shadow"}
+
+    def transition(
+        self, initiative_id: str, target: str, *, actor: str, principal_id: str,
+    ) -> dict[str, Any]:
+        self.init()
+        with self.store.connect() as conn:
+            row = conn.execute(
+                "SELECT status FROM assurance_initiatives WHERE initiative_id=?", (initiative_id,)
+            ).fetchone()
+            if row is None:
+                raise AssuranceError("initiative not found")
+            current = row["status"]
+            if target not in LIFECYCLE_TRANSITIONS.get(current, set()):
+                raise AssuranceError(f"illegal lifecycle transition: {current} -> {target}")
+            now = utcnow()
+            conn.execute(
+                "UPDATE assurance_initiatives SET status=?, updated_at=? WHERE initiative_id=?",
+                (target, now, initiative_id),
+            )
+            self.store.audit(
+                conn, actor, "assurance_lifecycle_transition", "assurance_initiative",
+                initiative_id, {"principal_id": principal_id, "from": current, "to": target, "mode": "shadow"},
+            )
+        return {"initiative_id": initiative_id, "status": target, "mode": "shadow"}
+
+    def block(
+        self, initiative_id: str, reason: str, resume_state: str,
+        *, actor: str, principal_id: str,
+    ) -> dict[str, Any]:
+        self.init()
+        with self.store.connect() as conn:
+            row = conn.execute(
+                "SELECT status FROM assurance_initiatives WHERE initiative_id=?", (initiative_id,)
+            ).fetchone()
+            if row is None or row["status"] != resume_state or not reason.strip():
+                raise AssuranceError("invalid assurance blocker or resume state")
+            now = utcnow()
+            conn.execute(
+                """INSERT INTO assurance_blocks(
+                       initiative_id, reason, resume_state, actor, principal_id, created_at
+                   ) VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(initiative_id) DO UPDATE SET
+                     reason=excluded.reason, resume_state=excluded.resume_state,
+                     actor=excluded.actor, principal_id=excluded.principal_id,
+                     created_at=excluded.created_at""",
+                (initiative_id, reason.strip(), resume_state, actor, principal_id, now),
+            )
+            conn.execute(
+                "UPDATE assurance_initiatives SET status='blocked', updated_at=? WHERE initiative_id=?",
+                (now, initiative_id),
+            )
+            self.store.audit(
+                conn, actor, "assurance_blocked", "assurance_initiative", initiative_id,
+                {"principal_id": principal_id, "reason": reason.strip(), "resume_state": resume_state, "mode": "shadow"},
+            )
+        return {"initiative_id": initiative_id, "status": "blocked", "resume_state": resume_state, "mode": "shadow"}
+
+    def resume(self, initiative_id: str, *, actor: str, principal_id: str) -> dict[str, Any]:
+        self.init()
+        with self.store.connect() as conn:
+            row = conn.execute(
+                """SELECT i.status, b.resume_state FROM assurance_initiatives i
+                   JOIN assurance_blocks b ON b.initiative_id=i.initiative_id
+                   WHERE i.initiative_id=?""",
+                (initiative_id,),
+            ).fetchone()
+            if row is None or row["status"] != "blocked":
+                raise AssuranceError("initiative is not blocked with a resume state")
+            now = utcnow()
+            conn.execute(
+                "UPDATE assurance_initiatives SET status=?, updated_at=? WHERE initiative_id=?",
+                (row["resume_state"], now, initiative_id),
+            )
+            conn.execute("DELETE FROM assurance_blocks WHERE initiative_id=?", (initiative_id,))
+            self.store.audit(
+                conn, actor, "assurance_resumed", "assurance_initiative", initiative_id,
+                {"principal_id": principal_id, "resume_state": row["resume_state"], "mode": "shadow"},
+            )
+        return {"initiative_id": initiative_id, "status": row["resume_state"], "mode": "shadow"}
+
+    def record_gate(
+        self, initiative_id: str, gate: str, decision: str, artifact_refs: list[str],
+        *, actor: str, principal_id: str, conditions: list[str] | None = None,
+        expires_at: str | None = None,
+    ) -> dict[str, Any]:
+        self.init()
+        if gate not in GATES or decision not in GATE_DECISIONS or not artifact_refs:
+            raise AssuranceError("invalid gate decision")
+        conditions = conditions or []
+        if decision == "pass_with_conditions" and (not conditions or not expires_at):
+            raise AssuranceError("conditional gate requires conditions and expiry")
+        ordered = []
+        with self.store.connect() as conn:
+            for ref in sorted(artifact_refs):
+                try:
+                    artifact_id, raw_version = ref.rsplit(":v", 1)
+                    version = int(raw_version)
+                except (ValueError, TypeError) as exc:
+                    raise AssuranceError("invalid gate artifact reference") from exc
+                row = conn.execute(
+                    """SELECT initiative_id, owner_principal, status, content_sha256
+                       FROM assurance_artifacts WHERE artifact_id=? AND version=?""",
+                    (artifact_id, version),
+                ).fetchone()
+                if row is None or row["initiative_id"] != initiative_id or row["status"] != "approved":
+                    raise AssuranceError("gate references must be approved artifacts in the initiative")
+                if row["owner_principal"] == principal_id:
+                    raise AssuranceError("separation of duties forbids author gate approval")
+                ordered.append({"ref": ref, "sha256": row["content_sha256"]})
+            digest = hashlib.sha256(_canonical(ordered).encode("ascii")).hexdigest()
+            now = utcnow()
+            cur = conn.execute(
+                """INSERT INTO assurance_gate_decisions(
+                       initiative_id, gate, decision, actor, principal_id,
+                       artifact_set_sha256, conditions_json, expires_at, created_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (initiative_id, gate, decision, actor, principal_id, digest, _canonical(conditions), expires_at, now),
+            )
+            self.store.audit(
+                conn, actor, "assurance_gate_recorded", "assurance_gate_decision",
+                cur.lastrowid, {"principal_id": principal_id, "gate": gate, "decision": decision, "artifact_set_sha256": digest, "mode": "shadow"},
+            )
+        return {"gate_decision_id": cur.lastrowid, "artifact_set_sha256": digest, "decision": decision, "mode": "shadow"}
+
+    def supersede_artifact(
+        self, artifact_id: str, version: int, *, actor: str, principal_id: str, reason: str,
+    ) -> dict[str, Any]:
+        self.init()
+        if not reason.strip():
+            raise AssuranceError("supersession reason must be non-empty")
+        invalidated: list[str] = []
+        with self.store.connect() as conn:
+            row = conn.execute(
+                "SELECT status FROM assurance_artifacts WHERE artifact_id=? AND version=?",
+                (artifact_id, version),
+            ).fetchone()
+            if row is None or row["status"] != "approved":
+                raise AssuranceError("only approved artifact may be superseded")
+            conn.execute(
+                "UPDATE assurance_artifacts SET status='superseded' WHERE artifact_id=? AND version=?",
+                (artifact_id, version),
+            )
+            queue = [artifact_id]
+            seen = {artifact_id}
+            while queue:
+                source = queue.pop(0)
+                for link in conn.execute(
+                    "SELECT to_artifact_id FROM assurance_links WHERE from_artifact_id=?", (source,)
+                ):
+                    dependent = link["to_artifact_id"]
+                    if dependent in seen:
+                        continue
+                    seen.add(dependent)
+                    queue.append(dependent)
+                    rows = conn.execute(
+                        "SELECT version FROM assurance_artifacts WHERE artifact_id=? AND status='approved'",
+                        (dependent,),
+                    ).fetchall()
+                    for dep_row in rows:
+                        conn.execute(
+                            "UPDATE assurance_artifacts SET status='stale' WHERE artifact_id=? AND version=?",
+                            (dependent, dep_row["version"]),
+                        )
+                        invalidated.append(f"{dependent}:v{dep_row['version']}")
+            self.store.audit(
+                conn, actor, "assurance_artifact_superseded", "assurance_artifact",
+                f"{artifact_id}:v{version}", {"principal_id": principal_id, "reason": reason.strip(), "invalidated": sorted(invalidated), "mode": "shadow"},
+            )
+        return {"artifact_id": artifact_id, "version": version, "status": "superseded", "invalidated": sorted(invalidated), "mode": "shadow"}
+
+    def verify_integrity(self) -> dict[str, Any]:
+        self.init()
+        conflicts = []
+        with self.store.connect_readonly() as conn:
+            for row in conn.execute("SELECT artifact_id, version, content_json, content_sha256 FROM assurance_artifacts ORDER BY id"):
+                actual = hashlib.sha256(row["content_json"].encode("ascii")).hexdigest()
+                if actual != row["content_sha256"]:
+                    conflicts.append({
+                        "artifact_id": row["artifact_id"], "version": row["version"],
+                        "expected_sha256": row["content_sha256"], "actual_sha256": actual,
+                    })
+        return {"status": "integrity_conflict" if conflicts else "ok", "conflicts": conflicts, "mode": "shadow"}
 
     def register_artifact(
         self, payload: dict[str, Any], *, actor: str, principal_id: str,

@@ -141,6 +141,78 @@ class AssuranceKernelTest(unittest.TestCase):
                 "design-1", 1, actor="Company Platform Engineer", principal_id="principal-platform"
             )
 
+    def test_lifecycle_rejects_illegal_transition_and_records_block_resume(self) -> None:
+        self.kernel.create_initiative(
+            "lifecycle-1", "Control gate", "control-plane-reliability", "C2",
+            actor="CEO", principal_id="principal-ceo",
+        )
+        with self.assertRaisesRegex(AssuranceError, "illegal lifecycle transition"):
+            self.kernel.transition("lifecycle-1", "implementation", actor="CEO", principal_id="principal-ceo")
+        self.kernel.transition("lifecycle-1", "goal_review", actor="CEO", principal_id="principal-ceo")
+        blocked = self.kernel.block(
+            "lifecycle-1", "missing design evidence", "goal_review",
+            actor="CEO", principal_id="principal-ceo",
+        )
+        self.assertEqual(blocked["status"], "blocked")
+        resumed = self.kernel.resume("lifecycle-1", actor="CEO", principal_id="principal-ceo")
+        self.assertEqual(resumed["status"], "goal_review")
+
+    def test_gate_decision_binds_artifact_set_and_rejects_author_as_independent_reviewer(self) -> None:
+        self.kernel.create_initiative(
+            "gate-1", "Gate pilot", "control-plane-reliability", "C2",
+            actor="CEO", principal_id="principal-ceo",
+        )
+        artifact = self.artifact("goal_contract", "goal-gate")
+        artifact["initiative_id"] = "gate-1"
+        self.kernel.register_artifact(artifact, actor="Company Platform Engineer", principal_id="principal-platform")
+        self.kernel.approve_artifact("goal-gate", 1, actor="CEO", principal_id="principal-ceo")
+        with self.assertRaisesRegex(AssuranceError, "separation of duties"):
+            self.kernel.record_gate(
+                "gate-1", "G0", "pass", ["goal-gate:v1"],
+                actor="Company Platform Engineer", principal_id="principal-platform",
+            )
+        decision = self.kernel.record_gate(
+            "gate-1", "G0", "pass", ["goal-gate:v1"],
+            actor="CEO", principal_id="principal-ceo",
+        )
+        self.assertEqual(len(decision["artifact_set_sha256"]), 64)
+        self.assertEqual(decision["mode"], "shadow")
+
+    def test_integrity_and_stale_impact_fail_closed_without_touching_tasks(self) -> None:
+        artifact = self.artifact("design_record", "design-integrity")
+        self.kernel.register_artifact(artifact, actor="Company Platform Engineer", principal_id="principal-platform")
+        clean = self.kernel.verify_integrity()
+        self.assertEqual(clean["conflicts"], [])
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                "UPDATE assurance_artifacts SET content_json='{}' WHERE artifact_id='design-integrity'"
+            )
+        conflict = self.kernel.verify_integrity()
+        self.assertEqual(conflict["status"], "integrity_conflict")
+        self.assertEqual(conflict["conflicts"][0]["artifact_id"], "design-integrity")
+        self.assertEqual(Store(self.config.db_path).fetch_one("SELECT COUNT(*) AS c FROM tasks")["c"], 2)
+
+    def test_supersede_marks_dependent_artifacts_stale_in_shadow_mode(self) -> None:
+        for kind, artifact_id in [("goal_contract", "goal-old"), ("design_record", "design-old")]:
+            self.kernel.register_artifact(
+                self.artifact(kind, artifact_id), actor="Company Platform Engineer", principal_id="principal-platform"
+            )
+            self.kernel.approve_artifact(artifact_id, 1, actor="CEO", principal_id="principal-ceo")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_links(
+                       initiative_id, from_artifact_id, relation, to_artifact_id, created_at
+                   ) VALUES ('pilot-control-gate','goal-old','governs','design-old','2026-01-01T00:00:00+00:00')"""
+            )
+        result = self.kernel.supersede_artifact(
+            "goal-old", 1, actor="CEO", principal_id="principal-ceo", reason="new goal evidence"
+        )
+        self.assertEqual(result["invalidated"], ["design-old:v1"])
+        dependent = Store(self.config.db_path).fetch_one(
+            "SELECT status FROM assurance_artifacts WHERE artifact_id='design-old'"
+        )
+        self.assertEqual(dependent["status"], "stale")
+
 
 if __name__ == "__main__":
     unittest.main()

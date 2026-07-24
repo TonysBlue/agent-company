@@ -253,6 +253,26 @@ class Store:
                     created_at TEXT NOT NULL,
                     UNIQUE(initiative_id, from_artifact_id, relation, to_artifact_id)
                 );
+                CREATE TABLE IF NOT EXISTS assurance_gate_decisions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    initiative_id TEXT NOT NULL,
+                    gate TEXT NOT NULL,
+                    decision TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    principal_id TEXT NOT NULL,
+                    artifact_set_sha256 TEXT NOT NULL,
+                    conditions_json TEXT NOT NULL DEFAULT '[]',
+                    expires_at TEXT,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS assurance_blocks (
+                    initiative_id TEXT PRIMARY KEY,
+                    reason TEXT NOT NULL,
+                    resume_state TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    principal_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS assurance_classifications (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
