@@ -215,6 +215,54 @@ class Store:
                 );
                 CREATE INDEX IF NOT EXISTS handoffs_role_status
                     ON handoffs(to_role, status, id);
+                CREATE TABLE IF NOT EXISTS assurance_initiatives (
+                    initiative_id TEXT PRIMARY KEY,
+                    profile TEXT NOT NULL,
+                    risk_class TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    owner_principal TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    mode TEXT NOT NULL DEFAULT 'shadow',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS assurance_artifacts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    artifact_id TEXT NOT NULL,
+                    initiative_id TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    profile TEXT NOT NULL,
+                    risk_class TEXT NOT NULL,
+                    owner_principal TEXT NOT NULL,
+                    repository_id TEXT NOT NULL,
+                    content_json TEXT NOT NULL,
+                    content_sha256 TEXT NOT NULL,
+                    approved_by_principal TEXT,
+                    approved_at TEXT,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(artifact_id, version)
+                );
+                CREATE TABLE IF NOT EXISTS assurance_links (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    initiative_id TEXT NOT NULL,
+                    from_artifact_id TEXT NOT NULL,
+                    relation TEXT NOT NULL,
+                    to_artifact_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(initiative_id, from_artifact_id, relation, to_artifact_id)
+                );
+                CREATE TABLE IF NOT EXISTS assurance_classifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    risk_class TEXT NOT NULL,
+                    indicators_json TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    principal_id TEXT NOT NULL,
+                    mode TEXT NOT NULL DEFAULT 'shadow',
+                    created_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS strategic_phases (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     phase_key TEXT NOT NULL UNIQUE,
