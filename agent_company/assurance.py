@@ -68,7 +68,7 @@ class AssuranceKernel:
         self.store = Store(config.db_path)
 
     def init(self) -> None:
-        self.store.init()
+        self.store.init_assurance()
 
     def create_initiative(
         self, initiative_id: str, title: str, profile: str, risk_class: str,

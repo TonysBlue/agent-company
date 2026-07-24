@@ -24,6 +24,7 @@ class AssuranceKernelTest(unittest.TestCase):
         )
         os.chdir(self.root)
         self.config = load_config()
+        Store(self.config.db_path).init()
         self.kernel = AssuranceKernel(self.config)
         self.kernel.init()
 
@@ -130,6 +131,34 @@ class AssuranceKernelTest(unittest.TestCase):
             self.kernel.register_artifact(
                 broken, actor="Company Platform Engineer", principal_id="principal-platform"
             )
+
+    def test_assurance_init_is_additive_on_legacy_operational_state(self) -> None:
+        store = Store(self.config.db_path)
+        store.init()
+        with store.connect() as conn:
+            now = "2026-07-24T00:00:00+00:00"
+            conn.execute(
+                "INSERT OR REPLACE INTO roles(name,kind,mandate,status) VALUES ('Legacy Agent','agent','legacy','historical')"
+            )
+            task_id = conn.execute(
+                """INSERT INTO tasks(created_at,updated_at,owner,title,domain,status,priority)
+                   VALUES (?,?,?,?,?,'in_progress',?)""",
+                (now, now, "Legacy Agent", "Must remain active", "company_platform", 5),
+            ).lastrowid
+            before = {
+                table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in ("tasks", "execution_events", "approvals", "roles", "raci")
+            }
+            audit_before = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+        self.kernel.init()
+        with store.connect_readonly() as conn:
+            self.assertEqual(conn.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()[0], "in_progress")
+            after = {
+                table: conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+                for table in ("tasks", "execution_events", "approvals", "roles", "raci")
+            }
+            self.assertEqual(after, before)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0], audit_before)
 
     def test_author_cannot_approve_own_artifact(self) -> None:
         self.kernel.register_artifact(

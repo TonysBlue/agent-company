@@ -38,6 +38,7 @@ class AssuranceCliTest(unittest.TestCase):
         return json.loads(output.getvalue())
 
     def test_shadow_commands_init_classify_list_and_integrity(self) -> None:
+        Store(load_config().db_path).init()
         initialized = self.run_cli("assurance-init")
         self.assertEqual(initialized["mode"], "shadow")
         result = self.run_cli(
