@@ -703,11 +703,37 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
             "pending_events": pending_events,
             "executors": sqlite_data["executors"],
             "context_governance": {
-                "task_contexts": sqlite_data["task_contexts"],
-                "active_contexts": [row for row in sqlite_data["task_contexts"] if row.get("status") == "active"],
-                "role_continuity": sqlite_data["role_continuity"],
-                "project_history": sqlite_data["project_history"],
-                "handoffs": sqlite_data["handoffs"],
+                "task_contexts": [
+                    {
+                        "task_id": row.get("task_id"), "generation": row.get("generation"),
+                        "role": row.get("role"), "company_context_version": row.get("company_context_version"),
+                        "role_context_version": row.get("role_context_version"),
+                        "directive_version": row.get("directive_version"), "strategy_version": row.get("strategy_version"),
+                        "status": row.get("status"), "bundle_sha256_prefix": str(row.get("bundle_sha256") or "")[:12],
+                        "created_at": row.get("created_at"),
+                    }
+                    for row in sqlite_data["task_contexts"]
+                ],
+                "active_contexts": [
+                    {"task_id": row.get("task_id"), "generation": row.get("generation"), "role": row.get("role"), "status": row.get("status")}
+                    for row in sqlite_data["task_contexts"] if row.get("status") == "active"
+                ],
+                "role_continuity": [
+                    {"role": row.get("role"), "version": row.get("version"), "summary": row.get("summary"),
+                     "source_task_id": row.get("source_task_id"), "updated_at": row.get("updated_at")}
+                    for row in sqlite_data["role_continuity"]
+                ],
+                "project_history": [
+                    {"repository_id": row.get("repository_id"), "version": row.get("version"),
+                     "summary": row.get("summary"), "updated_at": row.get("updated_at")}
+                    for row in sqlite_data["project_history"]
+                ],
+                "handoffs": [
+                    {"id": row.get("id"), "task_id": row.get("task_id"), "from_role": row.get("from_role"),
+                     "to_role": row.get("to_role"), "handoff_type": row.get("handoff_type"),
+                     "summary": row.get("summary"), "decision_needed": row.get("decision_needed"), "status": row.get("status")}
+                    for row in sqlite_data["handoffs"]
+                ],
                 "open_handoffs": [row for row in sqlite_data["handoffs"] if row.get("status") in {"offered", "accepted", "needs_clarification"}],
             },
             "quarantined_executors": [row for row in sqlite_data["executors"] if row.get("status") == "quarantined"],
@@ -1058,7 +1084,7 @@ def _management(snapshot: dict[str, Any]) -> str:
     )
     context_table = _table(
         mgmt["context_governance"]["task_contexts"],
-        [("task_id", "任务"), ("generation", "代次"), ("role", "角色"), ("company_context_version", "公司规则版本"), ("role_context_version", "角色规则版本"), ("directive_version", "指令版本"), ("strategy_version", "战略版本"), ("status", "状态"), ("bundle_sha256", "上下文 SHA")],
+        [("task_id", "任务"), ("generation", "代次"), ("role", "角色"), ("company_context_version", "公司规则版本"), ("role_context_version", "角色规则版本"), ("directive_version", "指令版本"), ("strategy_version", "战略版本"), ("status", "状态"), ("bundle_sha256_prefix", "上下文 SHA 前缀")],
     )
     continuity_table = _table(
         mgmt["context_governance"]["role_continuity"],

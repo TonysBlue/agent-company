@@ -99,6 +99,37 @@ class ContextCompilerTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "stale"):
             compiler.assert_current(self.task_id, 3, digest)
 
+    def test_materialized_context_tamper_and_same_generation_recompile_are_rejected(self) -> None:
+        compiler = ContextCompiler(self.config, context_root=Path("/home/tony/agent-company/company_context"))
+        kwargs = {
+            "generation": 4,
+            "role": "Product Engineer",
+            "repository": {"id": "pixweave", "remote": "git@example/pix.git", "branch": "task/1", "canonical_test": "test"},
+        }
+        bundle = compiler.compile(self.task_id, **kwargs)
+        workspace = self.root / "tamper-workspace"
+        workspace.mkdir()
+        manifest = compiler.materialize(workspace, bundle)
+        with self.assertRaisesRegex(ValueError, "immutable"):
+            compiler.compile(self.task_id, **kwargs)
+        context_path = workspace / ".agent-company" / "TASK_CONTEXT.json"
+        context_path.chmod(0o644)
+        payload = json.loads(context_path.read_text())
+        payload["task"]["title"] = "tampered"
+        context_path.write_text(json.dumps(payload), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "tampered"):
+            compiler.assert_current(self.task_id, 4, manifest["bundle_sha256"], workspace=workspace)
+
+    def test_active_execution_generation_and_fencing_token_are_enforced(self) -> None:
+        compiler = ContextCompiler(self.config, context_root=Path("/home/tony/agent-company/company_context"))
+        self.osys.register_executor("ctx-test", "Product Engineer", "local", ["product"], 1)
+        claim = self.osys.claim_task(self.task_id, "Product Engineer", executor_id="ctx-test", backend="local")
+        with self.assertRaisesRegex(ValueError, "active fenced"):
+            compiler.compile(
+                self.task_id, generation=int(claim["generation"]) + 1, role="Product Engineer",
+                repository={"id": "pixweave"}, fencing_token=str(claim["fencing_token"]),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -54,6 +54,7 @@ class ContextCompiler:
         generation: int,
         role: str,
         repository: dict[str, Any],
+        fencing_token: str | None = None,
     ) -> dict[str, Any]:
         slug = ROLE_SLUGS.get(role)
         if slug is None:
@@ -78,6 +79,15 @@ class ContextCompiler:
                 raise ValueError(f"task not found: {task_id}")
             if task["owner"] != role:
                 raise ValueError(f"task is owned by {task['owner']}, not {role}")
+            execution = conn.execute("SELECT generation, fencing_token, recovery_status FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+            if execution is not None and (
+                int(execution["generation"]) != generation
+                or (fencing_token is not None and execution["fencing_token"] != fencing_token)
+                or execution["recovery_status"] not in {"running", "claimed"}
+            ):
+                raise ValueError("context generation does not match the active fenced execution")
+            if execution is None and fencing_token is not None:
+                raise ValueError("context requires an active fenced execution")
             state = conn.execute("SELECT * FROM ceo_state_versions ORDER BY version DESC LIMIT 1").fetchone()
             directives = [dict(row) for row in conn.execute(
                 "SELECT directive_version, directive_type, objective, constraints_json, priority, status FROM chairman_directives WHERE status IN ('pending','active') ORDER BY directive_version"
@@ -141,7 +151,10 @@ class ContextCompiler:
                 "role_context_version": _version(private, f"{slug}/private"),
                 "directive_version": directive_version,
                 "strategy_version": strategy_version,
-                "source_versions": {"public_roles": role_versions},
+                "source_versions": {
+                    "public_roles": role_versions,
+                    "source_sha256": hashlib.sha256(_canonical({"company": common, "public_roles": public_roles, "private": private, "task": dict(task), "history": history}).encode("utf-8")).hexdigest(),
+                },
                 "bundle_sha256": None,
             },
         }
@@ -149,36 +162,63 @@ class ContextCompiler:
         with self.store.connect() as conn:
             now = utcnow()
             conn.execute("UPDATE task_contexts SET status='superseded', superseded_at=? WHERE task_id=? AND status='active'", (now, task_id))
+            existing = conn.execute("SELECT bundle_sha256 FROM task_contexts WHERE task_id=? AND generation=?", (task_id, generation)).fetchone()
+            if existing is not None:
+                raise ValueError("context generation is immutable and already exists")
             conn.execute(
                 """INSERT INTO task_contexts(
                        task_id, generation, role, schema_version, company_context_version,
                        role_context_version, directive_version, strategy_version, bundle_sha256,
-                       bundle_path, source_versions_json, status, created_at
-                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, 'active', ?)
-                   ON CONFLICT(task_id, generation) DO UPDATE SET
-                       role=excluded.role, schema_version=excluded.schema_version,
-                       company_context_version=excluded.company_context_version,
-                       role_context_version=excluded.role_context_version,
-                       directive_version=excluded.directive_version, strategy_version=excluded.strategy_version,
-                       bundle_sha256=excluded.bundle_sha256, source_versions_json=excluded.source_versions_json,
-                       status='active', superseded_at=NULL""",
+                       fencing_token, bundle_path, source_versions_json, status, created_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, 'active', ?)""",
                 (task_id, generation, role, SCHEMA_VERSION, company_version,
                  bundle["role"]["version"], directive_version, strategy_version,
-                 bundle["provenance"]["bundle_sha256"], _canonical(bundle["provenance"]["source_versions"]), now),
+                 bundle["provenance"]["bundle_sha256"], fencing_token,
+                 _canonical(bundle["provenance"]["source_versions"]), now),
             )
         return bundle
 
-    def assert_current(self, task_id: int, generation: int, bundle_sha256: str) -> None:
+    def assert_current(
+        self, task_id: int, generation: int, bundle_sha256: str,
+        *, workspace: Path | None = None, fencing_token: str | None = None,
+    ) -> None:
         with self.store.connect() as conn:
             row = conn.execute(
                 "SELECT * FROM task_contexts WHERE task_id=? AND generation=?",
                 (task_id, generation),
             ).fetchone()
+            execution = conn.execute(
+                "SELECT generation, fencing_token, recovery_status FROM task_executions WHERE task_id=?", (task_id,)
+            ).fetchone()
+            task = conn.execute("SELECT owner, title, domain, acceptance_criteria, updated_at FROM tasks WHERE id=?", (task_id,)).fetchone()
             state = conn.execute("SELECT version, active_directive_version FROM ceo_state_versions ORDER BY version DESC LIMIT 1").fetchone()
         if row is None or row["status"] != "active" or row["bundle_sha256"] != bundle_sha256:
             raise ValueError("task context is missing, superseded, or tampered")
+        if execution is not None and (
+            int(execution["generation"]) != generation
+            or execution["recovery_status"] not in {"running", "claimed"}
+            or (fencing_token is not None and execution["fencing_token"] != fencing_token)
+            or (row["fencing_token"] is not None and row["fencing_token"] != execution["fencing_token"])
+        ):
+            raise ValueError("task context does not match the active fenced execution")
         if state and (int(row["strategy_version"]) != int(state["version"]) or int(row["directive_version"]) != int(state["active_directive_version"])):
             raise ValueError("task context is stale after strategy or Chairman directive change")
+        if workspace is not None:
+            context_path = workspace / ".agent-company" / "TASK_CONTEXT.json"
+            manifest_path = workspace / ".agent-company" / "CONTEXT_MANIFEST.json"
+            try:
+                materialized = json.loads(context_path.read_text(encoding="utf-8"))
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ValueError(f"materialized task context is missing or invalid: {exc}") from exc
+            actual = materialized.get("provenance", {}).get("bundle_sha256")
+            materialized["provenance"]["bundle_sha256"] = None
+            recalculated = hashlib.sha256(_canonical(materialized).encode("utf-8")).hexdigest()
+            if actual != bundle_sha256 or recalculated != bundle_sha256 or manifest.get("bundle_sha256") != bundle_sha256:
+                raise ValueError("materialized task context or manifest was tampered")
+            bundle_task = materialized.get("task", {})
+            if task is None or any(bundle_task.get(key) != task[key] for key in ("owner", "title", "domain", "acceptance_criteria", "updated_at")):
+                raise ValueError("task contract changed after context compilation")
 
     def materialize(self, workspace: Path, bundle: dict[str, Any]) -> dict[str, Any]:
         context_dir = workspace / ".agent-company"

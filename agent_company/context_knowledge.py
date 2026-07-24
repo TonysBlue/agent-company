@@ -33,13 +33,17 @@ class ContextKnowledge:
     ) -> dict[str, Any]:
         if not role.strip() or not summary.strip() or any(not str(item).strip() for item in verified_facts + open_items):
             raise ValueError("role continuity fields must not be empty")
+        if actor not in {role, "CEO"}:
+            raise ValueError("actor is not authorized to update role continuity")
         with self.store.connect() as conn:
             role_row = conn.execute("SELECT 1 FROM roles WHERE name=?", (role,)).fetchone()
+            task = conn.execute("SELECT owner FROM tasks WHERE id=?", (source_task_id,)).fetchone()
             if role_row is None:
                 raise ValueError(f"unknown role: {role}")
-            task = conn.execute("SELECT 1 FROM tasks WHERE id=?", (source_task_id,)).fetchone()
             if task is None:
                 raise ValueError(f"unknown source task: {source_task_id}")
+            if actor != "CEO" and task["owner"] != role:
+                raise ValueError("role continuity source task belongs to another role")
             current = conn.execute("SELECT version FROM role_continuity WHERE role=?", (role,)).fetchone()
             version = int(current["version"]) + 1 if current else 1
             now = utcnow()
@@ -61,6 +65,8 @@ class ContextKnowledge:
     ) -> dict[str, Any]:
         if not repository_id.strip() or not summary.strip() or any(not str(item).strip() for item in decisions + known_limits):
             raise ValueError("project history fields must not be empty")
+        if actor not in {"CEO", "Product Engineer", "Customer & Revenue", "Company Platform Engineer", "Control & Reliability Reviewer", "Finance & Risk Reviewer", "Legal/Compliance Specialist", "Independent Quality Reviewer"}:
+            raise ValueError("actor is not authorized to update project history")
         with self.store.connect() as conn:
             current = conn.execute("SELECT version FROM project_history WHERE repository_id=?", (repository_id,)).fetchone()
             version = int(current["version"]) + 1 if current else 1
@@ -85,10 +91,12 @@ class ContextKnowledge:
         if not handoff_type.strip() or not summary.strip() or any(not str(item).strip() for item in artifact_refs):
             raise ValueError("handoff fields must not be empty")
         with self.store.connect() as conn:
-            task = conn.execute("SELECT 1 FROM tasks WHERE id=?", (task_id,)).fetchone()
+            task = conn.execute("SELECT owner FROM tasks WHERE id=?", (task_id,)).fetchone()
             roles = {row["name"] for row in conn.execute("SELECT name FROM roles")}
             if task is None or from_role not in roles or to_role not in roles:
                 raise ValueError("handoff task and roles must exist")
+            if from_role != "CEO" and task["owner"] != from_role:
+                raise ValueError("handoff sender does not own the source task")
             cursor = conn.execute(
                 """INSERT INTO handoffs(task_id, from_role, to_role, handoff_type, summary,
                        artifact_refs_json, decision_needed, status, created_at)
@@ -141,23 +149,64 @@ class ContextKnowledge:
         for key in ("verified_facts", "open_items", "project_decisions", "known_limits", "handoffs"):
             if not isinstance(payload[key], list):
                 raise ValueError(f"continuity {key} must be a list")
-        role_result = self.update_role_continuity(
-            role=expected_role, summary=payload["summary"], verified_facts=payload["verified_facts"],
-            open_items=payload["open_items"], source_task_id=task_id, actor=expected_role,
-        )
-        project_result = None
-        if payload["project_summary"]:
-            project_result = self.update_project_history(
-                repository_id=repository_id, summary=payload["project_summary"],
-                decisions=payload["project_decisions"], known_limits=payload["known_limits"], actor=expected_role,
-            )
-        handoff_results = []
         for item in payload["handoffs"]:
             if not isinstance(item, dict) or set(item) != {"to_role", "handoff_type", "summary", "artifact_refs", "decision_needed"}:
                 raise ValueError("handoff payload has unknown or missing keys")
-            handoff_results.append(self.create_handoff(
-                task_id=task_id, from_role=expected_role, to_role=item["to_role"],
-                handoff_type=item["handoff_type"], summary=item["summary"],
-                artifact_refs=item["artifact_refs"], decision_needed=item["decision_needed"],
-            ))
-        return {"role": role_result, "project": project_result, "handoffs": handoff_results}
+            if not isinstance(item["artifact_refs"], list):
+                raise ValueError("handoff artifact_refs must be a list")
+        if not str(payload["summary"]).strip():
+            raise ValueError("continuity summary must not be empty")
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            task = conn.execute("SELECT owner FROM tasks WHERE id=?", (task_id,)).fetchone()
+            roles = {row["name"] for row in conn.execute("SELECT name FROM roles")}
+            if task is None or task["owner"] != expected_role or expected_role not in roles:
+                raise ValueError("continuity source task is not owned by the expected role")
+            for item in payload["handoffs"]:
+                if item["to_role"] not in roles or item["to_role"] == expected_role:
+                    raise ValueError("handoff target role is invalid")
+            now = utcnow()
+            current = conn.execute("SELECT version FROM role_continuity WHERE role=?", (expected_role,)).fetchone()
+            role_version = int(current["version"]) + 1 if current else 1
+            conn.execute(
+                """INSERT INTO role_continuity(role, summary, verified_facts_json, open_items_json, source_task_id, version, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(role) DO UPDATE SET summary=excluded.summary,
+                     verified_facts_json=excluded.verified_facts_json, open_items_json=excluded.open_items_json,
+                     source_task_id=excluded.source_task_id, version=excluded.version, updated_at=excluded.updated_at""",
+                (expected_role, payload["summary"].strip(), json.dumps(payload["verified_facts"]),
+                 json.dumps(payload["open_items"]), task_id, role_version, now),
+            )
+            self.store.audit(conn, expected_role, "update_role_continuity", "role", expected_role, {"version": role_version, "source_task_id": task_id})
+            project_result = None
+            if payload["project_summary"]:
+                current = conn.execute("SELECT version FROM project_history WHERE repository_id=?", (repository_id,)).fetchone()
+                project_version = int(current["version"]) + 1 if current else 1
+                conn.execute(
+                    """INSERT INTO project_history(repository_id, summary, decisions_json, known_limits_json, version, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(repository_id) DO UPDATE SET summary=excluded.summary,
+                         decisions_json=excluded.decisions_json, known_limits_json=excluded.known_limits_json,
+                         version=excluded.version, updated_at=excluded.updated_at""",
+                    (repository_id, str(payload["project_summary"]).strip(), json.dumps(payload["project_decisions"]),
+                     json.dumps(payload["known_limits"]), project_version, now),
+                )
+                self.store.audit(conn, expected_role, "update_project_history", "repository", repository_id, {"version": project_version})
+                project_result = {"repository_id": repository_id, "version": project_version, "updated_at": now}
+            handoff_results = []
+            for item in payload["handoffs"]:
+                cursor = conn.execute(
+                    """INSERT INTO handoffs(task_id, from_role, to_role, handoff_type, summary,
+                           artifact_refs_json, decision_needed, status, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 'offered', ?)""",
+                    (task_id, expected_role, item["to_role"], str(item["handoff_type"]).strip(),
+                     str(item["summary"]).strip(), json.dumps(item["artifact_refs"]), item["decision_needed"], now),
+                )
+                handoff_id = int(cursor.lastrowid)
+                self.store.audit(conn, expected_role, "create_handoff", "handoff", handoff_id, {"task_id": task_id, "to_role": item["to_role"], "type": item["handoff_type"]})
+                handoff_results.append({"handoff_id": handoff_id, "status": "offered"})
+            return {
+                "role": {"role": expected_role, "version": role_version, "updated_at": now},
+                "project": project_result,
+                "handoffs": handoff_results,
+            }

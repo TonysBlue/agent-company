@@ -109,6 +109,12 @@ logs = logs
         self.assertIsNone(snapshot["operations"]["funnel"][0]["value"])
         self.assertIn("context_governance", snapshot["management"])
         self.assertIn("active_contexts", snapshot["management"]["context_governance"])
+        serialized = json.dumps(snapshot["management"]["context_governance"])
+        self.assertNotIn("verified_facts_json", serialized)
+        self.assertNotIn("open_items_json", serialized)
+        self.assertNotIn("artifact_refs_json", serialized)
+        self.assertNotIn("bundle_path", serialized)
+        self.assertNotIn("fencing_token", serialized)
         self.assertEqual(snapshot["operations"]["funnel"][0]["state"], "placeholder")
         sources = {source["id"] for source in snapshot["sources"]}
         self.assertIn("sqlite", sources)

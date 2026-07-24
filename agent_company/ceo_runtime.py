@@ -404,13 +404,11 @@ class CEORuntime:
                 "SELECT domain, responsible, accountable, consulted, informed FROM raci ORDER BY domain"
             )]
             role_continuity = [dict(row) for row in conn.execute(
-                "SELECT role, summary, open_items_json, source_task_id, version, updated_at FROM role_continuity ORDER BY updated_at DESC"
+                "SELECT role, summary, source_task_id, version, updated_at FROM role_continuity ORDER BY updated_at DESC"
             )]
             open_handoffs = [dict(row) for row in conn.execute(
                 "SELECT id, task_id, from_role, to_role, handoff_type, summary, decision_needed, status FROM handoffs WHERE status IN ('offered','accepted','needs_clarification') ORDER BY id"
             )]
-            for row in role_continuity:
-                row["open_items"] = json.loads(row.pop("open_items_json"))
             phase_snapshot = None
             if strategic_phase:
                 phase_snapshot = dict(strategic_phase)

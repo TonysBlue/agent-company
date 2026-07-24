@@ -77,6 +77,7 @@ class ExecutionRunner:
                     "default_branch": repository.default_branch,
                     "canonical_test": repository.canonical_test,
                 },
+                fencing_token=token,
             )
             context_manifest = self.contexts.materialize(workdir, bundle)
             process = self._launch(task, repository, workdir, evidence_dir, log_path, context_manifest)
@@ -90,36 +91,35 @@ class ExecutionRunner:
         if process.returncode != 0:
             self.osys.fail_task(int(task["id"]), self.executor_id, f"runner exited with code {process.returncode}", True, token)
             return {"status": "failed", "task_id": task["id"], "returncode": process.returncode}
-        try:
-            self.contexts.assert_current(int(task["id"]), generation, context_manifest["bundle_sha256"])
-            delivery = self._publish_delivery(repository, workdir)
-        except Exception as exc:
-            self.osys.fail_task(int(task["id"]), self.executor_id, f"delivery validation or push failed: {exc}", True, token)
-            return {"status": "failed", "task_id": task["id"], "returncode": 0}
-        evidence = sorted(evidence_dir.rglob("*"))
-        evidence = [path for path in evidence if path.is_file()]
-        delivery_evidence = evidence_dir / "delivery.json"
-        delivery_evidence.write_text(json.dumps(delivery, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        evidence.append(delivery_evidence)
-        if len(evidence) == 1:
-            self.osys.fail_task(int(task["id"]), self.executor_id, "runner exited without reviewable evidence", True, token)
-            return {"status": "failed", "task_id": task["id"], "returncode": 0}
         continuity_path = evidence_dir / "CONTINUITY.json"
         if not continuity_path.is_file():
             self.osys.fail_task(int(task["id"]), self.executor_id, "runner exited without structured continuity", True, token)
             return {"status": "failed", "task_id": task["id"], "returncode": 0}
         try:
+            self.contexts.assert_current(
+                int(task["id"]), generation, context_manifest["bundle_sha256"],
+                workspace=workdir, fencing_token=token,
+            )
             continuity = self.knowledge.ingest_continuity(
                 continuity_path, expected_role=self.owner, task_id=int(task["id"]),
                 repository_id=repository.repository_id,
             )
-        except (ValueError, json.JSONDecodeError) as exc:
-            self.osys.fail_task(int(task["id"]), self.executor_id, f"invalid continuity evidence: {exc}", True, token)
+            self.contexts.assert_current(
+                int(task["id"]), generation, context_manifest["bundle_sha256"],
+                workspace=workdir, fencing_token=token,
+            )
+            delivery = self._publish_delivery(repository, workdir)
+        except (ValueError, json.JSONDecodeError, subprocess.SubprocessError) as exc:
+            self.osys.fail_task(int(task["id"]), self.executor_id, f"continuity, context, or delivery validation failed: {exc}", True, token)
             return {"status": "failed", "task_id": task["id"], "returncode": 0}
+        delivery_evidence = evidence_dir / "delivery.json"
         delivery["context_bundle_sha256"] = context_manifest["bundle_sha256"]
         delivery["continuity"] = continuity
         delivery_evidence.write_text(json.dumps(delivery, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         evidence = sorted(path for path in evidence_dir.rglob("*") if path.is_file())
+        if len(evidence) < 2:
+            self.osys.fail_task(int(task["id"]), self.executor_id, "runner exited without reviewable evidence", True, token)
+            return {"status": "failed", "task_id": task["id"], "returncode": 0}
         result = self.osys.complete_task(
             int(task["id"]), self.owner,
             "Runner verified reviewable evidence for the bounded task.", evidence,

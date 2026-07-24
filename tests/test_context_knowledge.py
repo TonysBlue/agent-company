@@ -86,6 +86,32 @@ class ContextKnowledgeTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unknown or missing"):
             self.knowledge.ingest_continuity(path, expected_role="Product Engineer", task_id=self.task_id, repository_id="pixweave")
 
+    def test_ingest_rolls_back_all_knowledge_when_late_handoff_is_invalid(self) -> None:
+        path = self.root / "ROLLBACK.json"
+        path.write_text(json.dumps({
+            "schema_version": "agent-company-continuity/v1", "role": "Product Engineer",
+            "summary": "Would otherwise persist", "verified_facts": ["x"], "open_items": [],
+            "project_summary": "Would otherwise persist", "project_decisions": [], "known_limits": [],
+            "handoffs": [{"to_role": "Unknown Role", "handoff_type": "review", "summary": "bad", "artifact_refs": [], "decision_needed": None}],
+        }), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "target role"):
+            self.knowledge.ingest_continuity(path, expected_role="Product Engineer", task_id=self.task_id, repository_id="pixweave")
+        self.assertIsNone(self.osys.store.fetch_one("SELECT * FROM role_continuity WHERE role='Product Engineer'"))
+        self.assertIsNone(self.osys.store.fetch_one("SELECT * FROM project_history WHERE repository_id='pixweave'"))
+        self.assertEqual(self.osys.store.fetch_all("SELECT * FROM handoffs"), [])
+
+    def test_role_cannot_forge_continuity_or_handoff_for_another_roles_task(self) -> None:
+        with self.assertRaisesRegex(ValueError, "authorized"):
+            self.knowledge.update_role_continuity(
+                role="Product Engineer", summary="forged", verified_facts=[], open_items=[],
+                source_task_id=self.task_id, actor="Customer & Revenue",
+            )
+        with self.assertRaisesRegex(ValueError, "does not own"):
+            self.knowledge.create_handoff(
+                task_id=self.task_id, from_role="Customer & Revenue", to_role="Product Engineer",
+                handoff_type="review", summary="forged", artifact_refs=[], decision_needed=None,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

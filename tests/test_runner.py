@@ -167,6 +167,23 @@ class ExecutionRunnerTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "dirty"):
                 runner._ensure_workspace(repository, workdir)
 
+    def test_runner_rejects_invalid_continuity_before_pushing_delivery(self) -> None:
+        runner = ExecutionRunner(
+            self.config, "test-runner", "Customer & Revenue", ["customer"], poll_seconds=0.01,
+        )
+        evidence_dir = self.root / "evidence" / f"task-{self.task_id}"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        (evidence_dir / "CONTINUITY.json").write_text("{}", encoding="utf-8")
+        with patch.object(runner, "_ensure_workspace"):
+            with patch.object(runner.contexts, "compile", return_value={"provenance": {"bundle_sha256": "a" * 64}}):
+                with patch.object(runner.contexts, "materialize", return_value={"bundle_sha256": "a" * 64}):
+                    with patch.object(runner.contexts, "assert_current"):
+                        with patch.object(runner, "_publish_delivery") as publish:
+                            with patch("agent_company.runner.subprocess.Popen", return_value=FakeProcess()):
+                                result = runner.run_once()
+        self.assertEqual(result["status"], "failed")
+        publish.assert_not_called()
+
     def test_runner_ignores_blocked_work_instead_of_crash_looping(self) -> None:
         with self.osys.store.connect() as conn:
             conn.execute("UPDATE tasks SET status='blocked', blocked_reason='operator review' WHERE id=?", (self.task_id,))

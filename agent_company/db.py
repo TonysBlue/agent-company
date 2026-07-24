@@ -172,6 +172,7 @@ class Store:
                     directive_version INTEGER NOT NULL,
                     strategy_version INTEGER NOT NULL,
                     bundle_sha256 TEXT NOT NULL,
+                    fencing_token TEXT,
                     bundle_path TEXT,
                     source_versions_json TEXT NOT NULL,
                     status TEXT NOT NULL,
@@ -389,6 +390,9 @@ class Store:
                 conn.execute("ALTER TABLE task_executions ADD COLUMN fencing_token TEXT")
             if "generation" not in execution_columns:
                 conn.execute("ALTER TABLE task_executions ADD COLUMN generation INTEGER NOT NULL DEFAULT 0")
+            context_columns = {row[1] for row in conn.execute("PRAGMA table_info(task_contexts)")}
+            if "fencing_token" not in context_columns:
+                conn.execute("ALTER TABLE task_contexts ADD COLUMN fencing_token TEXT")
             event_columns = {row[1] for row in conn.execute("PRAGMA table_info(execution_events)")}
             if "priority" not in event_columns:
                 conn.execute("ALTER TABLE execution_events ADD COLUMN priority INTEGER NOT NULL DEFAULT 10")
