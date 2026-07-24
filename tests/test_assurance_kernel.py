@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_company.assurance import AssuranceError, AssuranceKernel
+from agent_company.assurance import ARTIFACT_CONTENT_SCHEMAS, AssuranceError, AssuranceKernel
 from agent_company.config import load_config
 from agent_company.db import Store
 
@@ -33,6 +33,19 @@ class AssuranceKernelTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def artifact(self, kind: str, artifact_id: str, version: int = 1) -> dict[str, object]:
+        examples = {
+            "goal_contract": {"outcome": "measurable outcome", "non_goals": ["production deployment"]},
+            "design_record": {"problem": "governed change", "decision": "shadow registry", "alternatives": ["manual records"]},
+            "architecture_decision": {"context": "control plane", "decision": "additive tables", "consequences": ["no task enforcement"]},
+            "behavior_spec": {"behavior": "record without blocking", "scenarios": ["shadow classification"], "invariants": ["tasks unchanged"]},
+            "eval_contract": {"hard_gates": ["tasks unchanged"], "graders": ["unit tests"], "release_rule": "all hard gates pass"},
+            "baseline_report": {"subject": "legacy control plane", "measurements": ["task count"], "limitations": ["shadow only"]},
+            "review_decision": {"decision": "approve", "findings": [], "evidence_refs": ["test-run"]},
+            "release_decision": {"decision": "hold", "conditions": ["review"], "rollback": "disable shadow views"},
+            "change_decision": {"reason": "new evidence", "changed_nodes": ["goal"], "invalidated_nodes": ["design"]},
+            "incident_record": {"severity": "low", "impact": "none", "containment": ["disable"]},
+        }
+        content = examples.get(kind, {"summary": f"{kind} evidence"})
         return {
             "schema_version": "assurance-artifact/v1",
             "artifact_id": artifact_id,
@@ -44,7 +57,7 @@ class AssuranceKernelTest(unittest.TestCase):
             "risk_class": "C2",
             "owner_principal": "principal-platform",
             "repository_id": "agent-company",
-            "content": {"summary": f"{kind} evidence", "non_goals": ["production deployment"]},
+            "content": content,
         }
 
     def test_registers_immutable_versioned_artifact_and_audits_hash(self) -> None:
@@ -68,6 +81,20 @@ class AssuranceKernelTest(unittest.TestCase):
 
         with self.assertRaisesRegex(AssuranceError, "immutable"):
             self.kernel.register_artifact(payload, actor="Company Platform Engineer", principal_id="principal-platform")
+
+    def test_every_artifact_kind_has_strict_content_schema(self) -> None:
+        self.assertEqual(set(ARTIFACT_CONTENT_SCHEMAS), {
+            "goal_contract", "design_manifest", "design_record", "architecture_decision",
+            "behavior_spec", "eval_contract", "baseline_report", "review_decision",
+            "release_decision", "change_decision", "incident_record",
+        })
+        for kind in sorted(set(ARTIFACT_CONTENT_SCHEMAS) - {"design_manifest"}):
+            payload = self.artifact(kind, f"strict-{kind}")
+            payload["content"] = {"x": 1}
+            with self.subTest(kind=kind), self.assertRaisesRegex(AssuranceError, "unknown or missing"):
+                self.kernel.register_artifact(
+                    payload, actor="Company Platform Engineer", principal_id="principal-platform"
+                )
 
     def test_rejects_unknown_fields_invalid_kind_and_wrong_owner_principal(self) -> None:
         payload = self.artifact("goal_contract", "goal-control-gate")

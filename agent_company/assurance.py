@@ -22,6 +22,19 @@ ARTIFACT_KINDS = {
     "behavior_spec", "eval_contract", "baseline_report", "review_decision",
     "release_decision", "change_decision", "incident_record",
 }
+ARTIFACT_CONTENT_SCHEMAS: dict[str, dict[str, type | tuple[type, ...]]] = {
+    "goal_contract": {"outcome": str, "non_goals": list},
+    "design_manifest": {"artifact_refs": list, "edges": list},
+    "design_record": {"problem": str, "decision": str, "alternatives": list},
+    "architecture_decision": {"context": str, "decision": str, "consequences": list},
+    "behavior_spec": {"behavior": str, "scenarios": list, "invariants": list},
+    "eval_contract": {"hard_gates": list, "graders": list, "release_rule": str},
+    "baseline_report": {"subject": str, "measurements": list, "limitations": list},
+    "review_decision": {"decision": str, "findings": list, "evidence_refs": list},
+    "release_decision": {"decision": str, "conditions": list, "rollback": str},
+    "change_decision": {"reason": str, "changed_nodes": list, "invalidated_nodes": list},
+    "incident_record": {"severity": str, "impact": str, "containment": list},
+}
 REQUIRED_MANIFEST_KINDS = {
     "goal_contract", "design_record", "behavior_spec", "eval_contract", "baseline_report",
 }
@@ -479,6 +492,15 @@ class AssuranceKernel:
             raise AssuranceError("owner principal must match registering principal")
         if not isinstance(payload["content"], dict) or not payload["content"]:
             raise AssuranceError("artifact content must be a non-empty object")
+        schema = ARTIFACT_CONTENT_SCHEMAS[payload["kind"]]
+        if set(payload["content"]) != set(schema):
+            raise AssuranceError(f"{payload['kind']} content has unknown or missing fields")
+        for key, expected_type in schema.items():
+            value = payload["content"][key]
+            if not isinstance(value, expected_type) or isinstance(value, str) and not value.strip():
+                raise AssuranceError(f"{payload['kind']} content field {key} has invalid type or value")
+            if isinstance(value, list) and any(not isinstance(item, (str, dict)) for item in value):
+                raise AssuranceError(f"{payload['kind']} content field {key} has invalid list values")
         if payload["kind"] == "design_manifest":
             self._validate_manifest(payload)
 
