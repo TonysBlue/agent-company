@@ -296,6 +296,16 @@ class AssuranceKernel:
                 ).fetchone()
                 if existing:
                     raise AssuranceError("artifact versions are immutable")
+                initiative = conn.execute(
+                    """SELECT profile, risk_class FROM assurance_initiatives
+                       WHERE initiative_id=?""",
+                    (payload["initiative_id"],),
+                ).fetchone()
+                if initiative and (
+                    initiative["profile"] != payload["profile"]
+                    or initiative["risk_class"] != payload["risk_class"]
+                ):
+                    raise AssuranceError("initiative contract mismatch")
                 conn.execute(
                     """INSERT INTO assurance_initiatives(
                            initiative_id, profile, risk_class, title, owner_principal,
@@ -467,10 +477,31 @@ class AssuranceKernel:
                 if row["content_sha256"] != ref["sha256"] or row["initiative_id"] != payload["initiative_id"]:
                     raise AssuranceError("design manifest reference hash or initiative mismatch")
         allowed_relations = {"governs", "refines", "evaluated_by", "baselined_by", "constrains"}
+        nodes = {ref["artifact_id"] for ref in refs}
+        graph = {node: set() for node in nodes}
         for edge in edges:
             if not isinstance(edge, dict) or set(edge) != {"from", "relation", "to"}:
                 raise AssuranceError("invalid design manifest edge")
             if edge["relation"] not in allowed_relations:
                 raise AssuranceError("invalid design manifest relation")
+            if edge["from"] not in nodes or edge["to"] not in nodes:
+                raise AssuranceError("design manifest edge references an undeclared artifact")
             if edge["from"] == edge["to"]:
                 raise AssuranceError("design manifest self-cycle is forbidden")
+            graph[edge["from"]].add(edge["to"])
+        visiting: set[str] = set()
+        visited: set[str] = set()
+
+        def visit(node: str) -> None:
+            if node in visiting:
+                raise AssuranceError("design manifest cycle is forbidden")
+            if node in visited:
+                return
+            visiting.add(node)
+            for dependent in graph[node]:
+                visit(dependent)
+            visiting.remove(node)
+            visited.add(node)
+
+        for node in sorted(nodes):
+            visit(node)

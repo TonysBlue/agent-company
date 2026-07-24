@@ -141,6 +141,49 @@ class AssuranceKernelTest(unittest.TestCase):
                 "design-1", 1, actor="Company Platform Engineer", principal_id="principal-platform"
             )
 
+    def test_rejects_artifact_contract_drift_within_existing_initiative(self) -> None:
+        self.kernel.create_initiative(
+            "contract-1", "Contract consistency", "control-plane-reliability", "C2",
+            actor="CEO", principal_id="principal-ceo",
+        )
+        artifact = self.artifact("goal_contract", "goal-contract")
+        artifact["initiative_id"] = "contract-1"
+        artifact["profile"] = "product-competitive"
+        with self.assertRaisesRegex(AssuranceError, "initiative contract mismatch"):
+            self.kernel.register_artifact(
+                artifact, actor="Company Platform Engineer", principal_id="principal-platform"
+            )
+
+    def test_design_manifest_rejects_indirect_cycle(self) -> None:
+        refs = []
+        for kind in sorted({
+            "goal_contract", "design_record", "behavior_spec", "eval_contract", "baseline_report"
+        }):
+            item = self.artifact(kind, f"cycle-{kind}")
+            registered = self.kernel.register_artifact(
+                item, actor="Company Platform Engineer", principal_id="principal-platform"
+            )
+            self.kernel.approve_artifact(
+                item["artifact_id"], 1, actor="CEO", principal_id="principal-ceo"
+            )
+            refs.append({
+                "kind": kind, "artifact_id": item["artifact_id"], "version": 1,
+                "sha256": registered["content_sha256"],
+            })
+        manifest = self.artifact("design_manifest", "manifest-cycle")
+        manifest["content"] = {
+            "artifact_refs": refs,
+            "edges": [
+                {"from": "cycle-goal_contract", "relation": "governs", "to": "cycle-design_record"},
+                {"from": "cycle-design_record", "relation": "refines", "to": "cycle-behavior_spec"},
+                {"from": "cycle-behavior_spec", "relation": "constrains", "to": "cycle-goal_contract"},
+            ],
+        }
+        with self.assertRaisesRegex(AssuranceError, "cycle"):
+            self.kernel.register_artifact(
+                manifest, actor="Company Platform Engineer", principal_id="principal-platform"
+            )
+
     def test_lifecycle_rejects_illegal_transition_and_records_block_resume(self) -> None:
         self.kernel.create_initiative(
             "lifecycle-1", "Control gate", "control-plane-reliability", "C2",
