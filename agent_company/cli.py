@@ -138,6 +138,19 @@ def build_parser() -> argparse.ArgumentParser:
     assurance_classify.add_argument("--actor", required=True)
     assurance_classify.add_argument("--principal-id", required=True)
     assurance_classify.add_argument("--title", required=True)
+    credential_bootstrap = sub.add_parser("assurance-credential-bootstrap", help="Create the local assurance bootstrap secret")
+    credential_provision = sub.add_parser("assurance-credential-provision", help="Provision a principal credential file")
+    credential_provision.add_argument("--principal-id", required=True)
+    credential_provision.add_argument("--actor", required=True)
+    credential_provision.add_argument("--authority", required=True)
+    credential_provision.add_argument("--bootstrap-secret-file", type=Path, required=True)
+    credential_rotate = sub.add_parser("assurance-credential-rotate", help="Rotate a principal credential")
+    credential_rotate.add_argument("--principal-id", required=True)
+    credential_rotate.add_argument("--bootstrap-secret-file", type=Path, required=True)
+    credential_revoke = sub.add_parser("assurance-credential-revoke", help="Revoke a principal credential")
+    credential_revoke.add_argument("--principal-id", required=True)
+    credential_revoke.add_argument("--bootstrap-secret-file", type=Path, required=True)
+    sub.add_parser("assurance-principal-list", help="List principal metadata without credentials")
     for indicator in (
         "editorial-only", "local-behavior", "public-contract", "persistent-schema",
         "cross-role", "authorization", "sensitive-data", "production",
@@ -338,6 +351,23 @@ def main(argv: list[str] | None = None) -> int:
                 actor=args.actor, principal_id=args.principal_id, title=args.title,
                 indicators=indicators,
             ), indent=2, sort_keys=True))
+        elif args.command == "assurance-credential-bootstrap":
+            from .assurance_credentials import CredentialManager
+            print(json.dumps(CredentialManager(osys.config).bootstrap(), indent=2, sort_keys=True))
+        elif args.command in {"assurance-credential-provision", "assurance-credential-rotate", "assurance-credential-revoke"}:
+            from .assurance_credentials import CredentialManager
+            manager = CredentialManager(osys.config)
+            secret = args.bootstrap_secret_file.read_text(encoding="utf-8").strip()
+            if args.command == "assurance-credential-provision":
+                result = manager.provision(args.principal_id, args.actor, args.authority, bootstrap_secret=secret)
+            elif args.command == "assurance-credential-rotate":
+                result = manager.rotate(args.principal_id, bootstrap_secret=secret)
+            else:
+                result = manager.revoke(args.principal_id, bootstrap_secret=secret)
+            print(json.dumps(result, indent=2, sort_keys=True))
+        elif args.command == "assurance-principal-list":
+            from .assurance_credentials import CredentialManager
+            print(json.dumps(CredentialManager(osys.config).list_principals(), indent=2, sort_keys=True))
         elif args.command == "validate":
             errors = osys.validate()
             if errors:
