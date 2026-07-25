@@ -174,6 +174,24 @@ logs = logs
         self.assertIn("CTO", details["historical_roles"])
         self.assertEqual(details["task_owner_rows_changed"], 0)
 
+    def test_migration_keeps_active_work_owned_by_registered_on_demand_capability(self) -> None:
+        self._create_legacy_database()
+        with sqlite3.connect(self.config.db_path) as conn:
+            conn.execute(
+                """INSERT INTO tasks(created_at, updated_at, owner, title, domain, status, priority)
+                   VALUES ('2026-07-24', '2026-07-24', 'Company Platform Engineer',
+                           'Active platform work', 'platform', 'open', 1)"""
+            )
+        store = Store(self.config.db_path)
+        store.init()
+        store.init()
+        task = store.fetch_one(
+            "SELECT owner, status, result FROM tasks WHERE title='Active platform work'"
+        )
+        self.assertEqual(task["owner"], "Company Platform Engineer")
+        self.assertEqual(task["status"], "open")
+        self.assertIsNone(task["result"])
+
     def test_migration_closes_active_work_owned_by_retired_roles_without_rewriting_owner(self) -> None:
         self._create_legacy_database()
         with sqlite3.connect(self.config.db_path) as conn:

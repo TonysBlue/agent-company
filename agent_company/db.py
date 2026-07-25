@@ -635,14 +635,15 @@ class Store:
             for row in conn.execute("SELECT name, kind, mandate FROM roles")
         }
         resident_names = set(ROLES)
-        known_names = resident_names | set(ON_DEMAND_CAPABILITIES) - {"Codex workers"}
+        known_names = resident_names | (set(ON_DEMAND_CAPABILITIES) - {"Codex workers"})
         historical_names = sorted(set(before) - known_names)
 
+        placeholders = ",".join("?" for _ in known_names)
         obsolete_active = list(conn.execute(
-            """SELECT id, owner, status FROM tasks
-               WHERE status IN ('open', 'in_progress', 'blocked')
-                 AND owner NOT IN (?, ?, ?)""",
-            ("CEO", "Product Engineer", "Customer & Revenue"),
+            f"""SELECT id, owner, status FROM tasks
+                WHERE status IN ('open', 'in_progress', 'blocked')
+                  AND owner NOT IN ({placeholders})""",
+            tuple(sorted(known_names)),
         ))
         now = utcnow()
         for task in obsolete_active:
