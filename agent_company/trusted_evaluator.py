@@ -163,10 +163,19 @@ class TrustedEvaluator:
             if conn.execute("SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?", (initiative_id,)).fetchone():
                 raise EvaluationError("initiative is quarantined")
             for kind, digest in refs.items():
-                if not conn.execute(
-                    "SELECT 1 FROM trusted_eval_manifests WHERE kind=? AND manifest_sha256=?", (kind, digest)
-                ).fetchone():
+                manifest = conn.execute(
+                    "SELECT content_sha256 FROM trusted_eval_manifests WHERE kind=? AND manifest_sha256=?",
+                    (kind, digest),
+                ).fetchone()
+                if manifest is None:
                     raise EvaluationError(f"unknown {kind} manifest")
+                content_ref = self.config.workspace / "data" / "trusted-eval-content" / manifest["content_sha256"]
+                if not content_ref.is_file() or hashlib.sha256(content_ref.read_bytes()).hexdigest() != manifest["content_sha256"]:
+                    raise EvaluationError(f"{kind} content hash mismatch")
+            evidence_path = (self.config.workspace / evidence_ref).resolve()
+            workspace = self.config.workspace.resolve()
+            if workspace not in evidence_path.parents or not evidence_path.is_file():
+                raise EvaluationError("evaluation evidence is missing or outside workspace")
             attempt = conn.execute(
                 "SELECT COUNT(*) AS c FROM trusted_eval_runs WHERE initiative_id=?", (initiative_id,)
             ).fetchone()["c"] + 1

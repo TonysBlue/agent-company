@@ -88,12 +88,17 @@ class TrustedEvaluatorTest(unittest.TestCase):
                 actor="Trusted Evaluator", principal_id="principal-evaluator",
             )["manifest_sha256"]
         for status in ("failed", "abandoned", "completed"):
+            evidence = self.root / "evidence" / f"{status}.json"
+            evidence.parent.mkdir(parents=True, exist_ok=True)
+            evidence.write_text(status, encoding="utf-8")
             run = self.evaluator.record_run(
                 initiative_id="pilot", refs=refs, seed=7, status=status,
                 evidence_ref=f"evidence/{status}.json", max_attempts=3,
                 actor="Trusted Evaluator", principal_id="principal-evaluator",
             )
             self.assertEqual(run["attempt"], {"failed": 1, "abandoned": 2, "completed": 3}[status])
+        fourth = self.root / "evidence" / "fourth.json"
+        fourth.write_text("fourth", encoding="utf-8")
         with self.assertRaisesRegex(EvaluationError, "attempt budget"):
             self.evaluator.record_run(
                 initiative_id="pilot", refs=refs, seed=8, status="completed",
@@ -121,6 +126,9 @@ class TrustedEvaluatorTest(unittest.TestCase):
                 evidence_ref="evidence/no.json", max_attempts=3,
                 actor="Company Platform Engineer", principal_id="principal-platform",
             )
+        evidence = self.root / "evidence" / "ok.json"
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        evidence.write_text("ok", encoding="utf-8")
         self.evaluator.record_run(
             initiative_id="pilot-2", refs=refs, seed=1, status="completed",
             evidence_ref="evidence/ok.json", max_attempts=3,
@@ -132,6 +140,15 @@ class TrustedEvaluatorTest(unittest.TestCase):
         )
         self.assertEqual(runs[0]["status"], "completed")
         self.assertTrue(runs[0]["quarantined"])
+        digest = str(self.manifest("candidate", "candidate-2")["content_sha256"])
+        content = self.root / "data" / "trusted-eval-content" / digest
+        content.write_text("tampered", encoding="utf-8")
+        with self.assertRaisesRegex(EvaluationError, "content hash mismatch"):
+            self.evaluator.record_run(
+                initiative_id="pilot", refs=refs, seed=2, status="failed",
+                evidence_ref="evidence/ok.json", max_attempts=3,
+                actor="Trusted Evaluator", principal_id="principal-evaluator",
+            )
         with self.assertRaisesRegex(Exception, "principal"):
             self.evaluator.list_runs(
                 "pilot-2", actor="Company Platform Engineer", principal_id="principal-platform",

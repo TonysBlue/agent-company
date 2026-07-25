@@ -51,6 +51,16 @@ class PilotGate:
         self.init()
         kernel = AssuranceKernel(self._config)
         kernel._assert_principal(actor, principal_id, {"executive", "chairman"})
+        with self.store.connect() as conn:
+            task = conn.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
+            if task is None:
+                raise ValueError("task does not exist")
+            if task["status"] != "open":
+                raise ValueError("pilot binding requires an open unclaimed task")
+            existing = conn.execute(
+                "SELECT initiative_id,pilot,artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
+                (task_id,),
+            ).fetchone()
         if pilot and initiative_id != APPROVED_PILOT:
             raise ValueError("only the approved pilot initiative may enable enforcement")
         if artifact_set_sha256 is not None and len(artifact_set_sha256) != 64:
@@ -65,6 +75,14 @@ class PilotGate:
                      pilot=excluded.pilot,artifact_set_sha256=excluded.artifact_set_sha256,
                      updated_at=excluded.updated_at""",
                 (task_id, initiative_id, int(pilot), artifact_set_sha256, now, now),
+            )
+            conn.execute(
+                """INSERT INTO audit_log(ts,actor,action,entity,entity_id,details)
+                   VALUES (?,?,?,?,?,?)""",
+                (now, actor, "bind_pilot_task", "task", str(task_id), json.dumps({
+                    "initiative_id": initiative_id, "pilot": pilot,
+                    "replaced": existing is not None, "reason": "explicit assurance binding",
+                }, sort_keys=True)),
             )
 
     def set_kill_switch(

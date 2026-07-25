@@ -59,6 +59,15 @@ class PilotGateTest(unittest.TestCase):
         self.tmp.cleanup()
         os.environ.pop("ASSURANCE_CREDENTIAL_PRINCIPAL_CEO", None)
 
+    def create_open_task(self, task_id: int) -> None:
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                """INSERT OR REPLACE INTO tasks(
+                       id,title,owner,domain,priority,status,acceptance_criteria,created_at,updated_at
+                   ) VALUES (?,?,'Company Platform Engineer','platform',1,'open','test','2026-07-24','2026-07-24')""",
+                (task_id, f"pilot-{task_id}"),
+            )
+
     def task(self, task_id: int) -> dict[str, object]:
         return {"id": task_id, "status": "open", "owner": "Company Platform Engineer", "domain": "platform"}
 
@@ -73,6 +82,7 @@ class PilotGateTest(unittest.TestCase):
 
     def test_unbound_and_nonpilot_tasks_are_unchanged(self) -> None:
         self.assertEqual(self.gate.dispatch_decision(self.task(1)), {"allowed": True, "reason": "unbound"})
+        self.create_open_task(2)
         self.gate.bind(2, "other-initiative", pilot=False, actor="CEO", principal_id="principal-ceo")
         self.assertEqual(self.gate.dispatch_decision(self.task(2)), {"allowed": True, "reason": "non-pilot"})
 
@@ -111,6 +121,7 @@ class PilotGateTest(unittest.TestCase):
         self.assertFalse(self.gate.dispatch_decision(self.task(3))["allowed"])
 
     def test_kill_switch_bypasses_dispatch_only_and_is_audited(self) -> None:
+        self.create_open_task(4)
         self.gate.bind(4, "pilot-c2-approved-for-build", pilot=True, actor="CEO", principal_id="principal-ceo")
         self.gate.set_kill_switch(True, actor="CEO", principal_id="principal-ceo", reason="safe rollback")
         decision = self.gate.dispatch_decision(self.task(4))
