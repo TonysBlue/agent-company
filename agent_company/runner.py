@@ -43,6 +43,14 @@ class ExecutionRunner:
     def run_once(self) -> dict[str, Any]:
         tasks = [row for row in self.osys.task_list() if row["owner"] == self.owner and row["status"] == "open"]
         tasks = [row for row in tasks if self._matches(row)]
+        from .pilot_gate import PilotGate
+        pilot_gate = PilotGate(self.config)
+        eligible = []
+        for row in tasks:
+            decision = pilot_gate.dispatch_decision(row)
+            if decision["allowed"]:
+                eligible.append(row)
+        tasks = eligible
         if not tasks:
             self._register()
             return {"status": "idle"}

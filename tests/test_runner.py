@@ -91,6 +91,21 @@ class ExecutionRunnerTest(unittest.TestCase):
         executor = self.osys.store.fetch_one("SELECT status FROM executors WHERE executor_id='test-runner'")
         self.assertEqual(executor["status"], "healthy")
 
+    def test_runner_does_not_claim_bound_pilot_before_g4(self) -> None:
+        platform = self.osys.create_task(
+            actor="CEO", owner="Company Platform Engineer", title="Pilot guarded task",
+            domain="platform", priority=95, acceptance_criteria="G4 must pass first.",
+        )
+        from agent_company.pilot_gate import PilotGate
+        PilotGate(self.config).bind(int(platform["task_id"]), "pilot-c2-approved-for-build", pilot=True)
+        runner = ExecutionRunner(
+            self.config, "platform-test", "Company Platform Engineer", ["platform"], poll_seconds=0.01,
+        )
+        result = runner.run_once()
+        self.assertEqual(result["status"], "idle")
+        task = self.osys.store.fetch_one("SELECT status FROM tasks WHERE id=?", (platform["task_id"],))
+        self.assertEqual(task["status"], "open")
+
     def test_platform_tasks_are_owned_only_by_platform_roles(self) -> None:
         platform = self.osys.create_task(
             actor="CEO", owner="Company Platform Engineer",
