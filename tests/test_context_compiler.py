@@ -58,6 +58,20 @@ class ContextCompilerTest(unittest.TestCase):
         canonical = json.dumps(unsigned, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         self.assertEqual(digest, hashlib.sha256(canonical.encode()).hexdigest())
 
+    def test_materialize_can_replace_prior_read_only_context_on_retry(self) -> None:
+        compiler = ContextCompiler(self.config, context_root=Path("/home/tony/agent-company/company_context"))
+        bundle = compiler.compile(
+            self.task_id, generation=1, role="Product Engineer",
+            repository={"id": "pixweave", "remote": "git@example/pix.git", "branch": "task/1", "canonical_test": "test"},
+        )
+        first = compiler.materialize(self.root / "retry-workspace", bundle)
+        second = compiler.materialize(self.root / "retry-workspace", bundle)
+        self.assertEqual(first["bundle_sha256"], second["bundle_sha256"])
+        self.assertEqual(
+            (self.root / "retry-workspace" / ".agent-company" / "TASK_CONTEXT.json").stat().st_mode & 0o777,
+            0o444,
+        )
+
     def test_materialize_writes_read_only_context_and_binds_execution_generation(self) -> None:
         compiler = ContextCompiler(self.config, context_root=Path("/home/tony/agent-company/company_context"))
         bundle = compiler.compile(

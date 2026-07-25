@@ -235,6 +235,8 @@ class ContextCompiler:
         paths: dict[str, str] = {}
         for name, content in files.items():
             path = context_dir / name
+            if path.exists():
+                os.chmod(path, 0o644)
             path.write_text(content, encoding="utf-8")
             os.chmod(path, 0o444)
             paths[name] = str(path)
@@ -245,6 +247,8 @@ class ContextCompiler:
             "files": paths,
         }
         manifest_path = context_dir / "CONTEXT_MANIFEST.json"
+        if manifest_path.exists():
+            os.chmod(manifest_path, 0o644)
         manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         os.chmod(manifest_path, 0o444)
         task_id = int(bundle["task"]["id"])
