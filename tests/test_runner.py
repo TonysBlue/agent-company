@@ -115,7 +115,10 @@ class ExecutionRunnerTest(unittest.TestCase):
             runner._ensure_workspace(repository, workdir)
         self.assertEqual(run.call_count, 2)
         clone_args = run.call_args_list[0].args[0]
-        self.assertEqual(clone_args[0:4], ["git", "clone", "--origin", "origin"])
+        self.assertEqual(
+            clone_args[0:4],
+            ["git", "-c", "core.sshCommand=ssh -F /dev/null -o UserKnownHostsFile=/home/tony/.ssh/known_hosts", "clone"],
+        )
         self.assertIn("--branch", clone_args)
         self.assertIn(repository.default_branch, clone_args)
         self.assertIn(repository.remote, clone_args)

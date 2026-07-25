@@ -153,7 +153,8 @@ class ExecutionRunner:
                 raise ValueError(f"workspace is dirty: {workdir}")
             return
         subprocess.run(
-            ["git", "clone", "--origin", "origin", "--branch", repository.default_branch,
+            ["git", "-c", "core.sshCommand=ssh -F /dev/null -o UserKnownHostsFile=/home/tony/.ssh/known_hosts",
+             "clone", "--origin", "origin", "--branch", repository.default_branch,
              "--single-branch", repository.remote, str(workdir)],
             check=True, capture_output=True, text=True,
         )
