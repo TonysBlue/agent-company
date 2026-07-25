@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
 
 from .config import CompanyConfig
+from .assurance import AssuranceKernel
 from .db import Store, utcnow
 
 
@@ -15,6 +18,7 @@ APPROVED_PILOT = "pilot-c2-approved-for-build"
 
 class PilotGate:
     def __init__(self, config: CompanyConfig):
+        self._config = config
         self.store = Store(config.db_path)
 
     def init(self) -> None:
@@ -42,9 +46,11 @@ class PilotGate:
 
     def bind(
         self, task_id: int, initiative_id: str, *, pilot: bool,
-        artifact_set_sha256: str | None = None,
+        artifact_set_sha256: str | None = None, actor: str = "", principal_id: str = "",
     ) -> None:
         self.init()
+        kernel = AssuranceKernel(self._config)
+        kernel._assert_principal(actor, principal_id, {"executive", "chairman"})
         if pilot and initiative_id != APPROVED_PILOT:
             raise ValueError("only the approved pilot initiative may enable enforcement")
         if artifact_set_sha256 is not None and len(artifact_set_sha256) != 64:
@@ -61,10 +67,15 @@ class PilotGate:
                 (task_id, initiative_id, int(pilot), artifact_set_sha256, now, now),
             )
 
-    def set_kill_switch(self, enabled: bool, *, actor: str, reason: str) -> None:
+    def set_kill_switch(
+        self, enabled: bool, *, actor: str, principal_id: str, reason: str,
+    ) -> None:
         self.init()
-        if actor not in {"CEO", "Chairman"} or not reason.strip():
-            raise ValueError("CEO or Chairman and a reason are required")
+        AssuranceKernel(self._config)._assert_principal(
+            actor, principal_id, {"executive", "chairman"}
+        )
+        if not reason.strip():
+            raise ValueError("a reason is required")
         now = utcnow()
         with self.store.connect() as conn:
             conn.execute(
@@ -76,9 +87,14 @@ class PilotGate:
                 {"enabled": enabled, "reason": reason.strip()},
             )
 
-    def dispatch_decision(self, task: dict[str, Any]) -> dict[str, Any]:
+    def dispatch_decision(self, task: dict[str, Any], *, conn: Any | None = None) -> dict[str, Any]:
+        if conn is not None:
+            return self._dispatch_decision(conn, task)
         self.init()
-        with self.store.connect_readonly() as conn:
+        with self.store.connect_readonly() as readonly:
+            return self._dispatch_decision(readonly, task)
+
+    def _dispatch_decision(self, conn: Any, task: dict[str, Any]) -> dict[str, Any]:
             binding = conn.execute(
                 "SELECT * FROM assurance_task_bindings WHERE task_id=?", (int(task["id"]),)
             ).fetchone()
@@ -107,6 +123,23 @@ class PilotGate:
             ).fetchone()
             if decision is None or decision["decision"] != "pass":
                 return {"allowed": False, "reason": "pilot requires passing G4"}
+            kernel = AssuranceKernel(self._config)
+            conflicts = []
+            for artifact in conn.execute(
+                "SELECT artifact_id,version,content_json,content_sha256 FROM assurance_artifacts"
+            ):
+                actual = hashlib.sha256(artifact["content_json"].encode("utf-8")).hexdigest()
+                if actual != artifact["content_sha256"]:
+                    conflicts.append(f"{artifact['artifact_id']}:v{artifact['version']}")
+            if conflicts:
+                return {"allowed": False, "reason": "assurance integrity conflict"}
+            current_hash = kernel._initiative_artifact_set_sha256(conn, binding["initiative_id"])
+            stale = conn.execute(
+                "SELECT 1 FROM assurance_artifacts WHERE initiative_id=? AND status='stale' LIMIT 1",
+                (binding["initiative_id"],),
+            ).fetchone()
+            if stale or current_hash != decision["artifact_set_sha256"]:
+                return {"allowed": False, "reason": "G4 artifact set is stale"}
             if decision["expires_at"]:
                 expiry = datetime.fromisoformat(decision["expires_at"])
                 if expiry <= datetime.now(timezone.utc):

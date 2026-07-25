@@ -60,6 +60,11 @@ class TrustedEvaluator:
                     reason TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS trusted_eval_contracts (
+                    initiative_id TEXT PRIMARY KEY,
+                    max_attempts INTEGER NOT NULL,
+                    created_at TEXT NOT NULL
+                );
                 """
             )
 
@@ -84,6 +89,19 @@ class TrustedEvaluator:
         if type(manifest["protected"]) is not bool:
             raise EvaluationError("protected must be boolean")
         digest = hashlib.sha256(_canonical(manifest).encode("ascii")).hexdigest()
+        with self.store.connect_readonly() as conn:
+            existing = conn.execute(
+                "SELECT manifest_sha256 FROM trusted_eval_manifests WHERE kind=? AND manifest_id=?",
+                (kind, manifest["id"]),
+            ).fetchone()
+        if existing and existing["manifest_sha256"] != digest:
+            raise EvaluationError("trusted evaluation manifest is immutable")
+        content_ref = self.config.workspace / "data" / "trusted-eval-content" / manifest["content_sha256"]
+        if not content_ref.is_file():
+            raise EvaluationError("content-addressed evaluation input is missing")
+        actual_content_sha256 = hashlib.sha256(content_ref.read_bytes()).hexdigest()
+        if actual_content_sha256 != manifest["content_sha256"]:
+            raise EvaluationError("evaluation input content hash mismatch")
         with self.store.connect() as conn:
             existing = conn.execute(
                 "SELECT manifest_sha256 FROM trusted_eval_manifests WHERE kind=? AND manifest_id=?",
@@ -127,6 +145,21 @@ class TrustedEvaluator:
         if not evidence_ref.strip() or type(max_attempts) is not int or not 1 <= max_attempts <= 3:
             raise EvaluationError("invalid attempt contract")
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            if not conn.execute(
+                "SELECT 1 FROM assurance_initiatives WHERE initiative_id=?", (initiative_id,)
+            ).fetchone():
+                raise EvaluationError("assurance initiative does not exist")
+            contract = conn.execute(
+                "SELECT max_attempts FROM trusted_eval_contracts WHERE initiative_id=?", (initiative_id,)
+            ).fetchone()
+            if contract is None:
+                conn.execute(
+                    "INSERT INTO trusted_eval_contracts(initiative_id,max_attempts,created_at) VALUES (?,?,?)",
+                    (initiative_id, max_attempts, utcnow()),
+                )
+            elif contract["max_attempts"] != max_attempts:
+                raise EvaluationError("immutable attempt budget mismatch")
             if conn.execute("SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?", (initiative_id,)).fetchone():
                 raise EvaluationError("initiative is quarantined")
             for kind, digest in refs.items():
@@ -164,12 +197,17 @@ class TrustedEvaluator:
                 "INSERT OR REPLACE INTO trusted_eval_quarantines(initiative_id,reason,created_at) VALUES (?,?,?)",
                 (initiative_id, reason.strip(), utcnow()),
             )
-            conn.execute("UPDATE trusted_eval_runs SET status='quarantined' WHERE initiative_id=?", (initiative_id,))
 
-    def list_runs(self, initiative_id: str) -> list[dict[str, Any]]:
+    def list_runs(
+        self, initiative_id: str, *, actor: str, principal_id: str,
+    ) -> list[dict[str, Any]]:
         self.init()
+        self._evaluator(actor, principal_id)
         with self.store.connect_readonly() as conn:
+            quarantine = conn.execute(
+                "SELECT reason,created_at FROM trusted_eval_quarantines WHERE initiative_id=?", (initiative_id,)
+            ).fetchone()
             rows = conn.execute(
                 "SELECT * FROM trusted_eval_runs WHERE initiative_id=? ORDER BY attempt", (initiative_id,)
             ).fetchall()
-        return [dict(row) for row in rows]
+        return [{**dict(row), "quarantined": quarantine is not None} for row in rows]

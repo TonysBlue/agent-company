@@ -40,6 +40,19 @@ class TrustedEvaluatorTest(unittest.TestCase):
             )
         self.evaluator = TrustedEvaluator(self.config)
         self.evaluator.init()
+        with Store(self.config.db_path).connect() as conn:
+            for initiative_id in ("pilot", "pilot-2"):
+                conn.execute(
+                    """INSERT INTO assurance_initiatives(
+                           initiative_id,profile,risk_class,title,owner_principal,status,mode,created_at,updated_at
+                       ) VALUES (?,'product-competitive','C2','eval','principal-ceo','implementation','pilot','2026-07-24','2026-07-24')""",
+                    (initiative_id,),
+                )
+        content_dir = self.root / "data" / "trusted-eval-content"
+        content_dir.mkdir(parents=True, exist_ok=True)
+        for identifier in ("candidate-1", "holdout-1", "candidate-2", "dataset-2", "grader-2", "environment-2", "candidate-1", "dataset-1", "grader-1", "environment-1"):
+            data = identifier.encode()
+            (content_dir / hashlib.sha256(data).hexdigest()).write_bytes(data)
 
     def tearDown(self) -> None:
         os.environ.pop("ASSURANCE_CREDENTIAL_PRINCIPAL_EVALUATOR", None)
@@ -87,7 +100,13 @@ class TrustedEvaluatorTest(unittest.TestCase):
                 evidence_ref="evidence/fourth.json", max_attempts=3,
                 actor="Trusted Evaluator", principal_id="principal-evaluator",
             )
-        self.assertEqual(len(self.evaluator.list_runs("pilot")), 3)
+        with self.assertRaisesRegex(EvaluationError, "immutable attempt budget"):
+            self.evaluator.record_run(
+                initiative_id="pilot", refs=refs, seed=8, status="completed",
+                evidence_ref="evidence/reset.json", max_attempts=2,
+                actor="Trusted Evaluator", principal_id="principal-evaluator",
+            )
+        self.assertEqual(len(self.evaluator.list_runs("pilot", actor="Trusted Evaluator", principal_id="principal-evaluator")), 3)
 
     def test_contamination_quarantines_runs_and_only_evaluator_can_execute(self) -> None:
         refs = {}
@@ -108,7 +127,15 @@ class TrustedEvaluatorTest(unittest.TestCase):
             actor="Trusted Evaluator", principal_id="principal-evaluator",
         )
         self.evaluator.quarantine("pilot-2", "holdout canary exposed", actor="Trusted Evaluator", principal_id="principal-evaluator")
-        self.assertEqual(self.evaluator.list_runs("pilot-2")[0]["status"], "quarantined")
+        runs = self.evaluator.list_runs(
+            "pilot-2", actor="Trusted Evaluator", principal_id="principal-evaluator",
+        )
+        self.assertEqual(runs[0]["status"], "completed")
+        self.assertTrue(runs[0]["quarantined"])
+        with self.assertRaisesRegex(Exception, "principal"):
+            self.evaluator.list_runs(
+                "pilot-2", actor="Company Platform Engineer", principal_id="principal-platform",
+            )
         with self.assertRaisesRegex(EvaluationError, "quarantined"):
             self.evaluator.record_run(
                 initiative_id="pilot-2", refs=refs, seed=2, status="completed",

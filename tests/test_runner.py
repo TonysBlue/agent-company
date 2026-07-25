@@ -97,7 +97,22 @@ class ExecutionRunnerTest(unittest.TestCase):
             domain="platform", priority=95, acceptance_criteria="G4 must pass first.",
         )
         from agent_company.pilot_gate import PilotGate
-        PilotGate(self.config).bind(int(platform["task_id"]), "pilot-c2-approved-for-build", pilot=True)
+        import hashlib, os
+        credential = "runner-pilot-ceo"
+        os.environ["ASSURANCE_CREDENTIAL_PRINCIPAL_CEO"] = credential
+        from agent_company.assurance import AssuranceKernel
+        AssuranceKernel(self.config).init()
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_principals(
+                       principal_id,actor,authority,credential_sha256,status,created_at
+                   ) VALUES ('principal-ceo','CEO','executive',?,'active','2026-07-24')""",
+                (hashlib.sha256(credential.encode()).hexdigest(),),
+            )
+        PilotGate(self.config).bind(
+            int(platform["task_id"]), "pilot-c2-approved-for-build", pilot=True,
+            actor="CEO", principal_id="principal-ceo",
+        )
         runner = ExecutionRunner(
             self.config, "platform-test", "Company Platform Engineer", ["platform"], poll_seconds=0.01,
         )

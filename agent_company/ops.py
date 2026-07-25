@@ -352,6 +352,8 @@ class CompanyOS:
             raise ValueError("Codex backend selected without codex_enabled=true")
         evidence_json = json.dumps([str(path.expanduser()) for path in evidence_paths or []], sort_keys=True)
         log_json = json.dumps([str(path.expanduser()) for path in log_paths or []], sort_keys=True)
+        from .pilot_gate import PilotGate
+        PilotGate(self.config).init()
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -367,6 +369,10 @@ class CompanyOS:
                 raise ValueError(f"task {task_id} is already claimed by {existing['executor_id']}")
             if task["status"] != "open":
                 raise ValueError(f"task {task_id} is not open: {task['status']}")
+            from .pilot_gate import PilotGate
+            gate_decision = PilotGate(self.config).dispatch_decision(dict(task), conn=conn)
+            if not gate_decision["allowed"]:
+                raise ValueError(f"task {task_id} blocked by assurance pilot gate: {gate_decision['reason']}")
             details = self._claim_task_execution(
                 conn,
                 task,
