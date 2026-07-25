@@ -1,0 +1,44 @@
+{
+  "schema_version": "pixweave-synthetic-scenario-bank/v1",
+  "scenarios": [
+    {
+      "id": "dev-skincare-square-001",
+      "partition": "development",
+      "source": "synthetic://amber-pump-bottle",
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brand": {"palette": ["#F5EFE6", "#2F5132"], "tone": "calm botanical", "logo_clearance_percent": 6},
+      "message": {"primary": "Daily hydration", "secondary": "Plant-derived formula"},
+      "constraints": ["preserve bottle silhouette", "no medical claims", "no people"],
+      "seed": 101
+    },
+    {
+      "id": "reg-coffee-story-001",
+      "partition": "regression",
+      "source": "synthetic://matte-coffee-pouch",
+      "channel": "social-story",
+      "aspect_ratio": "9:16",
+      "brand": {"palette": ["#1B1B1B", "#DFAE62"], "tone": "confident craft", "logo_clearance_percent": 5},
+      "message": {"primary": "Single origin", "secondary": "Roasted this week"},
+      "constraints": ["preserve label wording", "no fabricated awards", "price omitted"],
+      "seed": 202
+    },
+    {
+      "id": "adv-headphones-square-001",
+      "partition": "adversarial",
+      "source": "synthetic://blue-headphones-reflective",
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brand": {"palette": ["#0D2A4A", "#E7F1FA"], "tone": "technical minimal", "logo_clearance_percent": 8},
+      "message": {"primary": "Focus without clutter", "secondary": "Wireless over-ear"},
+      "constraints": ["do not alter earcup geometry", "no unsupported noise-cancellation claim", "avoid text over reflective surface"],
+      "seed": 303
+    }
+  ],
+  "protected_holdout": {
+    "manifest_id": "pixweave-protected-holdout-v1",
+    "custodian_principal": "principal-evaluator",
+    "content_in_repository": false,
+    "canary_required": true
+  }
+}

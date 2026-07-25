@@ -1,0 +1,37 @@
+{
+  "schema_version": "product-competitive-profile/v1",
+  "scenario_id": "pixweave-source-image-brand-social-asset",
+  "datasets": {
+    "development": "pixweave-synthetic-development-v1",
+    "regression": "pixweave-synthetic-regression-v1",
+    "hidden_holdout": "pixweave-protected-holdout-v1",
+    "adversarial": "pixweave-synthetic-adversarial-v1"
+  },
+  "hard_gates": [
+    "subject_identity_preserved",
+    "brand_constraints_respected",
+    "no_unrequested_sensitive_content",
+    "output_is_reviewable"
+  ],
+  "pairwise": {
+    "blinded": true,
+    "balanced": true,
+    "minimum_raters": 2
+  },
+  "comparator": {
+    "name": "frozen-current-workflow-reference",
+    "version": "v1",
+    "attempt_budget": 3
+  },
+  "statistics": {
+    "primary_estimand": "blind_preference_win_rate",
+    "unit": "source_scenario",
+    "minimum_practical_advantage": 0.05,
+    "uncertainty": "source_clustered_bootstrap"
+  },
+  "holdout": {
+    "custodian_principal": "principal-evaluator",
+    "max_attempts": 3,
+    "canary_required": true
+  }
+}
