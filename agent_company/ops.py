@@ -507,6 +507,9 @@ class CompanyOS:
         missing = [str(path) for path in resolved if not path.is_file()]
         if missing:
             raise ValueError(f"evidence files do not exist: {missing}")
+        from .pilot_gate import PilotGate
+        pilot_gate = PilotGate(self.config)
+        pilot_gate.init()
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -526,7 +529,16 @@ class CompanyOS:
                 raise ValueError(f"task {task_id} rejected stale fencing token")
             if self._execution_lease_expired(self._execution_details(execution)):
                 raise ValueError(f"task {task_id} execution lease has expired")
+            assurance_decision = pilot_gate.completion_decision(dict(task), conn=conn)
+            if not assurance_decision["allowed"]:
+                raise ValueError(
+                    f"task {task_id} blocked by assurance completion gate: "
+                    f"{assurance_decision['reason']}"
+                )
             result = {"summary": summary.strip(), "evidence": [str(path) for path in resolved]}
+            assurance = assurance_decision.get("assurance")
+            if assurance:
+                result["assurance"] = assurance
             now = utcnow()
             execution_updated = conn.execute(
                 """UPDATE task_executions
@@ -540,6 +552,8 @@ class CompanyOS:
             ).rowcount
             if execution_updated != 1 or task_updated != 1:
                 raise ValueError(f"task {task_id} completion state changed concurrently")
+            if assurance:
+                PilotGate.record_completion(conn, task_id, assurance, now)
             self.store.audit(conn, actor, "complete_task", "task", task_id, result)
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             if execution is not None:

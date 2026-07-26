@@ -154,16 +154,19 @@ class AssuranceKernel:
         self._require_authority(principal, allowed)
         return principal
 
-    def _initiative_artifact_set_sha256(self, conn: Any, initiative_id: str) -> str:
+    def _initiative_artifact_set_sha256(
+        self, conn: Any, initiative_id: str, *, exclude_kinds: set[str] | None = None,
+    ) -> str:
+        exclude_kinds = exclude_kinds or set()
         rows = conn.execute(
-            """SELECT artifact_id, version, content_sha256 FROM assurance_artifacts
+            """SELECT artifact_id, version, kind, content_sha256 FROM assurance_artifacts
                WHERE initiative_id=? AND status='approved'
                ORDER BY artifact_id, version""",
             (initiative_id,),
         ).fetchall()
         return hashlib.sha256(_canonical([
             {"ref": f"{row['artifact_id']}:v{row['version']}", "sha256": row["content_sha256"]}
-            for row in rows
+            for row in rows if row["kind"] not in exclude_kinds
         ]).encode("ascii")).hexdigest()
 
     def create_initiative(
