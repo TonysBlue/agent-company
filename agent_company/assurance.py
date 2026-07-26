@@ -196,6 +196,25 @@ class AssuranceKernel:
             raise
         return {"initiative_id": initiative_id, "status": "discovery", "mode": "shadow"}
 
+    def _validate_trusted_g5(self, conn: Any, initiative_id: str) -> str:
+        run = conn.execute(
+            """SELECT evidence_ref,evidence_sha256,result_sha256 FROM trusted_eval_runs
+               WHERE initiative_id=? AND status='completed' ORDER BY attempt DESC LIMIT 1""",
+            (initiative_id,),
+        ).fetchone()
+        quarantined = conn.execute(
+            "SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?", (initiative_id,),
+        ).fetchone()
+        if run is None or quarantined or not run["evidence_sha256"]:
+            raise AssuranceError("G5 requires a completed non-quarantined content-addressed evaluation")
+        evidence = (self.config.workspace / run["evidence_ref"]).resolve()
+        workspace = self.config.workspace.resolve()
+        if workspace not in evidence.parents or not evidence.is_file():
+            raise AssuranceError("G5 trusted evaluation evidence is missing")
+        if hashlib.sha256(evidence.read_bytes()).hexdigest() != run["evidence_sha256"]:
+            raise AssuranceError("G5 trusted evaluation evidence hash mismatch")
+        return str(run["result_sha256"])
+
     def transition(
         self, initiative_id: str, target: str, *, actor: str, principal_id: str,
     ) -> dict[str, Any]:
@@ -225,6 +244,8 @@ class AssuranceKernel:
                         raise AssuranceError(f"lifecycle transition requires unexpired {required_gate}")
                 if gate["artifact_set_sha256"] != self._initiative_artifact_set_sha256(conn, initiative_id):
                     raise AssuranceError(f"lifecycle transition {required_gate} artifact set is stale")
+                if required_gate == "G5":
+                    self._validate_trusted_g5(conn, initiative_id)
             if target not in LIFECYCLE_TRANSITIONS.get(current, set()):
                 raise AssuranceError(f"illegal lifecycle transition: {current} -> {target}")
             now = utcnow()
@@ -354,19 +375,9 @@ class AssuranceKernel:
                         f"gate {gate} requires every approved review to approve with no blocking findings"
                     )
             if gate == "G5":
-                completed = conn.execute(
-                    """SELECT evidence_ref,result_sha256 FROM trusted_eval_runs
-                       WHERE initiative_id=? AND status='completed' ORDER BY attempt DESC LIMIT 1""",
-                    (initiative_id,),
-                ).fetchone()
-                quarantined = conn.execute(
-                    "SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?",
-                    (initiative_id,),
-                ).fetchone()
-                if completed is None or quarantined:
-                    raise AssuranceError("gate G5 requires a completed non-quarantined trusted evaluation")
                 reviews = content_by_kind.get("review_decision", [])
-                if not all(completed["result_sha256"] in review["evidence_refs"] for review in reviews):
+                result_hash = self._validate_trusted_g5(conn, initiative_id)
+                if not all(result_hash in review["evidence_refs"] for review in reviews):
                     raise AssuranceError("gate G5 review must bind the trusted evaluation result hash")
             if gate == "G6":
                 releases = content_by_kind.get("release_decision", [])
