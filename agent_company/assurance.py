@@ -307,7 +307,7 @@ class AssuranceKernel:
                     self._validate_trusted_g5(conn, initiative_id, result_hash)
             if target not in LIFECYCLE_TRANSITIONS.get(current, set()):
                 raise AssuranceError(f"illegal lifecycle transition: {current} -> {target}")
-            if target in {"release_candidate", "release_decision", "release_approved", "release_approved_conditional", "enabled_or_deployed"}:
+            if target in {"release_candidate", "release_decision", "release_approved", "release_approved_conditional", "conditions_verified", "enabled_or_deployed"}:
                 review_rows = conn.execute(
                     "SELECT content_json FROM assurance_artifacts WHERE initiative_id=? AND kind='review_decision' AND status='approved'",
                     (initiative_id,),
