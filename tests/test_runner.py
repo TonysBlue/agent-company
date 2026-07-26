@@ -186,6 +186,18 @@ class ExecutionRunnerTest(unittest.TestCase):
         self.assertNotIn("SSH_AUTH_SOCK", env)
         self.assertEqual(env["SSL_CERT_FILE"], "/etc/ssl/certs/ca-certificates.crt")
 
+    def test_prepare_codex_home_rejects_symlink_targets(self) -> None:
+        destination = self.root / "workspace" / ".codex-home"
+        destination.mkdir(parents=True)
+        captured = self.root / "workspace" / "captured-auth.json"
+        (destination / "auth.json").symlink_to(captured)
+        with patch("agent_company.runner.Path.home", return_value=self.root):
+            (self.root / ".codex").mkdir()
+            (self.root / ".codex" / "auth.json").write_text("secret", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unsafe Codex credential target"):
+                ExecutionRunner._prepare_codex_home(destination)
+        self.assertFalse(captured.exists())
+
     def test_existing_workspace_requires_expected_origin_branch_and_clean_tree(self) -> None:
         runner = ExecutionRunner(
             self.config, "test-runner", "Product Engineer", ["product"], poll_seconds=0.01,

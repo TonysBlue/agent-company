@@ -10,6 +10,9 @@ Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+InaccessiblePaths=/home/tony/agent-company/data/trusted-eval-content
 
 [Install]
 WantedBy=default.target

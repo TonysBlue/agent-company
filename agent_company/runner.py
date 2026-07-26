@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import time
@@ -241,11 +242,21 @@ class ExecutionRunner:
 
     @staticmethod
     def _prepare_codex_home(destination: Path) -> None:
+        if destination.is_symlink():
+            raise ValueError("Codex home cannot be a symlink")
         destination.mkdir(parents=True, exist_ok=True)
+        if not destination.is_dir():
+            raise ValueError("Codex home must be a directory")
         for name in ("auth.json",):
             source = Path.home() / ".codex" / name
+            target = destination / name
+            if target.is_symlink() or (target.exists() and not target.is_file()):
+                raise ValueError(f"unsafe Codex credential target: {target}")
             if source.is_file():
-                shutil.copy2(source, destination / name)
+                target.unlink(missing_ok=True)
+                fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o400)
+                with source.open("rb") as src, os.fdopen(fd, "wb") as dst:
+                    shutil.copyfileobj(src, dst)
 
     @staticmethod
     def _runner_environment() -> dict[str, str]:

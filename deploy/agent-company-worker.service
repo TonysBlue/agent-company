@@ -15,6 +15,9 @@ RestartSec=5
 TimeoutStopSec=15
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectHome=read-only
+ProtectSystem=strict
+InaccessiblePaths=%h/agent-company/data/trusted-eval-content
 
 [Install]
 WantedBy=default.target
