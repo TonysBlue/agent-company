@@ -9,6 +9,8 @@ from pathlib import Path
 
 from agent_company.config import load_config
 from agent_company.context_compiler import ContextCompiler
+from agent_company.assurance import AssuranceKernel
+from agent_company.pilot_gate import PilotGate
 from agent_company.ops import CompanyOS
 
 
@@ -133,6 +135,65 @@ class ContextCompilerTest(unittest.TestCase):
         context_path.write_text(json.dumps(payload), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "tampered"):
             compiler.assert_current(self.task_id, 4, manifest["bundle_sha256"], workspace=workspace)
+
+    def test_bound_pilot_context_contains_exact_approved_assurance_projection(self) -> None:
+        kernel = AssuranceKernel(self.config)
+        kernel.init()
+        credential = "phase-c-ceo"
+        os.environ["ASSURANCE_CREDENTIAL_PRINCIPAL_CEO"] = credential
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_principals(
+                       principal_id,actor,authority,credential_sha256,status,created_at
+                   ) VALUES (?,?,?,?,?,?)""",
+                ("principal-ceo", "CEO", "executive", hashlib.sha256(credential.encode()).hexdigest(),
+                 "active", "2026-07-26T00:00:00+00:00"),
+            )
+        kernel.create_initiative(
+            "pilot-c2-approved-for-build", "Phase C context pilot",
+            "control-plane-reliability", "C2", actor="CEO", principal_id="principal-ceo",
+        )
+        artifact = {
+            "schema_version": "assurance-artifact/v1", "artifact_id": "phase-c-goal",
+            "kind": "goal_contract", "version": 1, "status": "draft",
+            "initiative_id": "pilot-c2-approved-for-build", "profile": "control-plane-reliability",
+            "risk_class": "C2", "owner_principal": "principal-ceo", "repository_id": "pixweave",
+            "content": {"outcome": "compile exact assurance context", "non_goals": ["holdout disclosure"]},
+        }
+        kernel.register_artifact(artifact, actor="CEO", principal_id="principal-ceo")
+        reviewer_credential = "phase-c-reviewer"
+        os.environ["ASSURANCE_CREDENTIAL_PRINCIPAL_REVIEWER"] = reviewer_credential
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_principals(
+                       principal_id,actor,authority,credential_sha256,status,created_at
+                   ) VALUES (?,?,?,?,?,?)""",
+                ("principal-reviewer", "Control & Reliability Reviewer", "reviewer",
+                 hashlib.sha256(reviewer_credential.encode()).hexdigest(), "active",
+                 "2026-07-26T00:00:00+00:00"),
+            )
+        kernel.approve_artifact(
+            "phase-c-goal", 1, actor="Control & Reliability Reviewer",
+            principal_id="principal-reviewer",
+        )
+        with self.osys.store.connect() as conn:
+            digest = kernel._initiative_artifact_set_sha256(conn, "pilot-c2-approved-for-build")
+        PilotGate(self.config).bind(
+            self.task_id, "pilot-c2-approved-for-build", pilot=True,
+            artifact_set_sha256=digest, actor="CEO", principal_id="principal-ceo",
+        )
+        bundle = ContextCompiler(
+            self.config, context_root=Path("/home/tony/agent-company/company_context")
+        ).compile(
+            self.task_id, generation=7, role="Product Engineer",
+            repository={"id": "pixweave"},
+        )
+        self.assertEqual(bundle["assurance"]["initiative_id"], "pilot-c2-approved-for-build")
+        self.assertEqual(bundle["assurance"]["artifact_set_sha256"], digest)
+        self.assertEqual(bundle["assurance"]["artifacts"][0]["ref"], "phase-c-goal:v1")
+        serialized = json.dumps(bundle["assurance"], sort_keys=True)
+        self.assertNotIn("owner_principal", serialized)
+        self.assertNotIn("credential", serialized.lower())
 
     def test_active_execution_generation_and_fencing_token_are_enforced(self) -> None:
         compiler = ContextCompiler(self.config, context_root=Path("/home/tony/agent-company/company_context"))

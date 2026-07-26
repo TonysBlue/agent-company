@@ -100,6 +100,39 @@ class ContextCompiler:
                 "SELECT id, task_id, from_role, to_role, handoff_type, summary, artifact_refs_json, decision_needed, status, created_at FROM handoffs WHERE (to_role=? OR from_role=?) AND status IN ('offered','accepted','needs_clarification') ORDER BY id DESC LIMIT 20",
                 (role, role),
             )]
+            binding = conn.execute(
+                "SELECT initiative_id,pilot,artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
+                (task_id,),
+            ).fetchone() if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assurance_task_bindings'"
+            ).fetchone() else None
+            assurance = None
+            if binding is not None and binding["pilot"]:
+                initiative = conn.execute(
+                    "SELECT status,mode,profile,risk_class FROM assurance_initiatives WHERE initiative_id=?",
+                    (binding["initiative_id"],),
+                ).fetchone()
+                artifacts = []
+                for row in conn.execute(
+                    """SELECT artifact_id,version,kind,content_sha256,content_json
+                       FROM assurance_artifacts WHERE initiative_id=? AND status='approved'
+                       ORDER BY artifact_id,version""",
+                    (binding["initiative_id"],),
+                ):
+                    payload = json.loads(row["content_json"])
+                    artifacts.append({
+                        "ref": f"{row['artifact_id']}:v{row['version']}", "kind": row["kind"],
+                        "content_sha256": row["content_sha256"], "content": payload["content"],
+                    })
+                from .assurance import AssuranceKernel
+                current = AssuranceKernel(self.config)._initiative_artifact_set_sha256(conn, binding["initiative_id"])
+                if not binding["artifact_set_sha256"] or binding["artifact_set_sha256"] != current:
+                    raise ValueError("bound pilot assurance artifact set is stale")
+                assurance = {
+                    "initiative_id": binding["initiative_id"], "profile": initiative["profile"],
+                    "risk_class": initiative["risk_class"], "lifecycle": initiative["status"],
+                    "mode": initiative["mode"], "artifact_set_sha256": current, "artifacts": artifacts,
+                }
             for row in handoffs:
                 row["artifact_refs"] = json.loads(row.pop("artifact_refs_json"))
         history = {
@@ -136,6 +169,7 @@ class ContextCompiler:
             },
             "task": dict(task),
             "repository": repository,
+            "assurance": assurance,
             "history": history,
             "governance": {
                 "external_action_authorized": False,
