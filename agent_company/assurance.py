@@ -196,12 +196,19 @@ class AssuranceKernel:
             raise
         return {"initiative_id": initiative_id, "status": "discovery", "mode": "shadow"}
 
-    def _validate_trusted_g5(self, conn: Any, initiative_id: str) -> str:
-        run = conn.execute(
-            """SELECT evidence_ref,evidence_sha256,result_sha256 FROM trusted_eval_runs
-               WHERE initiative_id=? AND status='completed' ORDER BY attempt DESC LIMIT 1""",
-            (initiative_id,),
-        ).fetchone()
+    def _validate_trusted_g5(self, conn: Any, initiative_id: str, expected_result_sha256: str | None = None) -> str:
+        if expected_result_sha256:
+            run = conn.execute(
+                """SELECT * FROM trusted_eval_runs
+                   WHERE initiative_id=? AND result_sha256=? AND status='completed'""",
+                (initiative_id, expected_result_sha256),
+            ).fetchone()
+        else:
+            run = conn.execute(
+                """SELECT * FROM trusted_eval_runs
+                   WHERE initiative_id=? AND status='completed' ORDER BY attempt DESC LIMIT 1""",
+                (initiative_id,),
+            ).fetchone()
         quarantined = conn.execute(
             "SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?", (initiative_id,),
         ).fetchone()
@@ -213,6 +220,19 @@ class AssuranceKernel:
             raise AssuranceError("G5 trusted evaluation evidence is missing")
         if hashlib.sha256(evidence.read_bytes()).hexdigest() != run["evidence_sha256"]:
             raise AssuranceError("G5 trusted evaluation evidence hash mismatch")
+        for kind, column in {
+            "candidate": "candidate_sha256", "dataset": "dataset_sha256",
+            "grader": "grader_sha256", "environment": "environment_sha256",
+        }.items():
+            manifest = conn.execute(
+                "SELECT content_sha256 FROM trusted_eval_manifests WHERE kind=? AND manifest_sha256=?",
+                (kind, run[column]),
+            ).fetchone()
+            if manifest is None:
+                raise AssuranceError(f"G5 trusted evaluation {kind} manifest is missing")
+            content = self.config.workspace / "data" / "trusted-eval-content" / manifest["content_sha256"]
+            if not content.is_file() or hashlib.sha256(content.read_bytes()).hexdigest() != manifest["content_sha256"]:
+                raise AssuranceError(f"G5 trusted evaluation {kind} content hash mismatch")
         return str(run["result_sha256"])
 
     def transition(
@@ -244,8 +264,25 @@ class AssuranceKernel:
                         raise AssuranceError(f"lifecycle transition requires unexpired {required_gate}")
                 if gate["artifact_set_sha256"] != self._initiative_artifact_set_sha256(conn, initiative_id):
                     raise AssuranceError(f"lifecycle transition {required_gate} artifact set is stale")
-                if required_gate == "G5":
-                    self._validate_trusted_g5(conn, initiative_id)
+                if required_gate in {"G5", "G6"}:
+                    review_rows = conn.execute(
+                        """SELECT content_json FROM assurance_artifacts
+                           WHERE initiative_id=? AND kind='review_decision' AND status='approved'""",
+                        (initiative_id,),
+                    ).fetchall()
+                    bound = {
+                        ref for review in review_rows
+                        for ref in json.loads(review["content_json"])["content"]["evidence_refs"]
+                    }
+                    matching = conn.execute(
+                        """SELECT result_sha256 FROM trusted_eval_runs
+                           WHERE initiative_id=? AND status='completed' ORDER BY attempt""",
+                        (initiative_id,),
+                    ).fetchall()
+                    result_hash = next((row["result_sha256"] for row in matching if row["result_sha256"] in bound), None)
+                    if not result_hash:
+                        raise AssuranceError(f"lifecycle transition {required_gate} lacks a bound trusted evaluation")
+                    self._validate_trusted_g5(conn, initiative_id, result_hash)
             if target not in LIFECYCLE_TRANSITIONS.get(current, set()):
                 raise AssuranceError(f"illegal lifecycle transition: {current} -> {target}")
             now = utcnow()
