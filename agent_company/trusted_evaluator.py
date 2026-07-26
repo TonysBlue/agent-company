@@ -69,6 +69,30 @@ class TrustedEvaluator:
                     max_attempts INTEGER NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_runs_immutable_update
+                    BEFORE UPDATE ON trusted_eval_runs
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation runs are immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_runs_immutable_delete
+                    BEFORE DELETE ON trusted_eval_runs
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation runs are immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_manifests_immutable_update
+                    BEFORE UPDATE ON trusted_eval_manifests
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation manifests are immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_manifests_immutable_delete
+                    BEFORE DELETE ON trusted_eval_manifests
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation manifests are immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_contracts_immutable_update
+                    BEFORE UPDATE ON trusted_eval_contracts
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation contracts are immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_contracts_immutable_delete
+                    BEFORE DELETE ON trusted_eval_contracts
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation contracts are immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_quarantines_append_only
+                    BEFORE UPDATE ON trusted_eval_quarantines
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation quarantine is append-only'); END;
+                CREATE TRIGGER IF NOT EXISTS trusted_eval_quarantines_no_delete
+                    BEFORE DELETE ON trusted_eval_quarantines
+                    BEGIN SELECT RAISE(ABORT, 'trusted evaluation quarantine is append-only'); END;
                 """
             )
 
@@ -209,7 +233,7 @@ class TrustedEvaluator:
             raise EvaluationError("quarantine reason is required")
         with self.store.connect() as conn:
             conn.execute(
-                "INSERT OR REPLACE INTO trusted_eval_quarantines(initiative_id,reason,created_at) VALUES (?,?,?)",
+                "INSERT OR IGNORE INTO trusted_eval_quarantines(initiative_id,reason,created_at) VALUES (?,?,?)",
                 (initiative_id, reason.strip(), utcnow()),
             )
 

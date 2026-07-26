@@ -220,6 +220,7 @@ class AssuranceKernel:
             raise AssuranceError("G5 trusted evaluation evidence is missing")
         if hashlib.sha256(evidence.read_bytes()).hexdigest() != run["evidence_sha256"]:
             raise AssuranceError("G5 trusted evaluation evidence hash mismatch")
+        manifest_payloads: dict[str, dict[str, Any]] = {}
         for kind, column in {
             "candidate": "candidate_sha256", "dataset": "dataset_sha256",
             "grader": "grader_sha256", "environment": "environment_sha256",
@@ -230,9 +231,27 @@ class AssuranceKernel:
             ).fetchone()
             if manifest is None:
                 raise AssuranceError(f"G5 trusted evaluation {kind} manifest is missing")
+            payload_row = conn.execute(
+                "SELECT manifest_json FROM trusted_eval_manifests WHERE kind=? AND manifest_sha256=?",
+                (kind, run[column]),
+            ).fetchone()
+            if payload_row is None or hashlib.sha256(payload_row["manifest_json"].encode("ascii")).hexdigest() != run[column]:
+                raise AssuranceError(f"G5 trusted evaluation {kind} manifest integrity mismatch")
+            manifest_payloads[kind] = json.loads(payload_row["manifest_json"])
             content = self.config.workspace / "data" / "trusted-eval-content" / manifest["content_sha256"]
             if not content.is_file() or hashlib.sha256(content.read_bytes()).hexdigest() != manifest["content_sha256"]:
                 raise AssuranceError(f"G5 trusted evaluation {kind} content hash mismatch")
+        recomputed = {
+            "initiative_id": initiative_id, "attempt": run["attempt"],
+            "refs": {kind: run[column] for kind, column in {
+                "candidate": "candidate_sha256", "dataset": "dataset_sha256",
+                "grader": "grader_sha256", "environment": "environment_sha256",
+            }.items()},
+            "seed": run["seed"], "status": run["status"],
+            "evidence_ref": run["evidence_ref"], "evidence_sha256": run["evidence_sha256"],
+        }
+        if hashlib.sha256(_canonical(recomputed).encode("ascii")).hexdigest() != run["result_sha256"]:
+            raise AssuranceError("G5 trusted evaluation result lineage mismatch")
         return str(run["result_sha256"])
 
     def transition(
@@ -285,6 +304,19 @@ class AssuranceKernel:
                     self._validate_trusted_g5(conn, initiative_id, result_hash)
             if target not in LIFECYCLE_TRANSITIONS.get(current, set()):
                 raise AssuranceError(f"illegal lifecycle transition: {current} -> {target}")
+            if target in {"release_candidate", "release_decision", "release_approved", "release_approved_conditional", "enabled_or_deployed"}:
+                review_rows = conn.execute(
+                    "SELECT content_json FROM assurance_artifacts WHERE initiative_id=? AND kind='review_decision' AND status='approved'",
+                    (initiative_id,),
+                ).fetchall()
+                bound = {ref for review in review_rows for ref in json.loads(review["content_json"])["content"]["evidence_refs"]}
+                latest = conn.execute(
+                    "SELECT result_sha256 FROM trusted_eval_runs WHERE initiative_id=? AND status='completed' ORDER BY attempt DESC LIMIT 1",
+                    (initiative_id,),
+                ).fetchone()
+                if latest is None or latest["result_sha256"] not in bound:
+                    raise AssuranceError("release lifecycle requires review binding to latest trusted evaluation")
+                self._validate_trusted_g5(conn, initiative_id, latest["result_sha256"])
             now = utcnow()
             conn.execute(
                 "UPDATE assurance_initiatives SET status=?, updated_at=? WHERE initiative_id=?",

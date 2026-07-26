@@ -20,3 +20,5 @@ ReadWritePaths=%h/agent-company/data %h/agent-company/logs %h/agent-company/evid
 
 [Install]
 WantedBy=default.target
+
+InaccessiblePaths=%h/agent-company/data/trusted-eval-content
