@@ -1,0 +1,41 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "commit:3ab9f21b1e9da21460ebd0ccd36c8e774cd2b5e9",
+        "/home/tony/agent-company/evidence/task-147/verification-report.md",
+        "/home/tony/agent-company/evidence/task-147/evidence-manifest.json"
+      ],
+      "decision_needed": "Independently review the completion-gate transaction, evaluator/reviewer independence, artifact and approval integrity checks, migration compatibility, and adversarial tests; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 147 implements the bound-pilot completion assurance gate and passes 81 focused plus 163 canonical tests. Independent review is still required by the Phase C charter.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "This is only the Phase C completion-gate workstream; later Phase C workstreams and Phase D are not authorized or claimed complete.",
+    "No production service deployment or live-database mutation was performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review commit 3ab9f21b1e9da21460ebd0ccd36c8e774cd2b5e9 and the task-147 evidence."
+  ],
+  "project_decisions": [
+    "Completion enforcement remains opt-in to the single explicitly approved pilot and C2/C3 risk classes.",
+    "The dispatch kill switch does not bypass the completion gate.",
+    "The G4 build artifact set excludes later Review Decision artifacts so review can bind the immutable build set without making that set self-referential.",
+    "Successful assurance binding is persisted atomically with task and execution completion."
+  ],
+  "project_summary": "Agent Company now fails closed when an explicitly bound pilot C2/C3 task lacks an exact valid Trusted Eval and affirmative independent Review Decision, while unbound and non-pilot task completion remains compatible.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Implemented and verified task 147's Phase C bound-pilot completion assurance gate with strict TDD, atomic denial/success behavior, integrity hardening, compatibility controls, and additive schema upgrade.",
+  "verified_facts": [
+    "Delivery commit 3ab9f21b1e9da21460ebd0ccd36c8e774cd2b5e9 has tree 0354c88edbd99b6df33e0c4e068ed8a510c41833.",
+    "Focused assurance and execution integration ran 81 tests with all passing.",
+    "Canonical repository verification ran 163 tests with all passing.",
+    "Clean temporary-database CLI validation returned ok=true with no errors.",
+    "Denied bound-pilot completions leave task, execution, audit, and event state unchanged in focused tests.",
+    "Unbound and non-pilot completion result shapes remain unchanged in focused tests."
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable acceptance, TDD, verification, compatibility, and limitation evidence"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and review handoff"
+    }
+  ],
+  "base_commit": "0e279aa37a32a758ce10a015c75338163a4ad1f8",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 163,
+    "result": "pass"
+  },
+  "delivery_commit": "3ab9f21b1e9da21460ebd0ccd36c8e774cd2b5e9",
+  "delivery_tree": "0354c88edbd99b6df33e0c4e068ed8a510c41833",
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator -v",
+    "passed": 81,
+    "result": "pass"
+  },
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "task_id": 147
+}
