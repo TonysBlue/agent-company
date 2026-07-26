@@ -42,6 +42,13 @@ class AssuranceCliTest(unittest.TestCase):
         Store(load_config().db_path).init()
         initialized = self.run_cli("assurance-init")
         self.assertEqual(initialized["mode"], "shadow")
+        with Store(load_config().db_path).connect_readonly() as conn:
+            self.assertIsNotNone(conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='trusted_eval_contracts'"
+            ).fetchone())
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'trusted_eval_%'"
+            ).fetchone()[0], 8)
         credential = "test-cli-ceo-credential"
         os.environ["ASSURANCE_CREDENTIAL_PRINCIPAL_CEO"] = credential
         with Store(load_config().db_path).connect() as conn:

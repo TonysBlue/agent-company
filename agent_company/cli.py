@@ -320,9 +320,11 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.demo(), indent=2, sort_keys=True))
         elif args.command == "assurance-init":
             from .assurance import AssuranceKernel
+            from .trusted_evaluator import TrustedEvaluator
 
             kernel = AssuranceKernel(osys.config)
             kernel.init()
+            TrustedEvaluator(osys.config).init()
             print(json.dumps({"initialized": True, "mode": "shadow"}, indent=2, sort_keys=True))
         elif args.command == "assurance-list":
             from .assurance import AssuranceKernel
