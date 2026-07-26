@@ -28,6 +28,9 @@ class TrustedEvaluator:
     def init(self) -> None:
         self.kernel.init()
         with self.store.connect() as conn:
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(trusted_eval_runs)")}
+            if columns and "evidence_sha256" not in columns:
+                conn.execute("ALTER TABLE trusted_eval_runs ADD COLUMN evidence_sha256 TEXT")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS trusted_eval_manifests (
@@ -51,6 +54,7 @@ class TrustedEvaluator:
                     seed INTEGER NOT NULL,
                     status TEXT NOT NULL,
                     evidence_ref TEXT NOT NULL,
+                    evidence_sha256 TEXT,
                     result_sha256 TEXT NOT NULL UNIQUE,
                     created_at TEXT NOT NULL,
                     UNIQUE(initiative_id, attempt)
@@ -176,6 +180,7 @@ class TrustedEvaluator:
             workspace = self.config.workspace.resolve()
             if workspace not in evidence_path.parents or not evidence_path.is_file():
                 raise EvaluationError("evaluation evidence is missing or outside workspace")
+            evidence_sha256 = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
             attempt = conn.execute(
                 "SELECT COUNT(*) AS c FROM trusted_eval_runs WHERE initiative_id=?", (initiative_id,)
             ).fetchone()["c"] + 1
@@ -184,15 +189,16 @@ class TrustedEvaluator:
             result = {
                 "initiative_id": initiative_id, "attempt": attempt, "refs": refs,
                 "seed": seed, "status": status, "evidence_ref": evidence_ref,
+                "evidence_sha256": evidence_sha256,
             }
             digest = hashlib.sha256(_canonical(result).encode("ascii")).hexdigest()
             conn.execute(
                 """INSERT INTO trusted_eval_runs(
                        initiative_id,attempt,candidate_sha256,dataset_sha256,grader_sha256,
-                       environment_sha256,seed,status,evidence_ref,result_sha256,created_at
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                       environment_sha256,seed,status,evidence_ref,evidence_sha256,result_sha256,created_at
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (initiative_id, attempt, refs["candidate"], refs["dataset"], refs["grader"],
-                 refs["environment"], seed, status, evidence_ref, digest, utcnow()),
+                 refs["environment"], seed, status, evidence_ref, evidence_sha256, digest, utcnow()),
             )
         return {**result, "result_sha256": digest}
 

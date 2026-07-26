@@ -47,11 +47,20 @@ class PilotGate:
     def bind(
         self, task_id: int, initiative_id: str, *, pilot: bool,
         artifact_set_sha256: str | None = None, actor: str = "", principal_id: str = "",
+        reason: str = "initial pilot binding",
     ) -> None:
         self.init()
         kernel = AssuranceKernel(self._config)
         kernel._assert_principal(actor, principal_id, {"executive", "chairman"})
+        if not reason.strip():
+            raise ValueError("pilot binding reason is required")
+        if pilot and initiative_id != APPROVED_PILOT:
+            raise ValueError("only the approved pilot initiative may enable enforcement")
+        if artifact_set_sha256 is not None and len(artifact_set_sha256) != 64:
+            raise ValueError("artifact set sha256 must be 64 characters")
+        now = utcnow()
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             task = conn.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None:
                 raise ValueError("task does not exist")
@@ -61,12 +70,6 @@ class PilotGate:
                 "SELECT initiative_id,pilot,artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
                 (task_id,),
             ).fetchone()
-        if pilot and initiative_id != APPROVED_PILOT:
-            raise ValueError("only the approved pilot initiative may enable enforcement")
-        if artifact_set_sha256 is not None and len(artifact_set_sha256) != 64:
-            raise ValueError("artifact set sha256 must be 64 characters")
-        now = utcnow()
-        with self.store.connect() as conn:
             conn.execute(
                 """INSERT INTO assurance_task_bindings(
                        task_id,initiative_id,pilot,artifact_set_sha256,created_at,updated_at
@@ -81,7 +84,8 @@ class PilotGate:
                    VALUES (?,?,?,?,?,?)""",
                 (now, actor, "bind_pilot_task", "task", str(task_id), json.dumps({
                     "initiative_id": initiative_id, "pilot": pilot,
-                    "replaced": existing is not None, "reason": "explicit assurance binding",
+                    "previous": dict(existing) if existing is not None else None,
+                    "reason": reason.strip(),
                 }, sort_keys=True)),
             )
 

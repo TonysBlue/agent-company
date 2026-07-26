@@ -97,6 +97,7 @@ class TrustedEvaluatorTest(unittest.TestCase):
                 actor="Trusted Evaluator", principal_id="principal-evaluator",
             )
             self.assertEqual(run["attempt"], {"failed": 1, "abandoned": 2, "completed": 3}[status])
+            self.assertEqual(run["evidence_sha256"], hashlib.sha256(status.encode()).hexdigest())
         fourth = self.root / "evidence" / "fourth.json"
         fourth.write_text("fourth", encoding="utf-8")
         with self.assertRaisesRegex(EvaluationError, "attempt budget"):

@@ -5,7 +5,7 @@ __pycache__/
 venv/
 data/*.sqlite3
 data/*.sqlite3-*
-data/assurance-bootstrap.secret
+data/assurance-bootstrap.secret*
 data/assurance-credentials/
 data/trusted-eval-content/
 data/artifacts/*.json

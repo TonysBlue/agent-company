@@ -353,6 +353,21 @@ class AssuranceKernel:
                     raise AssuranceError(
                         f"gate {gate} requires every approved review to approve with no blocking findings"
                     )
+            if gate == "G5":
+                completed = conn.execute(
+                    """SELECT evidence_ref,result_sha256 FROM trusted_eval_runs
+                       WHERE initiative_id=? AND status='completed' ORDER BY attempt DESC LIMIT 1""",
+                    (initiative_id,),
+                ).fetchone()
+                quarantined = conn.execute(
+                    "SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?",
+                    (initiative_id,),
+                ).fetchone()
+                if completed is None or quarantined:
+                    raise AssuranceError("gate G5 requires a completed non-quarantined trusted evaluation")
+                reviews = content_by_kind.get("review_decision", [])
+                if not all(completed["result_sha256"] in review["evidence_refs"] for review in reviews):
+                    raise AssuranceError("gate G5 review must bind the trusted evaluation result hash")
             if gate == "G6":
                 releases = content_by_kind.get("release_decision", [])
                 if not releases or any(
