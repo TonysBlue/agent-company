@@ -169,6 +169,11 @@ class AssuranceKernel:
             for row in rows if row["kind"] not in exclude_kinds
         ]).encode("ascii")).hexdigest()
 
+    def _initiative_build_artifact_set_sha256(self, conn: Any, initiative_id: str) -> str:
+        return self._initiative_artifact_set_sha256(
+            conn, initiative_id, exclude_kinds={"review_decision"},
+        )
+
     def create_initiative(
         self, initiative_id: str, title: str, profile: str, risk_class: str,
         *, actor: str, principal_id: str,
@@ -591,6 +596,12 @@ class AssuranceKernel:
                         payload["risk_class"], payload["owner_principal"],
                         payload["repository_id"], _canonical(payload), digest, now,
                     ),
+                )
+                conn.execute(
+                    """INSERT INTO assurance_artifact_registrations(
+                           artifact_id,version,content_sha256,created_at
+                       ) VALUES (?,?,?,?)""",
+                    (payload["artifact_id"], payload["version"], digest, now),
                 )
                 if payload["kind"] == "design_manifest":
                     for edge in payload["content"]["edges"]:

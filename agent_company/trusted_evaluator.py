@@ -31,6 +31,8 @@ class TrustedEvaluator:
             columns = {row[1] for row in conn.execute("PRAGMA table_info(trusted_eval_runs)")}
             if columns and "evidence_sha256" not in columns:
                 conn.execute("ALTER TABLE trusted_eval_runs ADD COLUMN evidence_sha256 TEXT")
+            if columns and "evaluator_principal_id" not in columns:
+                conn.execute("ALTER TABLE trusted_eval_runs ADD COLUMN evaluator_principal_id TEXT")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS trusted_eval_manifests (
@@ -55,6 +57,7 @@ class TrustedEvaluator:
                     status TEXT NOT NULL,
                     evidence_ref TEXT NOT NULL,
                     evidence_sha256 TEXT,
+                    evaluator_principal_id TEXT NOT NULL,
                     result_sha256 TEXT NOT NULL UNIQUE,
                     created_at TEXT NOT NULL,
                     UNIQUE(initiative_id, attempt)
@@ -227,10 +230,12 @@ class TrustedEvaluator:
             conn.execute(
                 """INSERT INTO trusted_eval_runs(
                        initiative_id,attempt,candidate_sha256,dataset_sha256,grader_sha256,
-                       environment_sha256,seed,status,evidence_ref,evidence_sha256,result_sha256,created_at
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                       environment_sha256,seed,status,evidence_ref,evidence_sha256,
+                       evaluator_principal_id,result_sha256,created_at
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (initiative_id, attempt, refs["candidate"], refs["dataset"], refs["grader"],
-                 refs["environment"], seed, status, evidence_ref, evidence_sha256, digest, utcnow()),
+                 refs["environment"], seed, status, evidence_ref, evidence_sha256,
+                 principal_id, digest, utcnow()),
             )
         return {**result, "result_sha256": digest}
 

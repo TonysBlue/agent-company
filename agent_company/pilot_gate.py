@@ -159,16 +159,21 @@ class PilotGate:
             kernel = AssuranceKernel(self._config)
             conflicts = []
             for artifact in conn.execute(
-                "SELECT artifact_id,version,content_json,content_sha256 FROM assurance_artifacts"
+                """SELECT artifact_id,version,content_json,content_sha256
+                   FROM assurance_artifacts WHERE kind!='review_decision'"""
             ):
                 actual = hashlib.sha256(artifact["content_json"].encode("utf-8")).hexdigest()
                 if actual != artifact["content_sha256"]:
                     conflicts.append(f"{artifact['artifact_id']}:v{artifact['version']}")
             if conflicts:
                 return {"allowed": False, "reason": "assurance integrity conflict"}
-            current_hash = kernel._initiative_artifact_set_sha256(conn, binding["initiative_id"])
+            current_hash = kernel._initiative_build_artifact_set_sha256(
+                conn, binding["initiative_id"],
+            )
             stale = conn.execute(
-                "SELECT 1 FROM assurance_artifacts WHERE initiative_id=? AND status='stale' LIMIT 1",
+                """SELECT 1 FROM assurance_artifacts
+                   WHERE initiative_id=? AND status='stale' AND kind!='review_decision'
+                   LIMIT 1""",
                 (binding["initiative_id"],),
             ).fetchone()
             if stale or current_hash != decision["artifact_set_sha256"]:
@@ -235,28 +240,37 @@ class PilotGate:
                 )
             except (KeyError, TypeError, UnicodeEncodeError, json.JSONDecodeError):
                 metadata_matches = False
-            artifact_ref = f"{artifact['artifact_id']}:v{artifact['version']}"
-            registered_hashes = []
-            for row in conn.execute(
-                """SELECT details FROM audit_log
-                   WHERE action='assurance_artifact_registered'
-                     AND entity='assurance_artifact' AND entity_id=?""",
-                (artifact_ref,),
-            ):
-                try:
-                    registered_hashes.append(json.loads(row["details"])["sha256"])
-                except (KeyError, TypeError, json.JSONDecodeError):
-                    continue
+            registration = conn.execute(
+                """SELECT content_sha256 FROM assurance_artifact_registrations
+                   WHERE artifact_id=? AND version=?""",
+                (artifact["artifact_id"], artifact["version"]),
+            ).fetchone()
+            registration_matches = (
+                registration is not None
+                and registration["content_sha256"] == artifact["content_sha256"]
+            )
+            if artifact["kind"] != "review_decision" and registration is None:
+                registered_hashes = []
+                artifact_ref = f"{artifact['artifact_id']}:v{artifact['version']}"
+                for row in conn.execute(
+                    """SELECT details FROM audit_log
+                       WHERE action='assurance_artifact_registered'
+                         AND entity='assurance_artifact' AND entity_id=?""",
+                    (artifact_ref,),
+                ):
+                    try:
+                        registered_hashes.append(json.loads(row["details"])["sha256"])
+                    except (KeyError, TypeError, json.JSONDecodeError):
+                        continue
+                registration_matches = registered_hashes == [artifact["content_sha256"]]
             if (
                 actual != artifact["content_sha256"]
                 or not metadata_matches
-                or registered_hashes != [artifact["content_sha256"]]
+                or not registration_matches
             ):
                 return {"allowed": False, "reason": "bound pilot assurance integrity conflict"}
 
-        build_hash = kernel._initiative_artifact_set_sha256(
-            conn, initiative_id, exclude_kinds={"review_decision"},
-        )
+        build_hash = kernel._initiative_build_artifact_set_sha256(conn, initiative_id)
         build_gate = conn.execute(
             """SELECT decision,artifact_set_sha256,expires_at
                FROM assurance_gate_decisions
@@ -323,11 +337,17 @@ class PilotGate:
             (task["owner"],),
         ).fetchone()
         evaluator_principals = {
-            row["principal_id"] for row in conn.execute(
-                """SELECT principal_id FROM assurance_principals
-                   WHERE actor='Trusted Evaluator'"""
-            )
+            row["evaluator_principal_id"] for row in conn.execute(
+                """SELECT evaluator_principal_id FROM trusted_eval_runs
+                   WHERE initiative_id=?""",
+                (initiative_id,),
+            ) if row["evaluator_principal_id"]
         }
+        if not evaluator_principals:
+            return {
+                "allowed": False,
+                "reason": "bound pilot Trusted Eval lacks evaluator identity lineage",
+            }
         review_ref = ""
         for review in reviews:
             approver = conn.execute(

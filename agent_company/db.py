@@ -96,6 +96,13 @@ class Store:
                     created_at TEXT NOT NULL,
                     UNIQUE(artifact_id, version)
                 );
+                CREATE TABLE IF NOT EXISTS assurance_artifact_registrations (
+                    artifact_id TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    content_sha256 TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY(artifact_id, version)
+                );
                 CREATE TABLE IF NOT EXISTS assurance_links (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     initiative_id TEXT NOT NULL,
@@ -135,6 +142,14 @@ class Store:
                     mode TEXT NOT NULL DEFAULT 'shadow',
                     created_at TEXT NOT NULL
                 );
+                DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_delete;
+                CREATE TRIGGER assurance_artifact_registrations_immutable_update
+                    BEFORE UPDATE ON assurance_artifact_registrations
+                    BEGIN SELECT RAISE(ABORT, 'assurance artifact registration is immutable'); END;
+                CREATE TRIGGER assurance_artifact_registrations_immutable_delete
+                    BEFORE DELETE ON assurance_artifact_registrations
+                    BEGIN SELECT RAISE(ABORT, 'assurance artifact registration is immutable'); END;
                 """
             )
 

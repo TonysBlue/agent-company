@@ -3,12 +3,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
 
 from agent_company.assurance import AssuranceKernel
 from agent_company.config import load_config
+from agent_company.context_compiler import ContextCompiler
 from agent_company.ops import CompanyOS
 from agent_company.pilot_gate import PilotGate
 from agent_company.trusted_evaluator import TrustedEvaluator
@@ -270,6 +272,111 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             )
         self._assert_denial_is_atomic("integrity")
 
+    def test_review_body_hash_and_registration_audit_cannot_be_rewritten(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256, decision="reject")
+        with self.osys.store.connect() as conn:
+            row = conn.execute(
+                "SELECT content_json FROM assurance_artifacts "
+                "WHERE artifact_id='completion-review'"
+            ).fetchone()
+            payload = json.loads(row["content_json"])
+            payload["content"]["decision"] = "approve"
+            rewritten = json.dumps(
+                payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+            )
+            rewritten_sha256 = hashlib.sha256(rewritten.encode("ascii")).hexdigest()
+            conn.execute(
+                "UPDATE assurance_artifacts SET content_json=?,content_sha256=? "
+                "WHERE artifact_id='completion-review'",
+                (rewritten, rewritten_sha256),
+            )
+            audit = conn.execute(
+                "SELECT id,details FROM audit_log "
+                "WHERE action='assurance_artifact_registered' "
+                "AND entity_id='completion-review:v1'"
+            ).fetchone()
+            details = json.loads(audit["details"])
+            details["sha256"] = rewritten_sha256
+            conn.execute(
+                "UPDATE audit_log SET details=? WHERE id=?",
+                (json.dumps(details, sort_keys=True), audit["id"]),
+            )
+        self._assert_denial_is_atomic("integrity")
+
+    def test_artifact_registration_integrity_anchor_is_immutable(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+            with self.osys.store.connect() as conn:
+                conn.execute(
+                    "UPDATE assurance_artifact_registrations SET content_sha256=? "
+                    "WHERE artifact_id='completion-review' AND version=1",
+                    ("0" * 64,),
+                )
+
+    def test_init_does_not_bless_preexisting_unanchored_review_tamper(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256, decision="reject")
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TABLE assurance_artifact_registrations")
+            row = conn.execute(
+                "SELECT content_json FROM assurance_artifacts "
+                "WHERE artifact_id='completion-review'"
+            ).fetchone()
+            payload = json.loads(row["content_json"])
+            payload["content"]["decision"] = "approve"
+            rewritten = json.dumps(
+                payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+            )
+            rewritten_sha256 = hashlib.sha256(rewritten.encode("ascii")).hexdigest()
+            conn.execute(
+                "UPDATE assurance_artifacts SET content_json=?,content_sha256=? "
+                "WHERE artifact_id='completion-review'",
+                (rewritten, rewritten_sha256),
+            )
+            audit = conn.execute(
+                "SELECT id,details FROM audit_log "
+                "WHERE action='assurance_artifact_registered' "
+                "AND entity_id='completion-review:v1'"
+            ).fetchone()
+            details = json.loads(audit["details"])
+            details["sha256"] = rewritten_sha256
+            conn.execute(
+                "UPDATE audit_log SET details=? WHERE id=?",
+                (json.dumps(details, sort_keys=True), audit["id"]),
+            )
+
+        self.kernel.init()
+        self._assert_denial_is_atomic("integrity")
+
+    def test_legacy_build_artifact_keeps_prior_integrity_validation(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            review = conn.execute(
+                """SELECT artifact_id,version,content_sha256,created_at
+                   FROM assurance_artifact_registrations
+                   WHERE artifact_id='completion-review' AND version=1"""
+            ).fetchone()
+            conn.execute("DROP TABLE assurance_artifact_registrations")
+        self.kernel.init()
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_artifact_registrations(
+                       artifact_id,version,content_sha256,created_at
+                   ) VALUES (?,?,?,?)""",
+                tuple(review),
+            )
+
+        completed = self.osys.complete_task(
+            self.task_id, "Company Platform Engineer", "guarded result",
+            [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
+        )
+
+        self.assertEqual(completed["status"], "done")
+
     def test_review_without_valid_approval_metadata_fails_closed(self) -> None:
         result_sha256 = self._record_eval()
         self._record_review(result_sha256)
@@ -299,6 +406,91 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             )
         self._record_review(result_sha256, owner_principal="principal-evaluator")
         self._assert_denial_is_atomic("independent")
+
+    def test_rotated_evaluator_actor_and_authority_remain_nonindependent(self) -> None:
+        result_sha256 = self._record_eval()
+        rotated_actor = "Rotated Evaluator Reviewer"
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_principals SET actor=?,authority='reviewer' "
+                "WHERE principal_id='principal-evaluator'",
+                (rotated_actor,),
+            )
+        self.credentials["principal-evaluator"] = (rotated_actor, "reviewer")
+        self._record_review(result_sha256, owner_principal="principal-evaluator")
+        self._assert_denial_is_atomic("independent")
+
+    def test_post_build_review_does_not_stale_g4_redispatch(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+
+        decision = self.gate.dispatch_decision({
+            "id": self.task_id,
+            "status": "open",
+            "owner": "Company Platform Engineer",
+            "domain": "platform",
+        })
+
+        self.assertEqual(decision["allowed"], True, decision["reason"])
+        self.assertEqual(decision["artifact_set_sha256"], self.artifact_set_sha256)
+
+    def test_stale_post_build_review_does_not_stale_g4_redispatch(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_artifacts SET status='stale' "
+                "WHERE artifact_id='completion-review'"
+            )
+
+        decision = self.gate.dispatch_decision({
+            "id": self.task_id,
+            "status": "open",
+            "owner": "Company Platform Engineer",
+            "domain": "platform",
+        })
+
+        self.assertEqual(decision["allowed"], True, decision["reason"])
+        self.assertEqual(decision["artifact_set_sha256"], self.artifact_set_sha256)
+
+    def test_tampered_post_build_review_does_not_block_g4_redispatch(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_artifacts SET content_json='{}' "
+                "WHERE artifact_id='completion-review'"
+            )
+
+        decision = self.gate.dispatch_decision({
+            "id": self.task_id,
+            "status": "open",
+            "owner": "Company Platform Engineer",
+            "domain": "platform",
+        })
+
+        self.assertEqual(decision["allowed"], True, decision["reason"])
+        self.assertEqual(decision["artifact_set_sha256"], self.artifact_set_sha256)
+
+    def test_post_build_review_is_excluded_from_recompiled_build_context(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+
+        bundle = ContextCompiler(
+            self.config, context_root=self.old_cwd / "company_context",
+        ).compile(
+            self.task_id,
+            generation=int(self.claim["generation"]),
+            role="Company Platform Engineer",
+            repository={"id": "agent-company"},
+            fencing_token=str(self.claim["fencing_token"]),
+        )
+
+        self.assertEqual(bundle["assurance"]["artifact_set_sha256"], self.artifact_set_sha256)
+        self.assertEqual(
+            [artifact["kind"] for artifact in bundle["assurance"]["artifacts"]],
+            ["eval_contract"],
+        )
 
     def test_dispatch_kill_switch_cannot_bypass_completion_gate(self) -> None:
         self.gate.set_kill_switch(
@@ -332,6 +524,19 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self.assertEqual(binding["completion_result_sha256"], result_sha256)
         self.assertEqual(binding["review_decision_ref"], "completion-review:v1")
         self.assertIsNotNone(binding["completed_at"])
+
+    def test_missing_evaluator_identity_lineage_fails_closed(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            conn.execute(
+                "UPDATE trusted_eval_runs SET evaluator_principal_id='' "
+                "WHERE initiative_id=?",
+                (self.initiative_id,),
+            )
+
+        self._assert_denial_is_atomic("evaluator identity lineage")
 
     def test_unbound_completion_result_shape_is_unchanged(self) -> None:
         with self.osys.store.connect() as conn:

@@ -115,7 +115,9 @@ class ContextCompiler:
                 artifacts = []
                 for row in conn.execute(
                     """SELECT artifact_id,version,kind,content_sha256,content_json
-                       FROM assurance_artifacts WHERE initiative_id=? AND status='approved'
+                       FROM assurance_artifacts
+                       WHERE initiative_id=? AND status='approved'
+                         AND kind!='review_decision'
                        ORDER BY artifact_id,version""",
                     (binding["initiative_id"],),
                 ):
@@ -125,7 +127,9 @@ class ContextCompiler:
                         "content_sha256": row["content_sha256"], "content": payload["content"],
                     })
                 from .assurance import AssuranceKernel
-                current = AssuranceKernel(self.config)._initiative_artifact_set_sha256(conn, binding["initiative_id"])
+                current = AssuranceKernel(self.config)._initiative_build_artifact_set_sha256(
+                    conn, binding["initiative_id"],
+                )
                 if not binding["artifact_set_sha256"] or binding["artifact_set_sha256"] != current:
                     raise ValueError("bound pilot assurance artifact set is stale")
                 assurance = {
