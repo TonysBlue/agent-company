@@ -201,6 +201,7 @@ class ExecutionRunner:
             "bwrap", "--unshare-all", "--share-net", "--die-with-parent",
             "--ro-bind", "/", "/", "--tmpfs", "/home", "--dir", "/home/tony",
             "--ro-bind", "/home/tony/.npm-global", "/home/tony/.npm-global",
+            "--ro-bind", str(codex_home), str(codex_home),
             "--bind", str(workdir), str(workdir), "--ro-bind", str(context_dir), str(context_dir),
             "--bind", str(evidence_dir), str(evidence_dir),
             "--proc", "/proc", "--dev", "/dev", "--setenv", "HOME", str(workdir),

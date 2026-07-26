@@ -237,7 +237,10 @@ class AssuranceKernel:
             ).fetchone()
             if payload_row is None or hashlib.sha256(payload_row["manifest_json"].encode("ascii")).hexdigest() != run[column]:
                 raise AssuranceError(f"G5 trusted evaluation {kind} manifest integrity mismatch")
-            manifest_payloads[kind] = json.loads(payload_row["manifest_json"])
+            manifest_payload = json.loads(payload_row["manifest_json"])
+            if manifest_payload.get("content_sha256") != manifest["content_sha256"]:
+                raise AssuranceError(f"G5 trusted evaluation {kind} manifest content mapping mismatch")
+            manifest_payloads[kind] = manifest_payload
             content = self.config.workspace / "data" / "trusted-eval-content" / manifest["content_sha256"]
             if not content.is_file() or hashlib.sha256(content.read_bytes()).hexdigest() != manifest["content_sha256"]:
                 raise AssuranceError(f"G5 trusted evaluation {kind} content hash mismatch")
@@ -449,6 +452,7 @@ class AssuranceKernel:
                 if not all(result_hash in review["evidence_refs"] for review in reviews):
                     raise AssuranceError("gate G5 review must bind the trusted evaluation result hash")
             if gate == "G6":
+                self._validate_trusted_g5(conn, initiative_id)
                 releases = content_by_kind.get("release_decision", [])
                 if not releases or any(
                     release["decision"] not in {
