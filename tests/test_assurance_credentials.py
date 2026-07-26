@@ -91,6 +91,21 @@ class AssuranceCredentialTest(unittest.TestCase):
                 "principal-platform", "Company Platform Engineer", "implementer",
                 bootstrap_secret=path.read_text(encoding="utf-8").strip(),
             )
+        path.unlink()
+        captured = self.root / "captured-bootstrap"
+        captured.write_text("secret\n", encoding="utf-8")
+        captured.chmod(0o600)
+        path.symlink_to(captured)
+        with self.assertRaisesRegex(ValueError, "regular"):
+            self.manager.provision(
+                "principal-platform", "Company Platform Engineer", "implementer",
+                bootstrap_secret="secret",
+            )
+        temporary = self.root / "data" / "assurance-credentials" / "principal-platform.credential.tmp"
+        temporary.parent.mkdir(parents=True, exist_ok=True)
+        temporary.symlink_to(captured)
+        with self.assertRaisesRegex(ValueError, "temporary"):
+            CredentialManager._atomic_secret(temporary.with_suffix(""), "new")
 
 
 if __name__ == "__main__":

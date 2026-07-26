@@ -24,14 +24,18 @@ class CredentialManager:
 
     @staticmethod
     def _require_0600(path: Path) -> None:
-        if path.stat().st_mode & 0o777 != 0o600:
-            raise ValueError(f"credential file must use 0600 permissions: {path}")
+        if path.is_symlink() or not path.is_file() or path.stat().st_mode & 0o777 != 0o600:
+            raise ValueError(f"credential file must be a regular 0600 file: {path}")
 
     @staticmethod
     def _atomic_secret(path: Path, value: str) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
+        if path.is_symlink() or (path.exists() and not path.is_file()):
+            raise ValueError(f"secret target must be a regular file: {path}")
         temporary = path.with_suffix(path.suffix + ".tmp")
-        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        if temporary.is_symlink() or (temporary.exists() and not temporary.is_file()):
+            raise ValueError(f"secret temporary target must be a regular file: {temporary}")
+        fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             stream.write(value + "\n")
         os.chmod(temporary, 0o600)
