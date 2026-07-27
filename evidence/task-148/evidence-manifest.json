@@ -1,0 +1,63 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable implementation, TDD, acceptance, compatibility, verification, and limitation evidence"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and independent-review handoff"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Normalized failing test output captured before production implementation"
+    },
+    {
+      "path": "focused-test-output.txt",
+      "purpose": "Focused assurance, runtime, context, credential, migration, and compatibility verification output"
+    },
+    {
+      "path": "full-test-output.txt",
+      "purpose": "Agent Company canonical full-suite output"
+    },
+    {
+      "path": "pixweave-test-output.txt",
+      "purpose": "PixWeave canonical full-suite output from a clean unchanged source tree"
+    },
+    {
+      "path": "clean-init-validation.txt",
+      "purpose": "Clean temporary-database initialization, validation, schema, and immutable-trigger probe"
+    }
+  ],
+  "base_commit": "09bfeb80d0bfcdf84aa9d22fb077adaffb3548b0",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 183,
+    "result": "pass"
+  },
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials -v",
+    "passed": 104,
+    "result": "pass"
+  },
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "worktree": "clean"
+  },
+  "red_test": {
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate -v",
+    "errors": 1,
+    "exit_status": 1,
+    "failures": 7,
+    "ran": 36,
+    "result": "expected_fail"
+  },
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "task_id": 148
+}

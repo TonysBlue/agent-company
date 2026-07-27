@@ -42,8 +42,25 @@ class PilotGate:
                     value TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS assurance_execution_bindings (
+                    task_id INTEGER NOT NULL,
+                    generation INTEGER NOT NULL,
+                    initiative_id TEXT NOT NULL,
+                    artifact_set_sha256 TEXT NOT NULL,
+                    evaluation_policy_sha256 TEXT NOT NULL,
+                    principal_state_sha256 TEXT NOT NULL,
+                    context_bundle_sha256 TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY(task_id,generation)
+                );
                 INSERT OR IGNORE INTO assurance_pilot_config(key,value,updated_at)
                     VALUES ('kill_switch','false','bootstrap');
+                CREATE TRIGGER IF NOT EXISTS assurance_execution_bindings_immutable_update
+                    BEFORE UPDATE ON assurance_execution_bindings
+                    BEGIN SELECT RAISE(ABORT, 'assurance execution binding is immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS assurance_execution_bindings_immutable_delete
+                    BEFORE DELETE ON assurance_execution_bindings
+                    BEGIN SELECT RAISE(ABORT, 'assurance execution binding is immutable'); END;
                 """
             )
             columns = {
@@ -54,6 +71,185 @@ class PilotGate:
             ):
                 if name not in columns:
                     conn.execute(f"ALTER TABLE assurance_task_bindings ADD COLUMN {name} TEXT")
+
+    @staticmethod
+    def _snapshot_sha256(value: Any) -> str:
+        canonical = json.dumps(
+            value, ensure_ascii=True, sort_keys=True, separators=(",", ":"),
+        )
+        return hashlib.sha256(canonical.encode("ascii")).hexdigest()
+
+    def _execution_snapshot(self, conn: Any, initiative_id: str) -> dict[str, str]:
+        initiative = conn.execute(
+            "SELECT profile,risk_class FROM assurance_initiatives WHERE initiative_id=?",
+            (initiative_id,),
+        ).fetchone()
+        gate = conn.execute(
+            """SELECT decision,artifact_set_sha256,conditions_json,expires_at
+               FROM assurance_gate_decisions
+               WHERE initiative_id=? AND gate='G4' ORDER BY id DESC LIMIT 1""",
+            (initiative_id,),
+        ).fetchone()
+        if initiative is None or gate is None:
+            raise ValueError("bound pilot evaluation policy is missing")
+        try:
+            conditions = json.loads(gate["conditions_json"])
+        except (TypeError, json.JSONDecodeError) as exc:
+            raise ValueError("bound pilot evaluation policy is invalid") from exc
+        policy = {
+            "profile": initiative["profile"],
+            "risk_class": initiative["risk_class"],
+            "g4": {
+                "decision": gate["decision"],
+                "artifact_set_sha256": gate["artifact_set_sha256"],
+                "conditions": conditions,
+                "expires_at": gate["expires_at"],
+            },
+        }
+        principals = [
+            {
+                "principal_id": row["principal_id"],
+                "actor": row["actor"],
+                "authority": row["authority"],
+                "credential_sha256": row["credential_sha256"],
+                "status": row["status"],
+            }
+            for row in conn.execute(
+                """SELECT principal_id,actor,authority,credential_sha256,status
+                   FROM assurance_principals ORDER BY principal_id"""
+            )
+        ]
+        return {
+            "artifact_set_sha256": AssuranceKernel(
+                self._config,
+            )._initiative_build_artifact_set_sha256(conn, initiative_id),
+            "evaluation_policy_sha256": self._snapshot_sha256(policy),
+            "principal_state_sha256": self._snapshot_sha256(principals),
+        }
+
+    def record_execution_binding(
+        self, conn: Any, task_id: int, generation: int, fencing_token: str,
+        context_bundle_sha256: str, artifact_set_sha256: str,
+        evaluation_policy_sha256: str, principal_state_sha256: str,
+    ) -> None:
+        task_binding = conn.execute(
+            "SELECT initiative_id,pilot,artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
+        execution = conn.execute(
+            "SELECT generation,fencing_token,recovery_status FROM task_executions WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
+        if task_binding is None or not task_binding["pilot"]:
+            return
+        if (
+            execution is None
+            or int(execution["generation"]) != generation
+            or execution["fencing_token"] != fencing_token
+            or execution["recovery_status"] not in {"running", "claimed"}
+        ):
+            raise ValueError("bound pilot context generation does not match the active execution")
+        snapshot = self._execution_snapshot(conn, task_binding["initiative_id"])
+        if (
+            not task_binding["artifact_set_sha256"]
+            or task_binding["artifact_set_sha256"] != artifact_set_sha256
+            or snapshot["artifact_set_sha256"] != artifact_set_sha256
+        ):
+            raise ValueError("bound pilot assurance artifact set is stale")
+        if snapshot["evaluation_policy_sha256"] != evaluation_policy_sha256:
+            raise ValueError("bound pilot evaluation policy changed during context compilation")
+        if snapshot["principal_state_sha256"] != principal_state_sha256:
+            raise ValueError(
+                "bound pilot principal authority or credential changed during context compilation"
+            )
+        conn.execute(
+            """INSERT INTO assurance_execution_bindings(
+                   task_id,generation,initiative_id,artifact_set_sha256,
+                   evaluation_policy_sha256,principal_state_sha256,
+                   context_bundle_sha256,created_at
+               ) VALUES (?,?,?,?,?,?,?,?)""",
+            (
+                task_id, generation, task_binding["initiative_id"], artifact_set_sha256,
+                evaluation_policy_sha256, principal_state_sha256,
+                context_bundle_sha256, utcnow(),
+            ),
+        )
+
+    def runtime_fence_decision(
+        self, task_id: int, *, conn: Any | None = None,
+    ) -> dict[str, Any]:
+        if conn is not None:
+            return self._runtime_fence_decision(conn, task_id)
+        self.init()
+        with self.store.connect_readonly() as readonly:
+            return self._runtime_fence_decision(readonly, task_id)
+
+    def _runtime_fence_decision(self, conn: Any, task_id: int) -> dict[str, Any]:
+        if conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assurance_task_bindings'"
+        ).fetchone() is None:
+            return {"allowed": True, "reason": "unbound"}
+        task_binding = conn.execute(
+            "SELECT initiative_id,pilot,artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
+        if task_binding is None:
+            return {"allowed": True, "reason": "unbound"}
+        if not task_binding["pilot"]:
+            return {"allowed": True, "reason": "non-pilot"}
+        execution = conn.execute(
+            "SELECT generation,fencing_token FROM task_executions WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
+        if execution is None:
+            return {"allowed": False, "reason": "bound pilot execution generation is missing"}
+        binding = conn.execute(
+            """SELECT * FROM assurance_execution_bindings
+               WHERE task_id=? AND generation=?""",
+            (task_id, int(execution["generation"])),
+        ).fetchone()
+        if binding is None:
+            prior = conn.execute(
+                "SELECT 1 FROM assurance_execution_bindings WHERE task_id=? LIMIT 1",
+                (task_id,),
+            ).fetchone()
+            reason = (
+                "bound pilot execution generation changed"
+                if prior is not None
+                else "bound pilot execution assurance context is missing"
+            )
+            return {"allowed": False, "reason": reason}
+        context = conn.execute(
+            """SELECT bundle_sha256,fencing_token,status FROM task_contexts
+               WHERE task_id=? AND generation=?""",
+            (task_id, int(execution["generation"])),
+        ).fetchone()
+        if (
+            context is None
+            or context["status"] != "active"
+            or context["bundle_sha256"] != binding["context_bundle_sha256"]
+            or context["fencing_token"] != execution["fencing_token"]
+        ):
+            return {"allowed": False, "reason": "bound pilot execution assurance context changed"}
+        if (
+            binding["initiative_id"] != task_binding["initiative_id"]
+            or binding["artifact_set_sha256"] != task_binding["artifact_set_sha256"]
+        ):
+            return {"allowed": False, "reason": "bound pilot artifact set binding changed"}
+        try:
+            current = self._execution_snapshot(conn, task_binding["initiative_id"])
+        except ValueError as exc:
+            return {"allowed": False, "reason": str(exc)}
+        if current["artifact_set_sha256"] != binding["artifact_set_sha256"]:
+            return {"allowed": False, "reason": "bound pilot artifact set changed or became stale"}
+        if current["evaluation_policy_sha256"] != binding["evaluation_policy_sha256"]:
+            return {"allowed": False, "reason": "bound pilot evaluation policy changed"}
+        if current["principal_state_sha256"] != binding["principal_state_sha256"]:
+            return {
+                "allowed": False,
+                "reason": "bound pilot principal authority or credential changed",
+            }
+        return {"allowed": True, "reason": "bound pilot execution assurance binding is current"}
 
     def bind(
         self, task_id: int, initiative_id: str, *, pilot: bool,

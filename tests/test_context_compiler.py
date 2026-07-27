@@ -178,15 +178,31 @@ class ContextCompilerTest(unittest.TestCase):
         )
         with self.osys.store.connect() as conn:
             digest = kernel._initiative_artifact_set_sha256(conn, "pilot-c2-approved-for-build")
+            conn.execute(
+                "UPDATE assurance_initiatives SET status='approved_for_build',mode='pilot' "
+                "WHERE initiative_id='pilot-c2-approved-for-build'"
+            )
+            conn.execute(
+                """INSERT INTO assurance_gate_decisions(
+                       initiative_id,gate,decision,actor,principal_id,artifact_set_sha256,
+                       conditions_json,expires_at,created_at
+                   ) VALUES ('pilot-c2-approved-for-build','G4','pass','CEO',
+                             'principal-ceo',?,'[]',NULL,'2026-07-26T00:00:00+00:00')""",
+                (digest,),
+            )
         PilotGate(self.config).bind(
             self.task_id, "pilot-c2-approved-for-build", pilot=True,
             artifact_set_sha256=digest, actor="CEO", principal_id="principal-ceo",
         )
+        claim = self.osys.claim_task(
+            self.task_id, "Product Engineer", executor_id="phase-c-context",
+            backend="local",
+        )
         bundle = ContextCompiler(
             self.config, context_root=Path("/home/tony/agent-company/company_context")
         ).compile(
-            self.task_id, generation=7, role="Product Engineer",
-            repository={"id": "pixweave"},
+            self.task_id, generation=int(claim["generation"]), role="Product Engineer",
+            repository={"id": "pixweave"}, fencing_token=str(claim["fencing_token"]),
         )
         self.assertEqual(bundle["assurance"]["initiative_id"], "pilot-c2-approved-for-build")
         self.assertEqual(bundle["assurance"]["artifact_set_sha256"], digest)

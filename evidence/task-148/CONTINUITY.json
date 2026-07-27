@@ -1,0 +1,45 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "/home/tony/agent-company/evidence/task-148/verification-report.md",
+        "/home/tony/agent-company/evidence/task-148/red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-148/focused-test-output.txt",
+        "/home/tony/agent-company/evidence/task-148/full-test-output.txt",
+        "/home/tony/agent-company/evidence/task-148/pixweave-test-output.txt"
+      ],
+      "decision_needed": "Independently review task 148's immutable execution binding, fail-closed runtime validator, migration behavior, redaction boundary, atomic denial tests, and adversarial fencing coverage; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 148 implements bound-pilot runtime fencing across context, heartbeat, and completion and passes 104 focused, 183 Agent Company, and 58 PixWeave tests. Independent review remains required by the Phase C charter.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "This is only the Phase C fencing workstream; remaining Phase C workstreams and Phase D are not authorized or claimed complete.",
+    "No production service deployment, live-database mutation, or PixWeave source change was performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review the pushed task 148 commit and evidence before the Phase C exit gate."
+  ],
+  "project_decisions": [
+    "Runtime fencing remains opt-in to explicitly bound pilot tasks; unbound and explicit non-pilot paths return before enforcement.",
+    "Context compilation creates one immutable binding per task execution generation and binds the exact context bundle, build artifact set, evaluation policy, and principal registry state.",
+    "Principal and credential state are compared through a server-side canonical digest and are not disclosed in task context.",
+    "The same validator runs before context use, heartbeat renewal, and completion, with heartbeat and completion checks inside their existing transactions.",
+    "Existing bound executions without a new execution binding fail closed and must be recovered/reclaimed to compile a current generation context."
+  ],
+  "project_summary": "Agent Company now fences explicitly bound pilot executions when build artifacts, evaluation thresholds/profile, assurance authority/credentials, context binding, or execution generation drift after context compilation, while preserving unbound and non-pilot behavior.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Implemented and verified task 148's Phase C runtime fencing with strict RED-GREEN TDD, immutable per-generation bindings, atomic heartbeat/completion denial, restart and migration probes, compatibility controls, and cross-repository regression evidence.",
+  "verified_facts": [
+    "The normalized initial RED run executed 36 tests and failed with seven failures plus one error before production controls existed.",
+    "Focused assurance/runtime verification executed 104 tests with all passing.",
+    "Agent Company canonical verification executed 183 tests with all passing.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and its canonical suite executed 58 tests with all passing.",
+    "Clean temporary-workspace initialization and validation returned ok=true and created the expected immutable execution-binding schema.",
+    "Denied bound-pilot heartbeats and completions leave lease, executor, task, execution, audit, and event state unchanged in focused tests.",
+    "Unbound and explicit non-pilot heartbeat/completion response shapes remain compatible in focused tests."
+  ]
+}

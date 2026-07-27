@@ -398,9 +398,16 @@ class CompanyOS:
         self.init()
         if lease_seconds <= 0:
             raise ValueError("lease_seconds must be positive")
+        from .pilot_gate import PilotGate
+
+        pilot_gate = PilotGate(self.config)
+        pilot_gate.init()
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             task, execution = self._active_execution(conn, task_id, executor_id, fencing_token=fencing_token)
+            fence = pilot_gate.runtime_fence_decision(task_id, conn=conn)
+            if not fence["allowed"]:
+                raise ValueError(f"task {task_id} blocked by assurance runtime fence: {fence['reason']}")
             now = utcnow()
             lease_expires = _iso_add(now, lease_seconds)
             conn.execute(
@@ -529,6 +536,11 @@ class CompanyOS:
                 raise ValueError(f"task {task_id} rejected stale fencing token")
             if self._execution_lease_expired(self._execution_details(execution)):
                 raise ValueError(f"task {task_id} execution lease has expired")
+            fence = pilot_gate.runtime_fence_decision(task_id, conn=conn)
+            if not fence["allowed"]:
+                raise ValueError(
+                    f"task {task_id} blocked by assurance runtime fence: {fence['reason']}"
+                )
             assurance_decision = pilot_gate.completion_decision(dict(task), conn=conn)
             if not assurance_decision["allowed"]:
                 raise ValueError(

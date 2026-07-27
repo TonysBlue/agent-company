@@ -107,6 +107,7 @@ class ContextCompiler:
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assurance_task_bindings'"
             ).fetchone() else None
             assurance = None
+            assurance_snapshot = None
             if binding is not None and binding["pilot"]:
                 initiative = conn.execute(
                     "SELECT status,mode,profile,risk_class FROM assurance_initiatives WHERE initiative_id=?",
@@ -127,15 +128,21 @@ class ContextCompiler:
                         "content_sha256": row["content_sha256"], "content": payload["content"],
                     })
                 from .assurance import AssuranceKernel
+                from .pilot_gate import PilotGate
+
                 current = AssuranceKernel(self.config)._initiative_build_artifact_set_sha256(
                     conn, binding["initiative_id"],
                 )
                 if not binding["artifact_set_sha256"] or binding["artifact_set_sha256"] != current:
                     raise ValueError("bound pilot assurance artifact set is stale")
+                assurance_snapshot = PilotGate(self.config)._execution_snapshot(
+                    conn, binding["initiative_id"],
+                )
                 assurance = {
                     "initiative_id": binding["initiative_id"], "profile": initiative["profile"],
                     "risk_class": initiative["risk_class"], "lifecycle": initiative["status"],
-                    "mode": initiative["mode"], "artifact_set_sha256": current, "artifacts": artifacts,
+                    "mode": initiative["mode"], "artifact_set_sha256": current,
+                    "execution_generation": generation, "artifacts": artifacts,
                 }
             for row in handoffs:
                 row["artifact_refs"] = json.loads(row.pop("artifact_refs_json"))
@@ -198,6 +205,8 @@ class ContextCompiler:
         }
         bundle["provenance"]["bundle_sha256"] = hashlib.sha256(_canonical(bundle).encode("utf-8")).hexdigest()
         with self.store.connect() as conn:
+            from .pilot_gate import PilotGate
+
             now = utcnow()
             conn.execute("UPDATE task_contexts SET status='superseded', superseded_at=? WHERE task_id=? AND status='active'", (now, task_id))
             existing = conn.execute("SELECT bundle_sha256 FROM task_contexts WHERE task_id=? AND generation=?", (task_id, generation)).fetchone()
@@ -214,12 +223,25 @@ class ContextCompiler:
                  bundle["provenance"]["bundle_sha256"], fencing_token,
                  _canonical(bundle["provenance"]["source_versions"]), now),
             )
+            if assurance is not None:
+                if fencing_token is None or assurance_snapshot is None:
+                    raise ValueError("bound pilot context requires an active fenced execution")
+                PilotGate(self.config).record_execution_binding(
+                    conn, task_id, generation, fencing_token,
+                    bundle["provenance"]["bundle_sha256"],
+                    assurance["artifact_set_sha256"],
+                    assurance_snapshot["evaluation_policy_sha256"],
+                    assurance_snapshot["principal_state_sha256"],
+                )
         return bundle
 
     def assert_current(
         self, task_id: int, generation: int, bundle_sha256: str,
         *, workspace: Path | None = None, fencing_token: str | None = None,
     ) -> None:
+        from .pilot_gate import PilotGate
+
+        PilotGate(self.config).init()
         with self.store.connect() as conn:
             row = conn.execute(
                 "SELECT * FROM task_contexts WHERE task_id=? AND generation=?",
@@ -230,6 +252,7 @@ class ContextCompiler:
             ).fetchone()
             task = conn.execute("SELECT owner, title, domain, acceptance_criteria, updated_at FROM tasks WHERE id=?", (task_id,)).fetchone()
             state = conn.execute("SELECT version, active_directive_version FROM ceo_state_versions ORDER BY version DESC LIMIT 1").fetchone()
+            fence = PilotGate(self.config).runtime_fence_decision(task_id, conn=conn)
         if row is None or row["status"] != "active" or row["bundle_sha256"] != bundle_sha256:
             raise ValueError("task context is missing, superseded, or tampered")
         if execution is not None and (
@@ -238,9 +261,11 @@ class ContextCompiler:
             or (fencing_token is not None and execution["fencing_token"] != fencing_token)
             or (row["fencing_token"] is not None and row["fencing_token"] != execution["fencing_token"])
         ):
-            raise ValueError("task context does not match the active fenced execution")
+            raise ValueError("task context generation does not match the active fenced execution")
         if state and (int(row["strategy_version"]) != int(state["version"]) or int(row["directive_version"]) != int(state["active_directive_version"])):
             raise ValueError("task context is stale after strategy or Chairman directive change")
+        if not fence["allowed"]:
+            raise ValueError(str(fence["reason"]))
         if workspace is not None:
             context_path = workspace / ".agent-company" / "TASK_CONTEXT.json"
             manifest_path = workspace / ".agent-company" / "CONTEXT_MANIFEST.json"

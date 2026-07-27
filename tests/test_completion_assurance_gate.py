@@ -67,6 +67,15 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             self.task_id, "Company Platform Engineer", executor_id="platform-runner",
             backend="local",
         )
+        self.context_bundle = ContextCompiler(
+            self.config, context_root=self.old_cwd / "company_context",
+        ).compile(
+            self.task_id,
+            generation=int(self.claim["generation"]),
+            role="Company Platform Engineer",
+            repository={"id": "agent-company"},
+            fencing_token=str(self.claim["fencing_token"]),
+        )
 
     def tearDown(self) -> None:
         for principal_id in self.credentials:
@@ -204,6 +213,180 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0], events_before)
         self.assertEqual((task["status"], task["result"]), ("in_progress", None))
         self.assertEqual((execution["recovery_status"], execution["evidence_paths"]), ("running", "[]"))
+
+    def _assert_runtime_fence_is_atomic(self, expected: str) -> None:
+        with self.assertRaisesRegex(ValueError, expected):
+            ContextCompiler(
+                self.config, context_root=self.old_cwd / "company_context",
+            ).assert_current(
+                self.task_id,
+                int(self.claim["generation"]),
+                self.context_bundle["provenance"]["bundle_sha256"],
+                fencing_token=str(self.claim["fencing_token"]),
+            )
+        with self.osys.store.connect_readonly() as conn:
+            execution_before = dict(conn.execute(
+                "SELECT heartbeat_at,lease_expires_at,updated_at FROM task_executions WHERE task_id=?",
+                (self.task_id,),
+            ).fetchone())
+            executor_row = conn.execute(
+                "SELECT heartbeat_at,updated_at FROM executors WHERE executor_id='platform-runner'"
+            ).fetchone()
+            executor_before = dict(executor_row) if executor_row is not None else None
+            audit_before = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+            events_before = conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0]
+        with self.assertRaisesRegex(ValueError, expected):
+            self.osys.heartbeat_task(
+                self.task_id, "platform-runner",
+                fencing_token=str(self.claim["fencing_token"]),
+            )
+        with self.osys.store.connect_readonly() as conn:
+            execution_after = dict(conn.execute(
+                "SELECT heartbeat_at,lease_expires_at,updated_at FROM task_executions WHERE task_id=?",
+                (self.task_id,),
+            ).fetchone())
+            executor_row = conn.execute(
+                "SELECT heartbeat_at,updated_at FROM executors WHERE executor_id='platform-runner'"
+            ).fetchone()
+            executor_after = dict(executor_row) if executor_row is not None else None
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0], audit_before)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0], events_before)
+        self.assertEqual(execution_after, execution_before)
+        self.assertEqual(executor_after, executor_before)
+        self._assert_denial_is_atomic(expected)
+
+    def test_context_persists_immutable_execution_assurance_binding(self) -> None:
+        serialized = json.dumps(self.context_bundle["assurance"], sort_keys=True)
+        self.assertNotIn("principal-", serialized)
+        self.assertNotIn("principal_state_sha256", serialized)
+        self.assertNotIn("evaluation_policy_sha256", serialized)
+        for principal_id in self.credentials:
+            self.assertNotIn(
+                hashlib.sha256(f"credential-{principal_id}".encode()).hexdigest(),
+                serialized,
+            )
+        with self.osys.store.connect_readonly() as conn:
+            binding = conn.execute(
+                "SELECT * FROM assurance_execution_bindings WHERE task_id=? AND generation=?",
+                (self.task_id, int(self.claim["generation"])),
+            ).fetchone()
+        self.assertIsNotNone(binding)
+        self.assertEqual(binding["initiative_id"], self.initiative_id)
+        self.assertEqual(binding["artifact_set_sha256"], self.artifact_set_sha256)
+        self.assertEqual(
+            binding["context_bundle_sha256"],
+            self.context_bundle["provenance"]["bundle_sha256"],
+        )
+        for column in ("evaluation_policy_sha256", "principal_state_sha256"):
+            self.assertEqual(len(binding[column]), 64)
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+            with self.osys.store.connect() as conn:
+                conn.execute(
+                    "UPDATE assurance_execution_bindings SET artifact_set_sha256=? WHERE task_id=?",
+                    ("0" * 64, self.task_id),
+                )
+
+    def test_stale_artifact_fences_heartbeat_and_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_artifacts SET status='stale' "
+                "WHERE artifact_id='completion-eval-contract'"
+            )
+        self._assert_runtime_fence_is_atomic("artifact set")
+
+    def test_changed_evaluation_threshold_fences_heartbeat_and_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_gate_decisions SET conditions_json=? "
+                "WHERE initiative_id=? AND gate='G4'",
+                ('["raised completion threshold"]', self.initiative_id),
+            )
+        self._assert_runtime_fence_is_atomic("evaluation policy")
+
+    def test_changed_assurance_profile_fences_heartbeat_and_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_initiatives SET profile='product-competitive' "
+                "WHERE initiative_id=?",
+                (self.initiative_id,),
+            )
+        self._assert_runtime_fence_is_atomic("evaluation policy")
+
+    def test_changed_principal_authority_fences_heartbeat_and_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_principals SET authority='reviewer' "
+                "WHERE principal_id='principal-platform'"
+            )
+        self._assert_runtime_fence_is_atomic("principal authority or credential")
+
+    def test_rotated_principal_credential_fences_heartbeat_and_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_principals SET credential_sha256=? "
+                "WHERE principal_id='principal-platform'",
+                (hashlib.sha256(b"rotated-platform-credential").hexdigest(),),
+            )
+        self._assert_runtime_fence_is_atomic("principal authority or credential")
+
+    def test_revoked_principal_fences_heartbeat_and_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_principals SET status='revoked',credential_sha256=NULL "
+                "WHERE principal_id='principal-platform'"
+            )
+        self._assert_runtime_fence_is_atomic("principal authority or credential")
+
+    def test_changed_execution_generation_fences_context_heartbeat_and_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE task_executions SET generation=generation+1 WHERE task_id=?",
+                (self.task_id,),
+            )
+        self._assert_runtime_fence_is_atomic("generation")
+
+    def test_execution_assurance_fence_survives_service_restart(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        restarted = CompanyOS(self.config)
+        heartbeat = restarted.heartbeat_task(
+            self.task_id, "platform-runner",
+            fencing_token=str(self.claim["fencing_token"]),
+        )
+        self.assertEqual(heartbeat["generation"], int(self.claim["generation"]))
+        completed = restarted.complete_task(
+            self.task_id, "Company Platform Engineer", "guarded result",
+            [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
+        )
+        self.assertEqual(completed["status"], "done")
+
+    def test_missing_execution_binding_fails_closed_after_upgrade(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_execution_bindings_immutable_delete")
+            conn.execute(
+                "DELETE FROM assurance_execution_bindings WHERE task_id=?",
+                (self.task_id,),
+            )
+        restarted = CompanyOS(self.config)
+        restarted.init()
+        self._assert_runtime_fence_is_atomic("assurance context is missing")
 
     def test_bound_completion_without_trusted_eval_fails_atomically(self) -> None:
         self._assert_denial_is_atomic("Trusted Eval")
@@ -405,7 +588,7 @@ class CompletionAssuranceGateTest(unittest.TestCase):
                 "WHERE principal_id='principal-evaluator'"
             )
         self._record_review(result_sha256, owner_principal="principal-evaluator")
-        self._assert_denial_is_atomic("independent")
+        self._assert_denial_is_atomic("principal authority or credential")
 
     def test_rotated_evaluator_actor_and_authority_remain_nonindependent(self) -> None:
         result_sha256 = self._record_eval()
@@ -418,7 +601,7 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             )
         self.credentials["principal-evaluator"] = (rotated_actor, "reviewer")
         self._record_review(result_sha256, owner_principal="principal-evaluator")
-        self._assert_denial_is_atomic("independent")
+        self._assert_denial_is_atomic("principal authority or credential")
 
     def test_post_build_review_does_not_stale_g4_redispatch(self) -> None:
         result_sha256 = self._record_eval()
@@ -472,23 +655,16 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self.assertEqual(decision["allowed"], True, decision["reason"])
         self.assertEqual(decision["artifact_set_sha256"], self.artifact_set_sha256)
 
-    def test_post_build_review_is_excluded_from_recompiled_build_context(self) -> None:
+    def test_post_build_review_is_excluded_from_bound_build_context(self) -> None:
         result_sha256 = self._record_eval()
         self._record_review(result_sha256)
 
-        bundle = ContextCompiler(
-            self.config, context_root=self.old_cwd / "company_context",
-        ).compile(
-            self.task_id,
-            generation=int(self.claim["generation"]),
-            role="Company Platform Engineer",
-            repository={"id": "agent-company"},
-            fencing_token=str(self.claim["fencing_token"]),
-        )
-
-        self.assertEqual(bundle["assurance"]["artifact_set_sha256"], self.artifact_set_sha256)
         self.assertEqual(
-            [artifact["kind"] for artifact in bundle["assurance"]["artifacts"]],
+            self.context_bundle["assurance"]["artifact_set_sha256"],
+            self.artifact_set_sha256,
+        )
+        self.assertEqual(
+            [artifact["kind"] for artifact in self.context_bundle["assurance"]["artifacts"]],
             ["eval_contract"],
         )
 
@@ -541,6 +717,17 @@ class CompletionAssuranceGateTest(unittest.TestCase):
     def test_unbound_completion_result_shape_is_unchanged(self) -> None:
         with self.osys.store.connect() as conn:
             conn.execute("DELETE FROM assurance_task_bindings WHERE task_id=?", (self.task_id,))
+        heartbeat = self.osys.heartbeat_task(
+            self.task_id, "platform-runner",
+            fencing_token=str(self.claim["fencing_token"]),
+        )
+        self.assertEqual(set(heartbeat), {
+            "task_id", "executor_id", "backend", "process_id", "process_started_at",
+            "session_ref", "claimed_at", "heartbeat_at", "lease_expires_at",
+            "attempt_count", "max_attempts", "checkpoint", "next_action",
+            "evidence_paths", "log_paths", "last_error", "recovery_status",
+            "fencing_token", "generation",
+        })
         completed = self.osys.complete_task(
             self.task_id, "Company Platform Engineer", "ordinary result",
             [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
@@ -552,6 +739,11 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             conn.execute(
                 "UPDATE assurance_task_bindings SET pilot=0 WHERE task_id=?", (self.task_id,)
             )
+        heartbeat = self.osys.heartbeat_task(
+            self.task_id, "platform-runner",
+            fencing_token=str(self.claim["fencing_token"]),
+        )
+        self.assertEqual(heartbeat["recovery_status"], "running")
         completed = self.osys.complete_task(
             self.task_id, "Company Platform Engineer", "ordinary result",
             [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
@@ -560,6 +752,7 @@ class CompletionAssuranceGateTest(unittest.TestCase):
 
     def test_existing_binding_schema_is_upgraded_without_data_loss(self) -> None:
         with self.osys.store.connect() as conn:
+            conn.execute("DROP TABLE assurance_execution_bindings")
             conn.execute("DROP TABLE assurance_task_bindings")
             conn.execute(
                 """CREATE TABLE assurance_task_bindings(
@@ -585,6 +778,16 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self.assertEqual(binding["initiative_id"], self.initiative_id)
         self.assertEqual(binding["artifact_set_sha256"], self.artifact_set_sha256)
         self.assertIsNone(binding["completion_result_sha256"])
+        columns = {
+            row["name"] for row in self.osys.store.fetch_all(
+                "PRAGMA table_info(assurance_execution_bindings)"
+            )
+        }
+        self.assertEqual(columns, {
+            "task_id", "generation", "initiative_id", "artifact_set_sha256",
+            "evaluation_policy_sha256", "principal_state_sha256",
+            "context_bundle_sha256", "created_at",
+        })
 
 
 if __name__ == "__main__":
