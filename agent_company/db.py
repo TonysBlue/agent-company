@@ -40,7 +40,8 @@ class Store:
 
     def init_assurance(self) -> None:
         """Add shadow assurance tables without touching operational schema or data."""
-        from .integrity import ensure_key
+        from .integrity import ensure_key, signature as integrity_signature
+        from .integrity import verify as verify_integrity_signature
 
         ensure_key(self.db_path)
         with self.connect() as conn:
@@ -116,6 +117,19 @@ class Store:
                     integrity_signature TEXT NOT NULL,
                     PRIMARY KEY(artifact_id, version)
                 );
+                CREATE TABLE IF NOT EXISTS assurance_artifact_lifecycle (
+                    artifact_id TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    sequence INTEGER NOT NULL,
+                    from_status TEXT,
+                    to_status TEXT NOT NULL,
+                    transitioned_at TEXT NOT NULL,
+                    actor_principal TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    previous_signature TEXT,
+                    integrity_signature TEXT NOT NULL,
+                    PRIMARY KEY(artifact_id, version, sequence)
+                );
                 CREATE TABLE IF NOT EXISTS assurance_links (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     initiative_id TEXT NOT NULL,
@@ -167,12 +181,120 @@ class Store:
                     "ALTER TABLE assurance_artifact_registrations "
                     "ADD COLUMN integrity_signature TEXT"
                 )
+
+            def append_lifecycle(
+                artifact: sqlite3.Row, from_status: str | None, to_status: str,
+                transitioned_at: str, actor_principal: str, reason: str,
+            ) -> None:
+                previous = conn.execute(
+                    """SELECT sequence,integrity_signature
+                       FROM assurance_artifact_lifecycle
+                       WHERE artifact_id=? AND version=? ORDER BY sequence DESC LIMIT 1""",
+                    (artifact["artifact_id"], artifact["version"]),
+                ).fetchone()
+                values = {
+                    "artifact_id": artifact["artifact_id"],
+                    "version": artifact["version"],
+                    "sequence": int(previous["sequence"]) + 1 if previous else 1,
+                    "from_status": from_status,
+                    "to_status": to_status,
+                    "transitioned_at": transitioned_at,
+                    "actor_principal": actor_principal,
+                    "reason": reason,
+                    "previous_signature": previous["integrity_signature"] if previous else None,
+                }
+                conn.execute(
+                    """INSERT INTO assurance_artifact_lifecycle(
+                           artifact_id,version,sequence,from_status,to_status,
+                           transitioned_at,actor_principal,reason,previous_signature,
+                           integrity_signature
+                       ) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (*values.values(), integrity_signature(
+                        self.db_path, "artifact-lifecycle", values,
+                    )),
+                )
+
+            # Existing approvals are independently signed. Existing supersessions are
+            # recoverable from their audit record; anchoring that terminal state also
+            # exposes a pre-upgrade raw rollback instead of blessing it.
+            for artifact in conn.execute(
+                "SELECT * FROM assurance_artifacts ORDER BY id"
+            ).fetchall():
+                if conn.execute(
+                    """SELECT 1 FROM assurance_artifact_lifecycle
+                       WHERE artifact_id=? AND version=? LIMIT 1""",
+                    (artifact["artifact_id"], artifact["version"]),
+                ).fetchone():
+                    continue
+                registration = conn.execute(
+                    """SELECT * FROM assurance_artifact_registrations
+                       WHERE artifact_id=? AND version=?""",
+                    (artifact["artifact_id"], artifact["version"]),
+                ).fetchone()
+                registration_valid = registration is not None and verify_integrity_signature(
+                    self.db_path, "artifact-registration", {
+                        "artifact_id": registration["artifact_id"],
+                        "version": registration["version"],
+                        "content_sha256": registration["content_sha256"],
+                        "created_at": registration["created_at"],
+                    }, registration["integrity_signature"],
+                ) and registration["content_sha256"] == artifact["content_sha256"]
+                if not registration_valid:
+                    continue
+                append_lifecycle(
+                    artifact, None, "draft", registration["created_at"],
+                    artifact["owner_principal"], "artifact registered",
+                )
+                approval = conn.execute(
+                    """SELECT * FROM assurance_artifact_approvals
+                       WHERE artifact_id=? AND version=?""",
+                    (artifact["artifact_id"], artifact["version"]),
+                ).fetchone()
+                approval_valid = approval is not None and verify_integrity_signature(
+                    self.db_path, "artifact-approval", {
+                        "artifact_id": approval["artifact_id"],
+                        "version": approval["version"],
+                        "content_sha256": approval["content_sha256"],
+                        "approved_by_principal": approval["approved_by_principal"],
+                        "approved_at": approval["approved_at"],
+                    }, approval["integrity_signature"],
+                ) and approval["content_sha256"] == artifact["content_sha256"]
+                if approval_valid:
+                    append_lifecycle(
+                        artifact, "draft", "approved", approval["approved_at"],
+                        approval["approved_by_principal"], "artifact approved",
+                    )
+
+                ref = f"{artifact['artifact_id']}:v{artifact['version']}"
+                terminal: tuple[str, sqlite3.Row, dict[str, Any]] | None = None
+                for audit in conn.execute(
+                    """SELECT ts,actor,entity_id,details FROM audit_log
+                       WHERE action='assurance_artifact_superseded' ORDER BY id"""
+                ):
+                    try:
+                        details = json.loads(audit["details"])
+                    except (TypeError, json.JSONDecodeError):
+                        continue
+                    if audit["entity_id"] == ref:
+                        terminal = ("superseded", audit, details)
+                    elif ref in details.get("invalidated", []):
+                        terminal = ("stale", audit, details)
+                if terminal and approval_valid:
+                    status, audit, details = terminal
+                    append_lifecycle(
+                        artifact, "approved", status, audit["ts"],
+                        str(details.get("principal_id") or audit["actor"]),
+                        str(details.get("reason") or "dependency superseded"),
+                    )
             conn.executescript(
                 """
                 DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_delete;
                 DROP TRIGGER IF EXISTS assurance_artifact_approvals_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_artifact_approvals_immutable_delete;
+                DROP TRIGGER IF EXISTS assurance_artifact_lifecycle_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_artifact_lifecycle_immutable_delete;
+                DROP TRIGGER IF EXISTS assurance_artifact_status_transition_guard;
                 CREATE TRIGGER assurance_artifact_registrations_immutable_update
                     BEFORE UPDATE ON assurance_artifact_registrations
                     BEGIN SELECT RAISE(ABORT, 'assurance artifact registration is immutable'); END;
@@ -185,6 +307,29 @@ class Store:
                 CREATE TRIGGER assurance_artifact_approvals_immutable_delete
                     BEFORE DELETE ON assurance_artifact_approvals
                     BEGIN SELECT RAISE(ABORT, 'assurance artifact approval is immutable'); END;
+                CREATE TRIGGER assurance_artifact_lifecycle_immutable_update
+                    BEFORE UPDATE ON assurance_artifact_lifecycle
+                    BEGIN SELECT RAISE(ABORT, 'assurance artifact lifecycle is immutable'); END;
+                CREATE TRIGGER assurance_artifact_lifecycle_immutable_delete
+                    BEFORE DELETE ON assurance_artifact_lifecycle
+                    BEGIN SELECT RAISE(ABORT, 'assurance artifact lifecycle is immutable'); END;
+                CREATE TRIGGER assurance_artifact_status_transition_guard
+                    BEFORE UPDATE OF status ON assurance_artifacts
+                    WHEN NEW.status IS NOT OLD.status
+                    AND NOT EXISTS (
+                        SELECT 1 FROM assurance_artifact_lifecycle lifecycle
+                        WHERE lifecycle.artifact_id=OLD.artifact_id
+                          AND lifecycle.version=OLD.version
+                          AND lifecycle.sequence=(
+                              SELECT MAX(latest.sequence)
+                              FROM assurance_artifact_lifecycle latest
+                              WHERE latest.artifact_id=OLD.artifact_id
+                                AND latest.version=OLD.version
+                          )
+                          AND lifecycle.from_status IS OLD.status
+                          AND lifecycle.to_status IS NEW.status
+                    )
+                    BEGIN SELECT RAISE(ABORT, 'artifact lifecycle transition is not anchored'); END;
                 """
             )
 

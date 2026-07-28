@@ -196,7 +196,11 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                     "error": None,
                 },
                 "tasks": _row_dicts(list(conn.execute(
-                    "SELECT * FROM tasks ORDER BY CASE status WHEN 'blocked' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'open' THEN 2 ELSE 3 END, priority DESC, id ASC"
+                    """SELECT id,created_at,updated_at,owner,title,domain,status,priority,
+                              blocked_reason,acceptance_criteria,strategic_phase_id,business_outcome
+                       FROM tasks
+                       ORDER BY CASE status WHEN 'blocked' THEN 0 WHEN 'in_progress' THEN 1 WHEN 'open' THEN 2 ELSE 3 END,
+                                priority DESC,id ASC"""
                 ))),
                 "approvals": _row_dicts(list(conn.execute(
                     "SELECT * FROM approvals ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, id DESC LIMIT 20"
@@ -238,10 +242,17 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                     "SELECT * FROM ceo_state_versions ORDER BY version DESC LIMIT 5"
                 ))) if ceo_table else [],
                 "ceo_runs": _row_dicts(list(conn.execute(
-                    "SELECT * FROM ceo_runs ORDER BY id DESC LIMIT 20"
+                    """SELECT id,created_at,finished_at,event_id,source_tag,
+                              state_version_read,directive_version_read,model,provider,
+                              input_tokens,output_tokens,cache_tokens,reasoning_tokens,
+                              total_tokens,judgment,status,error
+                       FROM ceo_runs ORDER BY id DESC LIMIT 20"""
                 ))) if ceo_table else [],
                 "chairman_directives": _row_dicts(list(conn.execute(
-                    "SELECT * FROM chairman_directives ORDER BY directive_version DESC LIMIT 20"
+                    """SELECT id,directive_version,created_at,source_platform,
+                              directive_type,objective,priority,status
+                       FROM chairman_directives
+                       ORDER BY directive_version DESC LIMIT 20"""
                 ))) if ceo_table else [],
                 "executors": _row_dicts(list(conn.execute(
                     """SELECT executor_id,owner,backend,capabilities,capacity,status,

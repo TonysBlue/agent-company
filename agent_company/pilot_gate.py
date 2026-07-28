@@ -88,6 +88,7 @@ class PilotGate:
                 DROP TRIGGER IF EXISTS assurance_claim_bindings_immutable_delete;
                 DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_delete;
+                DROP TRIGGER IF EXISTS tasks_bound_pilot_completion_guard;
                 CREATE TRIGGER assurance_execution_bindings_immutable_update
                     BEFORE UPDATE ON assurance_execution_bindings
                     BEGIN SELECT RAISE(ABORT, 'assurance execution binding is immutable'); END;
@@ -128,6 +129,32 @@ class PilotGate:
                         WHERE task_id=OLD.task_id
                     )
                     BEGIN SELECT RAISE(ABORT, 'claimed assurance task binding is immutable'); END;
+                CREATE TRIGGER tasks_bound_pilot_completion_guard
+                    BEFORE UPDATE OF status,result ON tasks
+                    WHEN EXISTS (
+                        SELECT 1 FROM assurance_task_bindings binding
+                        JOIN assurance_claim_bindings claim
+                          ON claim.task_id=binding.task_id
+                        WHERE binding.task_id=OLD.id AND binding.pilot=1
+                    )
+                    AND NEW.status='done'
+                    AND (
+                        OLD.status!='in_progress'
+                        OR NEW.result IS NULL
+                        OR NOT EXISTS (
+                            SELECT 1 FROM task_executions execution
+                            WHERE execution.task_id=OLD.id
+                              AND execution.recovery_status='completed'
+                        )
+                        OR NOT EXISTS (
+                            SELECT 1 FROM assurance_task_bindings binding
+                            WHERE binding.task_id=OLD.id
+                              AND binding.completion_result_sha256 IS NOT NULL
+                              AND binding.review_decision_ref IS NOT NULL
+                              AND binding.completed_at IS NOT NULL
+                        )
+                    )
+                    BEGIN SELECT RAISE(ABORT, 'bound pilot completion is not atomic'); END;
                 """
             )
             columns = {
@@ -795,8 +822,12 @@ class PilotGate:
                 actual != artifact["content_sha256"]
                 or not metadata_matches
                 or not registration_matches
+                or not kernel._artifact_lifecycle_valid(conn, artifact)
             ):
-                return {"allowed": False, "reason": "bound pilot assurance integrity conflict"}
+                return {
+                    "allowed": False,
+                    "reason": "bound pilot assurance lifecycle or integrity conflict",
+                }
 
         build_hash = kernel._initiative_build_artifact_set_sha256(conn, initiative_id)
         build_gate = conn.execute(

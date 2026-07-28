@@ -175,6 +175,72 @@ class AssuranceKernel:
             conn, initiative_id, exclude_kinds={"review_decision"},
         )
 
+    def _record_artifact_lifecycle(
+        self, conn: Any, artifact_id: str, version: int, from_status: str | None,
+        to_status: str, transitioned_at: str, actor_principal: str, reason: str,
+    ) -> None:
+        previous = conn.execute(
+            """SELECT sequence,integrity_signature FROM assurance_artifact_lifecycle
+               WHERE artifact_id=? AND version=? ORDER BY sequence DESC LIMIT 1""",
+            (artifact_id, version),
+        ).fetchone()
+        values = {
+            "artifact_id": artifact_id,
+            "version": version,
+            "sequence": int(previous["sequence"]) + 1 if previous else 1,
+            "from_status": from_status,
+            "to_status": to_status,
+            "transitioned_at": transitioned_at,
+            "actor_principal": actor_principal,
+            "reason": reason,
+            "previous_signature": previous["integrity_signature"] if previous else None,
+        }
+        conn.execute(
+            """INSERT INTO assurance_artifact_lifecycle(
+                   artifact_id,version,sequence,from_status,to_status,transitioned_at,
+                   actor_principal,reason,previous_signature,integrity_signature
+               ) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (*values.values(), integrity_signature(
+                self.config.db_path, "artifact-lifecycle", values,
+            )),
+        )
+
+    def _artifact_lifecycle_valid(self, conn: Any, artifact: Any) -> bool:
+        previous_status = None
+        previous_signature = None
+        rows = conn.execute(
+            """SELECT * FROM assurance_artifact_lifecycle
+               WHERE artifact_id=? AND version=? ORDER BY sequence""",
+            (artifact["artifact_id"], artifact["version"]),
+        ).fetchall()
+        if not rows:
+            return False
+        for expected_sequence, row in enumerate(rows, 1):
+            values = {
+                "artifact_id": row["artifact_id"],
+                "version": row["version"],
+                "sequence": row["sequence"],
+                "from_status": row["from_status"],
+                "to_status": row["to_status"],
+                "transitioned_at": row["transitioned_at"],
+                "actor_principal": row["actor_principal"],
+                "reason": row["reason"],
+                "previous_signature": row["previous_signature"],
+            }
+            if (
+                row["sequence"] != expected_sequence
+                or row["from_status"] != previous_status
+                or row["previous_signature"] != previous_signature
+                or not verify_integrity_signature(
+                    self.config.db_path, "artifact-lifecycle", values,
+                    row["integrity_signature"],
+                )
+            ):
+                return False
+            previous_status = row["to_status"]
+            previous_signature = row["integrity_signature"]
+        return previous_status == artifact["status"]
+
     def create_initiative(
         self, initiative_id: str, title: str, profile: str, risk_class: str,
         *, actor: str, principal_id: str,
@@ -525,6 +591,10 @@ class AssuranceKernel:
             ).fetchone()
             if row is None or row["status"] != "approved":
                 raise AssuranceError("only approved artifact may be superseded")
+            self._record_artifact_lifecycle(
+                conn, artifact_id, version, "approved", "superseded", utcnow(),
+                principal_id, reason.strip(),
+            )
             conn.execute(
                 "UPDATE assurance_artifacts SET status='superseded' WHERE artifact_id=? AND version=?",
                 (artifact_id, version),
@@ -546,6 +616,11 @@ class AssuranceKernel:
                         (dependent,),
                     ).fetchall()
                     for dep_row in rows:
+                        self._record_artifact_lifecycle(
+                            conn, dependent, dep_row["version"], "approved", "stale",
+                            utcnow(), principal_id,
+                            f"dependency {artifact_id}:v{version} superseded",
+                        )
                         conn.execute(
                             "UPDATE assurance_artifacts SET status='stale' WHERE artifact_id=? AND version=?",
                             (dependent, dep_row["version"]),
@@ -589,6 +664,11 @@ class AssuranceKernel:
                     conflicts.append({
                         "artifact_id": row["artifact_id"], "version": row["version"],
                         "anchor": "registration",
+                    })
+                if not self._artifact_lifecycle_valid(conn, row):
+                    conflicts.append({
+                        "artifact_id": row["artifact_id"], "version": row["version"],
+                        "anchor": "lifecycle",
                     })
                 if row["status"] == "approved":
                     approval = conn.execute(
@@ -708,6 +788,10 @@ class AssuranceKernel:
                         }),
                     ),
                 )
+                self._record_artifact_lifecycle(
+                    conn, payload["artifact_id"], payload["version"], None, "draft",
+                    now, principal_id, "artifact registered",
+                )
                 if payload["kind"] == "design_manifest":
                     for edge in payload["content"]["edges"]:
                         conn.execute(
@@ -750,6 +834,10 @@ class AssuranceKernel:
             if row["status"] != "draft":
                 raise AssuranceError("only draft artifacts may be approved")
             now = utcnow()
+            self._record_artifact_lifecycle(
+                conn, artifact_id, version, "draft", "approved", now,
+                principal_id, "artifact approved",
+            )
             conn.execute(
                 """UPDATE assurance_artifacts
                    SET status='approved', approved_by_principal=?, approved_at=?

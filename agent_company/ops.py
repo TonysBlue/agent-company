@@ -598,14 +598,14 @@ class CompanyOS:
                    WHERE task_id=? AND recovery_status='running'""",
                 (json.dumps(result["evidence"], sort_keys=True), now, task_id),
             ).rowcount
+            if assurance:
+                PilotGate.record_completion(conn, task_id, assurance, now)
             task_updated = conn.execute(
                 "UPDATE tasks SET status='done', updated_at=?, result=? WHERE id=? AND status='in_progress'",
                 (now, json.dumps(result, sort_keys=True), task_id),
             ).rowcount
             if execution_updated != 1 or task_updated != 1:
                 raise ValueError(f"task {task_id} completion state changed concurrently")
-            if assurance:
-                PilotGate.record_completion(conn, task_id, assurance, now)
             self.store.audit(conn, actor, "complete_task", "task", task_id, result)
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             if execution is not None:
@@ -772,6 +772,49 @@ class CompanyOS:
                        WHERE status IN ('open', 'in_progress', 'blocked')"""
                 )
             ]
+            pilot_completion_rows = list(conn.execute(
+                """SELECT t.id,t.status,t.result,t.updated_at AS task_updated_at,
+                          execution.recovery_status,
+                          execution.updated_at AS execution_updated_at,
+                          binding.initiative_id,binding.artifact_set_sha256,
+                          binding.completion_result_sha256,binding.review_decision_ref,
+                          binding.completed_at
+                   FROM tasks t
+                   JOIN assurance_task_bindings binding ON binding.task_id=t.id
+                   JOIN assurance_claim_bindings claim ON claim.task_id=t.id
+                   LEFT JOIN task_executions execution ON execution.task_id=t.id
+                   WHERE binding.pilot=1
+                   GROUP BY t.id ORDER BY t.id"""
+            ))
+            for row in pilot_completion_rows:
+                completion_values = (
+                    row["completion_result_sha256"], row["review_decision_ref"],
+                    row["completed_at"],
+                )
+                inconsistent = (
+                    (row["status"] == "done")
+                    != (row["recovery_status"] == "completed")
+                    or (row["status"] == "done") != all(completion_values)
+                    or any(completion_values) and not all(completion_values)
+                )
+                if row["status"] == "done" and not inconsistent:
+                    try:
+                        assurance = json.loads(row["result"])["assurance"]
+                    except (KeyError, TypeError, json.JSONDecodeError):
+                        inconsistent = True
+                    else:
+                        inconsistent = (
+                            assurance.get("initiative_id") != row["initiative_id"]
+                            or assurance.get("artifact_set_sha256") != row["artifact_set_sha256"]
+                            or assurance.get("result_sha256") != row["completion_result_sha256"]
+                            or assurance.get("review_decision_ref") != row["review_decision_ref"]
+                            or row["task_updated_at"] != row["completed_at"]
+                            or row["execution_updated_at"] != row["completed_at"]
+                        )
+                if inconsistent:
+                    errors.append(
+                        f"Bound pilot task {row['id']} completion state is inconsistent"
+                    )
         lanes = [self._wip_lane(domain) for domain in active_domains]
         if lanes.count("product") > 1 or lanes.count("commercial") > 1 or None in lanes:
             errors.append("Active WIP must contain at most one product and one commercial task")

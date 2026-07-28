@@ -1,0 +1,112 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable task-150 outcome, diff audit, High probes, verification, acceptance mapping, and scope limits",
+      "sha256": "3cce288db66ada931ee131c7c2b2113b5ddd2df1f552349df043eec9eb1102a4"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and independent control-review handoff",
+      "sha256": "89512b3215d53386d660eeb3bcf7cd795fcef9a09e9e5328fbf5f691f2de1b7b"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Original task-150 RED output for the five completion, lifecycle, and redaction regressions",
+      "sha256": "2720a71b2a5f769e5a9510743ff6a58ee88fea27826d716da9175908801f79d0"
+    },
+    {
+      "path": "adversarial-probe-output.txt",
+      "purpose": "Exact three High probe groups covering completion, lifecycle rollback, authorized behavior, and full-payload redaction",
+      "sha256": "2fd51d81ab1e410ec222928ecdde8ab9ab382c3cbc5072b475807bcdf4913d9b"
+    },
+    {
+      "path": "focused-test-output.txt",
+      "purpose": "Focused completion, lifecycle, pilot, execution, migration, and Dashboard verification output",
+      "sha256": "9b0f979f4d0a9ed324ad85bc1abe9c6631e7de87cc931f0272a152438c8bb49f"
+    },
+    {
+      "path": "full-test-output.txt",
+      "purpose": "Agent Company canonical full-suite output",
+      "sha256": "e67b170d4983e1dfee0046cc81ec95b9179984cd25addf1082b80963ad92cd16"
+    },
+    {
+      "path": "clean-copy-migration-output.txt",
+      "purpose": "Fresh, signed legacy, and read-only operational clean-copy migration and noninterference evidence",
+      "sha256": "161b76d3437f34d21a03794dfa77d89204bc349004d7fb93f0da2a2f8dbd925a"
+    },
+    {
+      "path": "pixweave-test-output.txt",
+      "purpose": "PixWeave clean-worktree identity and canonical suite output",
+      "sha256": "a07286ab9721cd0736fb7356a704eea1d257ec7021df69c1a06283535c970dfc"
+    }
+  ],
+  "base_commit": "820eb5fe21c5cf5d94c3f936f9c30894038aff66",
+  "base_tree": "fe9ab380d4daf84f3396b664eb13a0c60ddd3fbc",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 203,
+    "result": "pass"
+  },
+  "clean_copy_migration": {
+    "canonical_guard_count": 4,
+    "integrity_check": "ok",
+    "legacy_lifecycle_anchor_count": 2,
+    "legacy_migration_idempotent": true,
+    "operational_preexisting_integrity_conflicts": 18,
+    "operational_task_count": 148,
+    "operational_task_sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442",
+    "operational_tasks_unchanged": true,
+    "result": "pass",
+    "source_snapshots_unchanged": true
+  },
+  "code_sha256": {
+    "agent_company/assurance.py": "80fe98d349b3dab3485e468276c2762c256b87db6e16c134e7a444c2c57ee478",
+    "agent_company/dashboard.py": "9bc031072106cf4fd22a00275488851004cb7c048c4474a9e50bb7ba6de8a88a",
+    "agent_company/db.py": "386ba90f66a29f9cd549b33ae9e272ca6eef76739bc983f765c34afb8ea2c3df",
+    "agent_company/ops.py": "f9e3d4a91c36b3fbf4d65f4c837004d9efc34765591475257c3fbd137202a2e3",
+    "agent_company/pilot_gate.py": "2d0f3fe885ead2f8933cd33ad38352ab636819ea71292edb2ef56824ed01e9ea",
+    "tests/test_completion_assurance_gate.py": "85c245508f03d873a817a2ecb5e34feade3f9b75a4a163fbc3bf998353868563",
+    "tests/test_dashboard.py": "1fa01acf86e7e698999539ef1164227982a53886cd38e0eedcf9529be01371ba"
+  },
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_assurance_kernel tests.test_pilot_gate tests.test_task_execution_continuity tests.test_dashboard -v",
+    "passed": 110,
+    "result": "pass"
+  },
+  "high_probes": [
+    {
+      "group": "direct DB completion plus validate detection and legitimate completion",
+      "passed": 3,
+      "result": "pass"
+    },
+    {
+      "group": "supersede/raw status rollback and authorized lifecycle",
+      "passed": 3,
+      "result": "pass"
+    },
+    {
+      "group": "full Dashboard/API private marker redaction",
+      "passed": 2,
+      "result": "pass"
+    }
+  ],
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "worktree": "clean"
+  },
+  "red_test": {
+    "exit_status": 1,
+    "failures": 5,
+    "ran": 5,
+    "result": "expected_fail"
+  },
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "task_id": 150
+}

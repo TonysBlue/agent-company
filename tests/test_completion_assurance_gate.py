@@ -311,11 +311,10 @@ class CompletionAssuranceGateTest(unittest.TestCase):
     def test_stale_artifact_fences_heartbeat_and_completion(self) -> None:
         result_sha256 = self._record_eval()
         self._record_review(result_sha256)
-        with self.osys.store.connect() as conn:
-            conn.execute(
-                "UPDATE assurance_artifacts SET status='stale' "
-                "WHERE artifact_id='completion-eval-contract'"
-            )
+        self.kernel.supersede_artifact(
+            "completion-eval-contract", 1, actor="CEO", principal_id="principal-ceo",
+            reason="build contract replaced",
+        )
         self._assert_runtime_fence_is_atomic("artifact set")
 
     def test_changed_evaluation_threshold_fences_heartbeat_and_completion(self) -> None:
@@ -636,11 +635,10 @@ class CompletionAssuranceGateTest(unittest.TestCase):
     def test_stale_post_build_review_does_not_stale_g4_redispatch(self) -> None:
         result_sha256 = self._record_eval()
         self._record_review(result_sha256)
-        with self.osys.store.connect() as conn:
-            conn.execute(
-                "UPDATE assurance_artifacts SET status='stale' "
-                "WHERE artifact_id='completion-review'"
-            )
+        self.kernel.supersede_artifact(
+            "completion-review", 1, actor="CEO", principal_id="principal-ceo",
+            reason="review replaced",
+        )
 
         decision = self.gate.dispatch_decision({
             "id": self.task_id,
@@ -716,6 +714,83 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self.assertEqual(binding["completion_result_sha256"], result_sha256)
         self.assertEqual(binding["review_decision_ref"], "completion-review:v1")
         self.assertIsNotNone(binding["completed_at"])
+
+    def test_direct_sql_cannot_complete_a_claimed_bound_pilot(self) -> None:
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "pilot completion"):
+            with self.osys.store.connect() as conn:
+                conn.execute(
+                    "UPDATE tasks SET status='done',result=? WHERE id=?",
+                    ('{"summary":"forged completion"}', self.task_id),
+                )
+
+        task = self.osys.store.fetch_one(
+            "SELECT status,result FROM tasks WHERE id=?", (self.task_id,)
+        )
+        execution = self.osys.store.fetch_one(
+            "SELECT recovery_status FROM task_executions WHERE task_id=?", (self.task_id,)
+        )
+        binding = self.osys.store.fetch_one(
+            """SELECT completion_result_sha256,review_decision_ref,completed_at
+               FROM assurance_task_bindings WHERE task_id=?""",
+            (self.task_id,),
+        )
+        self.assertEqual((task["status"], task["result"]), ("in_progress", None))
+        self.assertEqual(execution["recovery_status"], "running")
+        self.assertEqual(tuple(binding), (None, None, None))
+
+    def test_validate_reports_forged_bound_pilot_completion_state(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER IF EXISTS tasks_bound_pilot_completion_guard")
+            conn.execute(
+                "UPDATE tasks SET status='done',result=? WHERE id=?",
+                ('{"summary":"forged completion"}', self.task_id),
+            )
+
+        errors = self.osys.validate()
+
+        self.assertTrue(
+            any(
+                f"Bound pilot task {self.task_id} completion state is inconsistent" in error
+                for error in errors
+            ),
+            errors,
+        )
+
+    def test_superseded_artifact_status_cannot_be_rolled_back_with_raw_sql(self) -> None:
+        self.kernel.supersede_artifact(
+            "completion-eval-contract", 1,
+            actor="CEO", principal_id="principal-ceo", reason="replace build contract",
+        )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "lifecycle"):
+            with self.osys.store.connect() as conn:
+                conn.execute(
+                    "UPDATE assurance_artifacts SET status='approved' "
+                    "WHERE artifact_id='completion-eval-contract' AND version=1"
+                )
+
+    def test_dropped_status_guard_cannot_hide_supersession_rollback(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self.kernel.supersede_artifact(
+            "completion-eval-contract", 1,
+            actor="CEO", principal_id="principal-ceo", reason="replace build contract",
+        )
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER IF EXISTS assurance_artifact_status_transition_guard")
+            conn.execute(
+                "UPDATE assurance_artifacts SET status='approved' "
+                "WHERE artifact_id='completion-eval-contract' AND version=1"
+            )
+
+        integrity = self.kernel.verify_integrity()
+
+        self.assertEqual(integrity["status"], "integrity_conflict")
+        self.assertTrue(
+            any(conflict.get("anchor") == "lifecycle" for conflict in integrity["conflicts"]),
+            integrity,
+        )
+        self._assert_denial_is_atomic("lifecycle")
 
     def test_missing_evaluator_identity_lineage_fails_closed(self) -> None:
         result_sha256 = self._record_eval()

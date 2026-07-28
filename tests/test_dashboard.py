@@ -296,6 +296,70 @@ logs = logs
         self.assertEqual(payload["company"]["raci"][0]["source"], "SQLite raci")
         self.assertIn("docs/strategy.md", payload["company"]["static_sources"])
 
+    def test_complete_snapshot_and_api_redact_raw_runtime_fields(self) -> None:
+        markers = {
+            "task-result-secret-150",
+            "chairman-session-secret-150",
+            "chairman-message-secret-150",
+            "ceo-input-secret-150",
+            "ceo-action-secret-150",
+            "ceo-result-secret-150",
+        }
+        now = "2026-07-11T01:02:03+00:00"
+        with self.store.connect() as conn:
+            conn.execute(
+                "UPDATE tasks SET result=? WHERE id=1",
+                (json.dumps({"secret": "task-result-secret-150"}),),
+            )
+            conn.execute(
+                """INSERT INTO chairman_directives(
+                       directive_version,schema_version,created_at,source_platform,
+                       source_session_id,source_message_id,source_message_sha256,
+                       directive_type,objective,constraints_json,priority,status
+                   ) VALUES (7,'chairman-directive/v1',?,'weixin',?,?,?,
+                             'strategy','Keep the snapshot bounded','[]',100,'pending')""",
+                (
+                    now, "chairman-session-secret-150", "chairman-message-secret-150",
+                    "a" * 64,
+                ),
+            )
+            event_id = int(conn.execute(
+                """INSERT INTO execution_events(
+                       created_at,available_at,event_type,entity_type,entity_id,payload,status
+                   ) VALUES (?,?,'ceo.test','company','1','{}','processed')""",
+                (now, now),
+            ).lastrowid)
+            conn.execute(
+                """INSERT INTO ceo_runs(
+                       created_at,finished_at,event_id,source_tag,state_version_read,
+                       directive_version_read,input_snapshot_sha256,input_snapshot_json,
+                       judgment,actions_json,result_json,status
+                   ) VALUES (?,?,?,?,1,7,?,?,?,?,?,'completed')""",
+                (
+                    now, now, event_id, "test", "b" * 64,
+                    json.dumps({"secret": "ceo-input-secret-150"}),
+                    "bounded judgment",
+                    json.dumps([{"secret": "ceo-action-secret-150"}]),
+                    json.dumps({"secret": "ceo-result-secret-150"}),
+                ),
+            )
+
+        snapshot = build_snapshot(self.config)
+        api = json.loads(DashboardApp(self.config).render_path("/api/status").body)
+
+        for payload in (snapshot, api):
+            serialized = json.dumps(payload, sort_keys=True)
+            for marker in markers:
+                self.assertNotIn(marker, serialized)
+            self.assertTrue(all("result" not in task for task in payload["management"]["tasks"]))
+            self.assertTrue(all(
+                "source_session_id" not in directive and "source_message_id" not in directive
+                for directive in payload["management"]["chairman_directives"]
+            ))
+            last_run = payload["management"]["ceo_runtime"]["last_run"]
+            for field in ("input_snapshot_json", "actions_json", "result_json"):
+                self.assertNotIn(field, last_run)
+
     def test_missing_database_is_reported_without_creating_it(self) -> None:
         missing_config = load_config()
         missing_config.db_path.unlink()

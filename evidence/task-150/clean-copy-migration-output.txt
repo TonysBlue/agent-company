@@ -1,0 +1,82 @@
+{
+  "fresh": {
+    "assurance_integrity": {
+      "conflicts": [],
+      "mode": "shadow",
+      "status": "ok"
+    },
+    "canonical_guards": {
+      "assurance_artifact_lifecycle_immutable_delete": true,
+      "assurance_artifact_lifecycle_immutable_update": true,
+      "assurance_artifact_status_transition_guard": true,
+      "tasks_bound_pilot_completion_guard": true
+    },
+    "lifecycle_anchor_count": 0,
+    "sqlite_integrity_check": "ok",
+    "validation_errors": []
+  },
+  "operational_copy": {
+    "assurance_integrity_status": "integrity_conflict",
+    "canonical_guards": {
+      "assurance_artifact_lifecycle_immutable_delete": true,
+      "assurance_artifact_lifecycle_immutable_update": true,
+      "assurance_artifact_status_transition_guard": true,
+      "tasks_bound_pilot_completion_guard": true
+    },
+    "immutable_snapshot_unchanged": true,
+    "lifecycle_anchor_count": 0,
+    "live_source_access": "read_only",
+    "live_tasks_after": {
+      "count": 148,
+      "sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442"
+    },
+    "live_tasks_before": {
+      "count": 148,
+      "sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442"
+    },
+    "preexisting_integrity_conflict_count": 18,
+    "sqlite_integrity_check": "ok",
+    "tasks_after": {
+      "count": 148,
+      "sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442"
+    },
+    "tasks_before": {
+      "count": 148,
+      "sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442"
+    },
+    "tasks_unchanged": true,
+    "validation_errors": []
+  },
+  "probe_root": "<TEMP_WORKSPACE>",
+  "snapshot_method": "sqlite_online_backup_from_readonly_connection",
+  "trusted_legacy_copy": {
+    "assurance_integrity": {
+      "conflicts": [],
+      "mode": "shadow",
+      "status": "ok"
+    },
+    "canonical_guards": {
+      "assurance_artifact_lifecycle_immutable_delete": true,
+      "assurance_artifact_lifecycle_immutable_update": true,
+      "assurance_artifact_status_transition_guard": true,
+      "tasks_bound_pilot_completion_guard": true
+    },
+    "idempotent_backfill": true,
+    "lifecycle_anchor_count_after_first_init": 2,
+    "lifecycle_anchor_count_after_second_init": 2,
+    "source_schema": "signed artifact registration and approval without lifecycle table",
+    "source_unchanged": true,
+    "sqlite_integrity_check": "ok",
+    "tasks_after": {
+      "count": 2,
+      "sha256": "6830a6ba35a53fbc913e0128f99302da89252302f99b63cf697beade17c9f443"
+    },
+    "tasks_before": {
+      "count": 2,
+      "sha256": "6830a6ba35a53fbc913e0128f99302da89252302f99b63cf697beade17c9f443"
+    },
+    "tasks_unchanged": true,
+    "validation_errors": []
+  }
+}
+CLEAN_COPY_MIGRATION_NONINTERFERENCE=PASS

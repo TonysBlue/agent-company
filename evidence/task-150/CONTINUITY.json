@@ -1,0 +1,50 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "/home/tony/agent-company/evidence/task-150/verification-report.md",
+        "/home/tony/agent-company/evidence/task-150/evidence-manifest.json",
+        "/home/tony/agent-company/evidence/task-150/red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-150/adversarial-probe-output.txt",
+        "/home/tony/agent-company/evidence/task-150/focused-test-output.txt",
+        "/home/tony/agent-company/evidence/task-150/full-test-output.txt",
+        "/home/tony/agent-company/evidence/task-150/clean-copy-migration-output.txt",
+        "/home/tony/agent-company/evidence/task-150/pixweave-test-output.txt"
+      ],
+      "decision_needed": "Independently review task 150's direct completion guard, validation correlation, signed lifecycle chain and migration, dropped-guard behavior, whole-payload redaction, and clean-copy noninterference evidence; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 150 closes the three requested High gaps and passes 8 exact adversarial probes, 110 focused, 203 Agent Company, and 58 PixWeave tests.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "This delivery is limited to authorized task-150 Phase C hardening and does not authorize Phase D or global enforcement.",
+    "The operational copy retains 18 preexisting assurance integrity conflicts because initialization correctly refuses to bless unsigned legacy records.",
+    "No deployment, PixWeave source change, customer-data action, outreach, publication, pricing, payment, contract, or production action was performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review the pushed task-150 commit and evidence before the Phase C exit gate."
+  ],
+  "project_decisions": [
+    "A claimed bound pilot may become done only after its execution is completed and all three assurance completion fields are present in the same transaction.",
+    "Company validation independently correlates task, execution, assurance binding, embedded result, and exact completion timestamps so dropped triggers do not erase detection.",
+    "Artifact registration, approval, supersession, and dependent invalidation append a keyed immutable lifecycle record before status changes.",
+    "Lifecycle migration backfills only independently signed registrations and approvals plus audited terminal states; untrusted legacy records remain integrity conflicts.",
+    "Dashboard and API data use bounded field allowlists for tasks, CEO runs, and Chairman directives rather than publishing raw database rows."
+  ],
+  "project_summary": "Agent Company now prevents and detects forged bound-pilot completion, prevents and detects artifact supersession rollback with signed lifecycle lineage, and redacts raw private runtime fields from the complete Dashboard/API payload.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Completed interrupted task 150 from the authorized dirty worktree, audited every diff, reran all three exact High probe groups, and verified focused, canonical, PixWeave, and clean-copy migration/noninterference behavior.",
+  "verified_facts": [
+    "The retained RED run executed 5 task-150 regressions and failed all 5 against the committed base behavior.",
+    "The exact High probe groups executed 8 named tests with all passing.",
+    "Focused completion, lifecycle, execution, migration, and Dashboard verification executed 110 tests with all passing.",
+    "Agent Company canonical verification executed 203 tests with all passing.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and its canonical suite executed 58 tests with all passing.",
+    "Fresh initialization and signed legacy clean-copy migration passed; legacy lifecycle backfill was idempotent at 2 records.",
+    "The read-only operational snapshot preserved all 148 tasks at digest f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442 and retained 18 preexisting integrity conflicts fail-closed.",
+    "git diff --check, Python compileall, and JSON validation passed before commit."
+  ]
+}
