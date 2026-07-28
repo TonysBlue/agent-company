@@ -1,0 +1,275 @@
+RED provenance: committed base 75289a1 with Phase C tests overlaid; integrity.py supplied only as a test import/signing helper.
+Command: python3.11 -m unittest tests.test_completion_assurance_gate tests.test_context_compiler tests.test_dashboard -v
+test_artifact_registration_integrity_anchor_is_immutable (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_artifact_registration_integrity_anchor_is_immutable) ... ok
+test_bound_completion_requires_review_bound_to_exact_result_and_artifact_set (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_completion_requires_review_bound_to_exact_result_and_artifact_set) ... ok
+test_bound_completion_with_eval_but_without_review_fails_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_completion_with_eval_but_without_review_fails_atomically) ... ok
+test_bound_completion_without_trusted_eval_fails_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_completion_without_trusted_eval_fails_atomically) ... ok
+test_bound_runtime_operations_require_exact_fencing_token (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_runtime_operations_require_exact_fencing_token) ... FAIL
+test_cancelled_initiative_fences_runtime (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_cancelled_initiative_fences_runtime) ... FAIL
+test_changed_assurance_profile_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion) ... ok
+test_changed_evaluation_threshold_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion) ... ok
+test_changed_execution_generation_fences_context_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion) ... ok
+test_changed_principal_authority_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion) ... ok
+test_checkpoint_is_fenced_and_rolls_back_on_drift (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_checkpoint_is_fenced_and_rolls_back_on_drift) ... ERROR
+test_claim_persists_immutable_pilot_binding_before_context (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_claim_persists_immutable_pilot_binding_before_context) ... ERROR
+test_context_persists_immutable_execution_assurance_binding (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_context_persists_immutable_execution_assurance_binding) ... ok
+test_contradictory_review_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_contradictory_review_fails_closed) ... ok
+test_dispatch_kill_switch_cannot_bypass_completion_gate (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_dispatch_kill_switch_cannot_bypass_completion_gate) ... ok
+test_elapsed_g4_expiry_fences_runtime (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_elapsed_g4_expiry_fences_runtime) ... ERROR
+test_evaluator_authored_review_is_not_independent (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_evaluator_authored_review_is_not_independent) ... ok
+test_exact_eval_and_independent_review_allow_atomic_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion) ... ok
+test_execution_assurance_fence_survives_service_restart (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_execution_assurance_fence_survives_service_restart) ... ok
+test_existing_binding_schema_is_upgraded_without_data_loss (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_existing_binding_schema_is_upgraded_without_data_loss) ... FAIL
+test_forged_execution_binding_and_dropped_triggers_fail_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_execution_binding_and_dropped_triggers_fail_closed) ... FAIL
+test_forged_review_registration_after_trigger_drop_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_review_registration_after_trigger_drop_fails_closed) ... FAIL
+test_forged_trusted_eval_run_after_trigger_drop_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_trusted_eval_run_after_trigger_drop_fails_closed) ... FAIL
+test_implementer_authored_review_is_not_independent (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_implementer_authored_review_is_not_independent) ... ok
+test_init_does_not_bless_preexisting_unanchored_review_tamper (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_init_does_not_bless_preexisting_unanchored_review_tamper) ... ok
+test_initialization_repairs_all_canonical_immutability_triggers (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_initialization_repairs_all_canonical_immutability_triggers) ... ERROR
+test_missing_evaluator_identity_lineage_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_missing_evaluator_identity_lineage_fails_closed) ... FAIL
+test_missing_execution_binding_fails_closed_after_upgrade (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_missing_execution_binding_fails_closed_after_upgrade) ... ok
+test_partial_registration_restore_does_not_bless_missing_build_anchor (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_partial_registration_restore_does_not_bless_missing_build_anchor) ... ERROR
+test_pilot_demotion_before_context_compilation_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_pilot_demotion_before_context_compilation_fails_closed) ... ERROR
+test_post_build_review_does_not_stale_g4_redispatch (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_build_review_does_not_stale_g4_redispatch) ... ok
+test_post_build_review_is_excluded_from_bound_build_context (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_build_review_is_excluded_from_bound_build_context) ... ok
+test_post_claim_binding_removal_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_claim_binding_removal_fails_closed) ... ERROR
+test_post_claim_pilot_demotion_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_claim_pilot_demotion_fails_closed) ... ERROR
+test_post_claim_task_binding_is_immutable (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_claim_task_binding_is_immutable) ... FAIL
+test_quarantined_eval_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_quarantined_eval_fails_closed) ... ok
+test_review_approval_anchor_fails_closed_after_trigger_drop (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_approval_anchor_fails_closed_after_trigger_drop) ... ERROR
+test_review_body_and_hash_cannot_be_rewritten_after_registration (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_body_and_hash_cannot_be_rewritten_after_registration) ... ok
+test_review_body_hash_and_registration_audit_cannot_be_rewritten (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_body_hash_and_registration_audit_cannot_be_rewritten) ... ok
+test_review_metadata_cannot_be_rewritten_to_fake_independence (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_metadata_cannot_be_rewritten_to_fake_independence) ... ok
+test_review_must_bind_exact_trusted_eval_result (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_must_bind_exact_trusted_eval_result) ... ok
+test_review_self_approval_metadata_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_self_approval_metadata_fails_closed) ... ok
+test_review_without_valid_approval_metadata_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_without_valid_approval_metadata_fails_closed) ... ok
+test_revoked_principal_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_revoked_principal_fences_heartbeat_and_completion) ... ok
+test_rotated_evaluator_actor_and_authority_remain_nonindependent (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_evaluator_actor_and_authority_remain_nonindependent) ... ok
+test_rotated_principal_credential_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion) ... ok
+test_stale_artifact_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion) ... ok
+test_stale_post_build_review_does_not_stale_g4_redispatch (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_post_build_review_does_not_stale_g4_redispatch) ... ok
+test_tampered_post_build_review_does_not_block_g4_redispatch (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_tampered_post_build_review_does_not_block_g4_redispatch) ... ok
+test_task_binding_removal_before_context_compilation_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_task_binding_removal_before_context_compilation_fails_closed) ... ERROR
+test_unrelated_principal_change_does_not_fence_pilot (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unrelated_principal_change_does_not_fence_pilot) ... ERROR
+test_active_execution_generation_and_fencing_token_are_enforced (tests.test_context_compiler.ContextCompilerTest.test_active_execution_generation_and_fencing_token_are_enforced) ... ok
+test_bound_pilot_context_contains_exact_approved_assurance_projection (tests.test_context_compiler.ContextCompilerTest.test_bound_pilot_context_contains_exact_approved_assurance_projection) ... FAIL
+test_bundle_contains_common_rules_all_public_roles_private_role_and_history (tests.test_context_compiler.ContextCompilerTest.test_bundle_contains_common_rules_all_public_roles_private_role_and_history) ... ok
+test_context_becomes_stale_when_strategy_or_directive_version_changes (tests.test_context_compiler.ContextCompilerTest.test_context_becomes_stale_when_strategy_or_directive_version_changes) ... ok
+test_materialize_can_replace_prior_read_only_context_on_retry (tests.test_context_compiler.ContextCompilerTest.test_materialize_can_replace_prior_read_only_context_on_retry) ... ok
+test_materialize_writes_read_only_context_and_binds_execution_generation (tests.test_context_compiler.ContextCompilerTest.test_materialize_writes_read_only_context_and_binds_execution_generation) ... ok
+test_materialized_context_tamper_and_same_generation_recompile_are_rejected (tests.test_context_compiler.ContextCompilerTest.test_materialized_context_tamper_and_same_generation_recompile_are_rejected) ... ok
+test_company_page_derives_roles_and_raci_from_live_sqlite (tests.test_dashboard.DashboardTest.test_company_page_derives_roles_and_raci_from_live_sqlite) ... ok
+test_dashboard_aggregates_all_agents_and_token_usage_without_fabricating_zeroes (tests.test_dashboard.DashboardTest.test_dashboard_aggregates_all_agents_and_token_usage_without_fabricating_zeroes) ... ok
+test_dashboard_pages_are_separate_and_chinese_labeled (tests.test_dashboard.DashboardTest.test_dashboard_pages_are_separate_and_chinese_labeled) ... ok
+test_dashboard_reflects_event_driven_ceo_and_self_serve_subscription_model (tests.test_dashboard.DashboardTest.test_dashboard_reflects_event_driven_ceo_and_self_serve_subscription_model) ... ok
+test_dashboard_shows_zoomable_role_execution_timeline_and_cycle_average_duration (tests.test_dashboard.DashboardTest.test_dashboard_shows_zoomable_role_execution_timeline_and_cycle_average_duration) ... ok
+test_dashboard_visible_copy_is_simplified_chinese_with_canonical_api_keys (tests.test_dashboard.DashboardTest.test_dashboard_visible_copy_is_simplified_chinese_with_canonical_api_keys) ... ok
+test_json_endpoints_and_health (tests.test_dashboard.DashboardTest.test_json_endpoints_and_health) ... ok
+test_missing_database_is_reported_without_creating_it (tests.test_dashboard.DashboardTest.test_missing_database_is_reported_without_creating_it) ... ok
+test_snapshot_uses_live_sources_and_no_fabricated_operations_metrics (tests.test_dashboard.DashboardTest.test_snapshot_uses_live_sources_and_no_fabricated_operations_metrics) ... FAIL
+
+======================================================================
+ERROR: test_checkpoint_is_fenced_and_rolls_back_on_drift (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_checkpoint_is_fenced_and_rolls_back_on_drift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 838, in test_checkpoint_is_fenced_and_rolls_back_on_drift
+    self.osys.checkpoint_task(
+TypeError: CompanyOS.checkpoint_task() got an unexpected keyword argument 'fencing_token'
+
+======================================================================
+ERROR: test_claim_persists_immutable_pilot_binding_before_context (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_claim_persists_immutable_pilot_binding_before_context)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 293, in test_claim_persists_immutable_pilot_binding_before_context
+    binding = conn.execute(
+              ^^^^^^^^^^^^^
+sqlite3.OperationalError: no such table: assurance_claim_bindings
+
+======================================================================
+ERROR: test_elapsed_g4_expiry_fences_runtime (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_elapsed_g4_expiry_fences_runtime)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 885, in test_elapsed_g4_expiry_fences_runtime
+    "fencing_token_sha256": binding["fencing_token_sha256"],
+                            ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+IndexError: No item with that key
+
+======================================================================
+ERROR: test_initialization_repairs_all_canonical_immutability_triggers (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_initialization_repairs_all_canonical_immutability_triggers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 983, in test_initialization_repairs_all_canonical_immutability_triggers
+    conn.execute(f"DROP TRIGGER {name}")
+sqlite3.OperationalError: no such trigger: assurance_claim_bindings_immutable_delete
+
+======================================================================
+ERROR: test_partial_registration_restore_does_not_bless_missing_build_anchor (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_partial_registration_restore_does_not_bless_missing_build_anchor)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 562, in test_partial_registration_restore_does_not_bless_missing_build_anchor
+    review = conn.execute(
+             ^^^^^^^^^^^^^
+sqlite3.OperationalError: no such column: integrity_signature
+
+======================================================================
+ERROR: test_pilot_demotion_before_context_compilation_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_pilot_demotion_before_context_compilation_fails_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 763, in test_pilot_demotion_before_context_compilation_fails_closed
+    conn.execute("DROP TRIGGER assurance_task_bindings_claimed_immutable_update")
+sqlite3.OperationalError: no such trigger: assurance_task_bindings_claimed_immutable_update
+
+======================================================================
+ERROR: test_post_claim_binding_removal_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_claim_binding_removal_fails_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 735, in test_post_claim_binding_removal_fails_closed
+    conn.execute("DROP TRIGGER assurance_task_bindings_claimed_immutable_delete")
+sqlite3.OperationalError: no such trigger: assurance_task_bindings_claimed_immutable_delete
+
+======================================================================
+ERROR: test_post_claim_pilot_demotion_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_claim_pilot_demotion_fails_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 741, in test_post_claim_pilot_demotion_fails_closed
+    conn.execute("DROP TRIGGER assurance_task_bindings_claimed_immutable_update")
+sqlite3.OperationalError: no such trigger: assurance_task_bindings_claimed_immutable_update
+
+======================================================================
+ERROR: test_review_approval_anchor_fails_closed_after_trigger_drop (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_approval_anchor_fails_closed_after_trigger_drop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 1032, in test_review_approval_anchor_fails_closed_after_trigger_drop
+    conn.execute("DROP TRIGGER assurance_artifact_approvals_immutable_update")
+sqlite3.OperationalError: no such trigger: assurance_artifact_approvals_immutable_update
+
+======================================================================
+ERROR: test_task_binding_removal_before_context_compilation_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_task_binding_removal_before_context_compilation_fails_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 786, in test_task_binding_removal_before_context_compilation_fails_closed
+    conn.execute("DROP TRIGGER assurance_task_bindings_claimed_immutable_delete")
+sqlite3.OperationalError: no such trigger: assurance_task_bindings_claimed_immutable_delete
+
+======================================================================
+ERROR: test_unrelated_principal_change_does_not_fence_pilot (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unrelated_principal_change_does_not_fence_pilot)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 913, in test_unrelated_principal_change_does_not_fence_pilot
+    heartbeat = self.osys.heartbeat_task(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<RED_WORKSPACE>/agent_company/ops.py", line 410, in heartbeat_task
+    raise ValueError(f"task {task_id} blocked by assurance runtime fence: {fence['reason']}")
+ValueError: task 3 blocked by assurance runtime fence: bound pilot principal authority or credential changed
+
+======================================================================
+FAIL: test_bound_runtime_operations_require_exact_fencing_token (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_runtime_operations_require_exact_fencing_token)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 819, in test_bound_runtime_operations_require_exact_fencing_token
+    with self.assertRaisesRegex(ValueError, "fencing token"):
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_cancelled_initiative_fences_runtime (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_cancelled_initiative_fences_runtime)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 859, in test_cancelled_initiative_fences_runtime
+    self._assert_runtime_fence_is_atomic("lifecycle")
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 219, in _assert_runtime_fence_is_atomic
+    with self.assertRaisesRegex(ValueError, expected):
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_existing_binding_schema_is_upgraded_without_data_loss (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_existing_binding_schema_is_upgraded_without_data_loss)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 1074, in test_existing_binding_schema_is_upgraded_without_data_loss
+    self.assertEqual(columns, {
+AssertionError: Items in the second set but not the first:
+'fencing_token_sha256'
+'integrity_signature'
+
+======================================================================
+FAIL: test_forged_execution_binding_and_dropped_triggers_fail_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_execution_binding_and_dropped_triggers_fail_closed)
+----------------------------------------------------------------------
+ValueError: bound pilot artifact set binding changed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 941, in test_forged_execution_binding_and_dropped_triggers_fail_closed
+    self._assert_runtime_fence_is_atomic("integrity")
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 219, in _assert_runtime_fence_is_atomic
+    with self.assertRaisesRegex(ValueError, expected):
+AssertionError: "integrity" does not match "bound pilot artifact set binding changed"
+
+======================================================================
+FAIL: test_forged_review_registration_after_trigger_drop_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_review_registration_after_trigger_drop_fails_closed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 969, in test_forged_review_registration_after_trigger_drop_fails_closed
+    self._assert_denial_is_atomic("integrity")
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 200, in _assert_denial_is_atomic
+    with self.assertRaisesRegex(ValueError, expected):
+AssertionError: ValueError not raised
+
+======================================================================
+FAIL: test_forged_trusted_eval_run_after_trigger_drop_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_trusted_eval_run_after_trigger_drop_fails_closed)
+----------------------------------------------------------------------
+ValueError: task 3 blocked by assurance completion gate: Review Decision is not independent
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 1026, in test_forged_trusted_eval_run_after_trigger_drop_fails_closed
+    self._assert_denial_is_atomic("integrity anchor")
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 200, in _assert_denial_is_atomic
+    with self.assertRaisesRegex(ValueError, expected):
+AssertionError: "integrity anchor" does not match "task 3 blocked by assurance completion gate: Review Decision is not independent"
+
+======================================================================
+FAIL: test_missing_evaluator_identity_lineage_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_missing_evaluator_identity_lineage_fails_closed)
+----------------------------------------------------------------------
+ValueError: task 3 blocked by assurance completion gate: bound pilot Trusted Eval lacks evaluator identity lineage
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 731, in test_missing_evaluator_identity_lineage_fails_closed
+    self._assert_denial_is_atomic("integrity anchor")
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 200, in _assert_denial_is_atomic
+    with self.assertRaisesRegex(ValueError, expected):
+AssertionError: "integrity anchor" does not match "task 3 blocked by assurance completion gate: bound pilot Trusted Eval lacks evaluator identity lineage"
+
+======================================================================
+FAIL: test_post_claim_task_binding_is_immutable (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_claim_task_binding_is_immutable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_completion_assurance_gate.py", line 748, in test_post_claim_task_binding_is_immutable
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_bound_pilot_context_contains_exact_approved_assurance_projection (tests.test_context_compiler.ContextCompilerTest.test_bound_pilot_context_contains_exact_approved_assurance_projection)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_context_compiler.py", line 213, in test_bound_pilot_context_contains_exact_approved_assurance_projection
+    self.assertEqual(
+AssertionError: Items in the first set but not the second:
+'content'
+'kind'
+
+======================================================================
+FAIL: test_snapshot_uses_live_sources_and_no_fabricated_operations_metrics (tests.test_dashboard.DashboardTest.test_snapshot_uses_live_sources_and_no_fabricated_operations_metrics)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<RED_WORKSPACE>/tests/test_dashboard.py", line 149, in test_snapshot_uses_live_sources_and_no_fabricated_operations_metrics
+    self.assertNotIn(secret_marker, serialized)
+AssertionError: 'dashboard-secret-marker-4d8a' unexpectedly found in '{"generated_at": "2026-07-28T10:10:49+00:00", "product": "Test PixWeave", "database": {"path": "/tmp/tmpd_euia48/data/company.sqlite3", "available": true, "updated_at": "2026-07-28T10:10:49+00:00", "error": null}, "sources": [{"id": "sqlite", "label": "SQLite \\u8fd0\\u8425\\u8d26\\u672c", "path": "/tmp/tmpd_euia48/data/company.sqlite3", "updated_at": "2026-07-28T10:10:49+00:00", "available": true}, {"id": "git", "label": "Git \\u9879\\u76ee\\u7248\\u672c", "path": "/tmp/tmpd_euia48/.git", "updated_at": null, "available": false}, {"id": "project_docs", "label": "\\u9879\\u76ee\\u6587\\u6863", "path": "/tmp/tmpd_euia48/docs", "updated_at": null, "available": false}], "management": {"tasks": [{"id": 2, "created_at": "2026-07-11T01:02:03+00:00", "updated_at": "2026-07-11T01:02:03+00:00", "owner": "CRO", "title": "Publish launch pricing", "domain": "gtm", "status": "blocked", "priority": 80, "blocked_reason": "Pending Chairman approval #1", "result": null, "acceptance_criteria": "Chairman decision recorded before external action.", "strategic_phase_id": null, "business_outcome": null}, {"id": 1, "created_at": "2026-07-11T01:02:03+00:00", "updated_at": "2026-07-11T01:02:03+00:00", "owner": "CTO", "title": "Build dashboard", "domain": "engineering", "status": "in_progress", "priority": 90, "blocked_reason": null, "result": null, "acceptance_criteria": "Tests and curl evidence pass.", "strategic_phase_id": null, "business_outcome": null}], "task_counts_by_status": {"blocked": 1, "in_progress": 1}, "task_counts_by_owner": {"CRO": 1, "CTO": 1}, "display_labels": {"task_counts_by_status": "\\u4efb\\u52a1\\u72b6\\u6001\\u7edf\\u8ba1", "task_counts_by_owner": "\\u8d1f\\u8d23\\u4eba\\u7edf\\u8ba1", "execution_health": "\\u6267\\u884c\\u5065\\u5eb7", "agent_workload": "Agent \\u5de5\\u4f5c\\u8d1f\\u8f7d", "token_usage": "Token \\u4f7f\\u7528\\u91cf"}, "approvals": [{"id": 1, "created_at": "2026-07-11T01:02:03+00:00", "decided_at": null, "requested_by": "CRO", "action_type": "pricing_change", "summary": "Task 2 requires Chairman decision before continuing: Publish launch pricing", "status": "pending", "decision": null, "rationale": null, "inbox_file": null, "outbox_file": null}], "cycles": [{"id": 1, "started_at": "2026-07-11T01:02:03+00:00", "finished_at": "2026-07-11T01:02:03+00:00", "summary": "{\\"processed\\": 2, \\"progressed\\": [1], \\"escalated\\": [2]}"}], "audit": [{"id": 1, "ts": "2026-07-11T01:02:03+00:00", "actor": "CEO", "action": "run_cycle", "entity": "cycle", "entity_id": "1", "details": "{\\"principal_id\\": \\"principal-dashboard-private\\", \\"credential\\": \\"dashboard-secret-marker-4d8a\\", \\"conditions_json\\": [\\"protected-condition-marker\\"]}"}], "execution_health": {"executions": [], "counts_by_recovery_status": {}, "stale_count": 0, "retry_attention_count": 0}, "agent_workload": {"CEO": {"agent": "CEO", "display_label": "\\u9996\\u5e2d\\u6267\\u884c\\u5b98\\uff08CEO\\uff09", "status_label": "\\u672a\\u91c7\\u96c6", "task_outcomes": {"open": 0, "in_progress": 0, "blocked": 0, "done": 0, "cancelled": 0, "total": 0, "completion_rate": null, "retries": 0, "failures": 0}, "token_usage": {"agent": "CEO", "display_label": "\\u9996\\u5e2d\\u6267\\u884c\\u5b98\\uff08CEO\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}}, "Customer & Revenue": {"agent": "Customer & Revenue", "display_label": "\\u5ba2\\u6237\\u4e0e\\u8425\\u6536\\uff08Customer & Revenue\\uff09", "status_label": "\\u672a\\u91c7\\u96c6", "task_outcomes": {"open": 0, "in_progress": 0, "blocked": 0, "done": 0, "cancelled": 0, "total": 0, "completion_rate": null, "retries": 0, "failures": 0}, "token_usage": {"agent": "Customer & Revenue", "display_label": "\\u5ba2\\u6237\\u4e0e\\u8425\\u6536\\uff08Customer & Revenue\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}}, "Product Engineer": {"agent": "Product Engineer", "display_label": "\\u4ea7\\u54c1\\u5de5\\u7a0b\\u5e08", "status_label": "\\u672a\\u91c7\\u96c6", "task_outcomes": {"open": 0, "in_progress": 0, "blocked": 0, "done": 0, "cancelled": 0, "total": 0, "completion_rate": null, "retries": 0, "failures": 0}, "token_usage": {"agent": "Product Engineer", "display_label": "\\u4ea7\\u54c1\\u5de5\\u7a0b\\u5e08", "status_label": "\\u672a\\u91c7\\u96c6"}}, "CRO": {"agent": "CRO", "display_label": "\\u9996\\u5e2d\\u8425\\u6536\\u5b98\\uff08CRO\\uff09", "status_label": "\\u5df2\\u91c7\\u96c6", "task_outcomes": {"open": 0, "in_progress": 0, "blocked": 1, "done": 0, "cancelled": 0, "total": 1, "completion_rate": 0.0, "retries": 0, "failures": 0}, "token_usage": {"agent": "CRO", "display_label": "\\u9996\\u5e2d\\u8425\\u6536\\u5b98\\uff08CRO\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}}, "CTO": {"agent": "CTO", "display_label": "\\u9996\\u5e2d\\u6280\\u672f\\u5b98\\uff08CTO\\uff09", "status_label": "\\u5df2\\u91c7\\u96c6", "task_outcomes": {"open": 0, "in_progress": 1, "blocked": 0, "done": 0, "cancelled": 0, "total": 1, "completion_rate": 0.0, "retries": 0, "failures": 0}, "token_usage": {"agent": "CTO", "display_label": "\\u9996\\u5e2d\\u6280\\u672f\\u5b98\\uff08CTO\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}}}, "token_usage": {"CEO": {"agent": "CEO", "display_label": "\\u9996\\u5e2d\\u6267\\u884c\\u5b98\\uff08CEO\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}, "Customer & Revenue": {"agent": "Customer & Revenue", "display_label": "\\u5ba2\\u6237\\u4e0e\\u8425\\u6536\\uff08Customer & Revenue\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}, "Product Engineer": {"agent": "Product Engineer", "display_label": "\\u4ea7\\u54c1\\u5de5\\u7a0b\\u5e08", "status_label": "\\u672a\\u91c7\\u96c6"}, "CRO": {"agent": "CRO", "display_label": "\\u9996\\u5e2d\\u8425\\u6536\\u5b98\\uff08CRO\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}, "CTO": {"agent": "CTO", "display_label": "\\u9996\\u5e2d\\u6280\\u672f\\u5b98\\uff08CTO\\uff09", "status_label": "\\u672a\\u91c7\\u96c6"}}, "strategic_phases": [], "technical_health": "\\u6b63\\u5e38", "business_progress": "\\u63a8\\u8fdb\\u4e2d", "operating_model": "\\u4e8b\\u4ef6\\u9a71\\u52a8 7\\u00d724", "worker": {"singleton": 1, "status": "stopped", "worker_id": null, "process_id": null, "started_at": null, "heartbeat_at": null, "stopped_at": null, "last_error": null, "events_processed": 0}, "ceo_runtime": {"logical_ceo_count": 1, "state_version": 1, "strategy": {}, "critical_path": [], "last_run": null}, "chairman_directives": [], "pending_events": [{"id": 5, "created_at": "2026-07-11T01:02:03+00:00", "available_at": "2026-07-11T01:02:03+00:00", "event_type": "approval.pending", "entity_type": "approval", "entity_id": "1", "payload": "{}", "status": "pending", "claimed_at": null, "processed_at": null, "worker_id": null, "attempts": 0, "last_error": null, "priority": 90}, {"id": 4, "created_at": "2026-07-11T01:02:03+00:00", "available_at": "2026-07-11T01:02:03+00:00", "event_type": "task.created", "entity_type": "task", "entity_id": "2", "payload": "{}", "status": "pending", "claimed_at": null, "processed_at": null, "worker_id": null, "attempts": 0, "last_error": null, "priority": 10}, {"id": 3, "created_at": "2026-07-11T01:02:03+00:00", "available_at": "2026-07-11T01:02:03+00:00", "event_type": "task.created", "entity_type": "task", "entity_id": "1", "payload": "{}", "status": "pending", "claimed_at": null, "processed_at": null, "worker_id": null, "attempts": 0, "last_error": null, "priority": 10}, {"id": 2, "created_at": "2026-07-28T10:10:49+00:00", "available_at": "2026-07-28T10:10:49+00:00", "event_type": "task.created", "entity_type": "task", "entity_id": "2", "payload": "{}", "status": "pending", "claimed_at": null, "processed_at": null, "worker_id": null, "attempts": 0, "last_error": null, "priority": 10}, {"id": 1, "created_at": "2026-07-28T10:10:49+00:00", "available_at": "2026-07-28T10:10:49+00:00", "event_type": "task.created", "entity_type": "task", "entity_id": "1", "payload": "{}", "status": "pending", "claimed_at": null, "processed_at": null, "worker_id": null, "attempts": 0, "last_error": null, "priority": 10}], "executors": [{"executor_id": "dashboard-executor", "owner": "CTO", "backend": "local", "capabilities": "[]", "capacity": 1, "status": "healthy", "process_id": null, "process_started_at": null, "session_ref": "executor-session-dashboard-private", "heartbeat_at": "2026-07-11T01:02:03+00:00", "registered_at": "2026-07-11T01:02:03+00:00", "updated_at": "2026-07-11T01:02:03+00:00"}], "context_governance": {"task_contexts": [], "active_contexts": [], "role_continuity": [], "project_history": [], "handoffs": [], "open_handoffs": [], "development_assurance": {"mode": "shadow", "blocking_existing_tasks": false, "initiatives": [], "artifacts": [], "gate_decisions": [], "classifications": []}}, "quarantined_executors": [], "unknown_executions": [], "role_activity_timeline": [{"timestamp": "2026-07-11T01:02:03+00:00", "role": "CEO", "display_label": "\\u9996\\u5e2d\\u6267\\u884c\\u5b98\\uff08CEO\\uff09", "activity": "run_cycle", "source": "\\u5ba1\\u8ba1", "detail": "cycle 1"}], "consecutive_empty_cycles": 0, "role_execution_timeline": {"intervals": [], "range_start": null, "range_end": null}, "average_execution_seconds_per_ceo_cycle": {"CEO": null, "Customer & Revenue": null, "Product Engineer": null, "CRO": null, "CTO": null}, "decisions": [], "human_dependencies": [{"approval_id": 1, "requested_by": "CRO", "action_type": "pricing_change", "summary": "Task 2 requires Chairman decision before continuing: Publish launch pricing", "created_at": "2026-07-11T01:02:03+00:00"}, {"task_id": 2, "owner": "CRO", "title": "Publish launch pricing", "blocked_reason": "Pending Chairman approval #1", "updated_at": "2026-07-11T01:02:03+00:00"}]}, "project": {"git": {"head": null, "branch": null, "commit_time": null, "dirty": false, "status": ""}, "roadmap": {"path": "/tmp/tmpd_euia48/docs/roadmap.md", "available": false, "updated_at": null, "lines": []}, "current_tasks": [{"id": 2, "created_at": "2026-07-11T01:02:03+00:00", "updated_at": "2026-07-11T01:02:03+00:00", "owner": "CRO", "title": "Publish launch pricing", "domain": "gtm", "status": "blocked", "priority": 80, "blocked_reason": "Pending Chairman approval #1", "result": null, "acceptance_criteria": "Chairman decision recorded before external action.", "strategic_phase_id": null, "business_outcome": null}, {"id": 1, "created_at": "2026-07-11T01:02:03+00:00", "updated_at": "2026-07-11T01:02:03+00:00", "owner": "CTO", "title": "Build dashboard", "domain": "engineering", "status": "in_progress", "priority": 90, "blocked_reason": null, "result": null, "acceptance_criteria": "Tests and curl evidence pass.", "strategic_phase_id": null, "business_outcome": null}], "experiments": [{"id": 1, "created_at": "2026-07-11T01:02:03+00:00", "owner": "CRO", "name": "Message test", "hypothesis": "ICP responds to control", "metric": "rubric_score_difference", "status": "draft", "result": null}], "artifact_evidence": [{"name": "build-evidence.json", "path": "/tmp/tmpd_euia48/data/artifacts/build-evidence.json", "bytes": 29, "updated_at": "2026-07-28T10:10:49+00:00"}], "test_validation": {"state": "not_observed", "label": "\\u672a\\u53d1\\u73b0\\u6301\\u4e45\\u5316\\u6d4b\\u8bd5\\u65e5\\u5fd7", "source": "/tmp/tmpd_euia48/logs", "updated_at": null}, "architecture": {"path": "/tmp/tmpd_euia48/docs/architecture.md", "available": false, "updated_at": null, "lines": []}}, "operations": {"launch_state": "internal_beta", "business_model": "\\u6807\\u51c6\\u5316\\u81ea\\u52a9\\u8ba2\\u9605", "audience": "\\u4e2a\\u4eba\\u3001\\u5c0f\\u516c\\u53f8\\u548c\\u4f01\\u4e1a", "funnel": [{"label": "\\u771f\\u5b9e\\u7528\\u6237\\u6570", "value": null, "state": "placeholder", "note": "\\u4ea7\\u54c1\\u672a\\u4e0a\\u7ebf\\uff0c\\u6682\\u65e0\\u771f\\u5b9e\\u8fd0\\u8425\\u6570\\u636e\\uff1b\\u4e0d\\u4ee5 0 \\u4ee3\\u66ff\\u672a\\u77e5\\u3002"}, {"label": "\\u6fc0\\u6d3b\\u7387", "value": null, "state": "placeholder", "note": "\\u7b49\\u5f85 beta \\u5de5\\u4f5c\\u6d41\\u4e0a\\u7ebf\\u5e76\\u63a5\\u5165\\u771f\\u5b9e\\u4e8b\\u4ef6\\u540e\\u5c55\\u793a\\u3002"}, {"label": "\\u6536\\u5165 / \\u6bdb\\u5229", "value": null, "state": "placeholder", "note": "\\u5c1a\\u672a\\u53d1\\u5e03\\u5b9a\\u4ef7\\u6216\\u5546\\u4e1a\\u5316\\u7ed3\\u679c\\uff0c\\u4e0d\\u80fd\\u7f16\\u9020\\u3002"}, {"label": "\\u5ba2\\u6237\\u652f\\u6301\\u961f\\u5217", "value": null, "state": "placeholder", "note": "\\u672a\\u63a5\\u5165\\u5ba2\\u6237\\u652f\\u6301\\u7cfb\\u7edf\\uff0c\\u5f53\\u524d\\u4ec5\\u5c55\\u793a\\u5360\\u4f4d\\u72b6\\u6001\\u3002"}], "subscription_hypotheses": [{"label": "\\u514d\\u8d39\\u4f53\\u9a8c", "value": null, "note": "\\u989d\\u5ea6\\u4e0e\\u529f\\u80fd\\u8fb9\\u754c\\u5f85\\u5185\\u90e8\\u9a8c\\u8bc1\\uff0c\\u672a\\u4e0a\\u7ebf\\u3002"}, {"label": "\\u4e2a\\u4eba\\u8ba2\\u9605", "value": null, "note": "\\u6807\\u51c6\\u5957\\u9910\\u548c\\u8ba1\\u8d39\\u7ef4\\u5ea6\\u5f85\\u8463\\u4e8b\\u957f\\u6279\\u51c6\\u3002"}, {"label": "\\u56e2\\u961f\\u8ba2\\u9605", "value": null, "note": "\\u9762\\u5411\\u5c0f\\u516c\\u53f8\\u548c\\u4f01\\u4e1a\\u7684\\u81ea\\u52a9\\u5e2d\\u4f4d/\\u7528\\u91cf\\u65b9\\u6848\\uff0c\\u975e\\u5b9a\\u5236\\u8c08\\u5224\\u3002"}, {"label": "\\u5355\\u4f4d\\u7ecf\\u6d4e", "value": null, "note": "\\u7b49\\u5f85\\u771f\\u5b9e Token\\u3001\\u4eba\\u5de5\\u590d\\u6838\\u548c\\u652f\\u4ed8\\u6570\\u636e\\u3002"}], "kpi_definitions": {"path": "/tmp/tmpd_euia48/docs/kpis.md", "available": false, "updated_at": null, "lines": []}}, "company": {"static_sources": ["README.md", "docs/strategy.md", "docs/org.md", "docs/raci.md", "docs/cadence.md", "docs/local-beta-product.md", "docs/versioning-and-records.md", "docs/constitution.md"], "mission": {"source": "docs/strategy.md\\uff1b\\u8463\\u4e8b\\u957f\\u6218\\u7565\\u6307\\u4ee4\\u4e0e CEO State \\u4f18\\u5148\\u8986\\u76d6\\u65e7\\u5b9a\\u4f4d", "lines": ["PixWeave \\u9762\\u5411\\u4e2a\\u4eba\\u3001\\u5c0f\\u516c\\u53f8\\u548c\\u4f01\\u4e1a\\u7528\\u6237\\uff0c\\u63d0\\u4f9b\\u6807\\u51c6\\u5316\\u81ea\\u52a9\\u8ba2\\u9605\\u7684 AI \\u56fe\\u7247\\u751f\\u6210\\u4e0e\\u7f16\\u8f91\\u4ea7\\u54c1\\u3002", "\\u5546\\u4e1a\\u6a21\\u5f0f\\u4ee5\\u8ba2\\u9605\\u5236\\u4e3a\\u4e3b\\uff0c\\u4e0d\\u4f9d\\u8d56\\u9010\\u5ba2\\u6237\\u9500\\u552e\\u8c08\\u5224\\u3001\\u5b9a\\u5236\\u62a5\\u4ef7\\u6216\\u5546\\u52a1\\u6d3d\\u8c08\\u3002", "\\u5f53\\u524d\\u5904\\u4e8e\\u5185\\u90e8\\u53d7\\u63a7 Beta\\uff1b\\u516c\\u5f00\\u53d1\\u5e03\\u3001\\u771f\\u5b9e\\u5b9a\\u4ef7\\u3001\\u6536\\u8d39\\u548c\\u5916\\u90e8\\u62db\\u52df\\u4ecd\\u7531\\u8463\\u4e8b\\u957f\\u6279\\u51c6\\u3002"]}, "operating_principles": {"source": "docs/constitution.md", "lines": []}, "product": {"source": "config/repositories.json", "name": "\\u7ec7\\u8c61 PixWeave", "lines": [], "status": "standalone_internal_beta"}, "organization": {"source": "docs/org.md", "lines": []}, "roles": [{"name": "CEO", "kind": "agent", "mandate": "Resident agent. Owns product priorities, company operations, and Chairman decision flow.", "status": "resident", "source": "SQLite roles"}, {"name": "Chairman", "kind": "human", "mandate": "Only human. Owns mission, capital allocation, reserved decisions, and final external control.", "status": "resident", "source": "SQLite roles"}, {"name": "Customer & Revenue", "kind": "agent", "mandate": "Resident agent. Owns customer discovery preparation, GTM, pipeline, and revenue operations within Chairman approval boundaries.", "status": "resident", "source": "SQLite roles"}, {"name": "Product Engineer", "kind": "agent", "mandate": "Resident agent. Builds and validates end-to-end product increments across frontend, backend, AI integration, reliability, and release evidence.", "status": "resident", "source": "SQLite roles"}], "historical_roles": [], "on_demand_capabilities": [{"name": "Company Platform Engineer", "mandate": "Develops and maintains the Agent Company control plane, runtime, ledger, runners, workspace isolation, and management dashboard.", "source": "agent_company.models"}, {"name": "Control & Reliability Reviewer", "mandate": "Independently verifies control-plane state machines, migrations, governance boundaries, recovery, and release evidence.", "source": "agent_company.models"}, {"name": "Finance & Risk Reviewer", "mandate": "Reviews unit economics, budgets, financial controls, and material operating risk when requested.", "source": "agent_company.models"}, {"name": "Legal/Compliance Specialist", "mandate": "Flags legal and compliance issues when requested; does not provide legal autonomy or bind the company.", "source": "agent_company.models"}, {"name": "Independent Quality Reviewer", "mandate": "Provides independent product, evidence, security, reliability, and release-quality review when requested.", "source": "agent_company.models"}, {"name": "Codex workers", "mandate": "Execute bounded, reviewable, verifiable work asynchronously; they are not standing roles or decision-makers.", "source": "agent_company.models"}], "raci": [{"domain": "cadence", "responsible": "CEO", "accountable": "CEO", "consulted": "Product Engineer,Customer & Revenue", "informed": "Chairman", "source": "SQLite raci"}, {"domain": "company_platform", "responsible": "Company Platform Engineer", "accountable": "CEO", "consulted": "Control & Reliability Reviewer", "informed": "Chairman", "source": "SQLite raci"}, {"domain": "company_platform_review", "responsible": "Control & Reliability Reviewer", "accountable": "CEO", "consulted": "Company Platform Engineer", "informed": "Chairman", "source": "SQLite raci"}, {"domain": "customer_outreach", "responsible": "Customer & Revenue", "accountable": "Chairman", "consulted": "CEO", "informed": "Product Engineer", "source": "SQLite raci"}, {"domain": "customer_revenue", "responsible": "Customer & Revenue", "accountable": "CEO", "consulted": "Product Engineer", "informed": "Chairman", "source": "SQLite raci"}, {"domain": "irreversible_action", "responsible": "CEO", "accountable": "Chairman", "consulted": "Finance & Risk Reviewer,Legal/Compliance Specialist", "informed": "All resident agents", "source": "SQLite raci"}, {"domain": "legal", "responsible": "Legal/Compliance Specialist", "accountable": "Chairman", "consulted": "CEO", "informed": "Product Engineer,Customer & Revenue", "source": "SQLite raci"}, {"domain": "pricing", "responsible": "Customer & Revenue", "accountable": "Chairman", "consulted": "CEO,Finance & Risk Reviewer", "informed": "Product Engineer", "source": "SQLite raci"}, {"domain": "product_delivery", "responsible": "Product Engineer", "accountable": "CEO", "consulted": "Independent Quality Reviewer", "informed": "Chairman,Customer & Revenue", "source": "SQLite raci"}, {"domain": "product_priority", "responsible": "CEO", "accountable": "CEO", "consulted": "Product Engineer,Customer & Revenue", "informed": "Chairman", "source": "SQLite raci"}, {"domain": "production_deploy", "responsible": "Product Engineer", "accountable": "Chairman", "consulted": "CEO,Independent Quality Reviewer", "informed": "Customer & Revenue", "source": "SQLite raci"}, {"domain": "public_release", "responsible": "Customer & Revenue", "accountable": "Chairman", "consulted": "CEO,Product Engineer", "informed": "Independent Quality Reviewer", "source": "SQLite raci"}, {"domain": "spend", "responsible": "CEO", "accountable": "Chairman", "consulted": "Finance & Risk Reviewer", "informed": "Product Engineer,Customer & Revenue", "source": "SQLite raci"}, {"domain": "strategy", "responsible": "CEO", "accountable": "Chairman", "consulted": "Product Engineer,Customer & Revenue", "informed": "All resident agents", "source": "SQLite raci"}], "cadence": {"source": "docs/cadence.md", "lines": []}, "governance": {"source": "docs/versioning-and-records.md", "lines": []}}}'
+
+----------------------------------------------------------------------
+Ran 67 tests in 4.252s
+
+FAILED (failures=10, errors=11)
+exit_status=1

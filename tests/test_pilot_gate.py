@@ -126,12 +126,24 @@ class PilotGateTest(unittest.TestCase):
         self.gate.set_kill_switch(True, actor="CEO", principal_id="principal-ceo", reason="safe rollback")
         decision = self.gate.dispatch_decision(self.task(4))
         self.assertEqual(decision, {"allowed": True, "reason": "pilot enforcement killed"})
+        claim = self.osys.claim_task(
+            4, "Company Platform Engineer", executor_id="kill-switch-claim",
+            backend="local",
+        )
+        self.assertEqual(claim["status"], "in_progress")
+        with self.assertRaisesRegex(ValueError, "assurance context"):
+            self.osys.heartbeat_task(
+                4, "kill-switch-claim",
+                fencing_token=str(claim["fencing_token"]),
+            )
         with Store(self.config.db_path).connect_readonly() as conn:
             audit = conn.execute(
                 "SELECT action,details FROM audit_log WHERE action='set_pilot_kill_switch' ORDER BY id DESC LIMIT 1"
             ).fetchone()
         self.assertIsNotNone(audit)
-        self.assertNotEqual(self.task(4)["status"], "done")
+        self.assertNotEqual(self.osys.store.fetch_one(
+            "SELECT status FROM tasks WHERE id=4"
+        )["status"], "done")
 
 
 if __name__ == "__main__":

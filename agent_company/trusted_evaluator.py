@@ -9,6 +9,7 @@ from typing import Any
 from .assurance import AssuranceError, AssuranceKernel, _canonical
 from .config import CompanyConfig
 from .db import Store, utcnow
+from .integrity import signature as integrity_signature
 
 
 class EvaluationError(ValueError):
@@ -59,6 +60,7 @@ class TrustedEvaluator:
                     evidence_sha256 TEXT,
                     evaluator_principal_id TEXT NOT NULL,
                     result_sha256 TEXT NOT NULL UNIQUE,
+                    integrity_signature TEXT,
                     created_at TEXT NOT NULL,
                     UNIQUE(initiative_id, attempt)
                 );
@@ -106,6 +108,13 @@ class TrustedEvaluator:
                     BEGIN SELECT RAISE(ABORT, 'trusted evaluation quarantine is append-only'); END;
                 """
             )
+            run_columns = {
+                row[1] for row in conn.execute("PRAGMA table_info(trusted_eval_runs)")
+            }
+            if "integrity_signature" not in run_columns:
+                conn.execute(
+                    "ALTER TABLE trusted_eval_runs ADD COLUMN integrity_signature TEXT"
+                )
 
     def _evaluator(self, actor: str, principal_id: str) -> None:
         principal = self.kernel._assert_principal(actor, principal_id, {"operator"})
@@ -227,15 +236,24 @@ class TrustedEvaluator:
                 "evidence_sha256": evidence_sha256,
             }
             digest = hashlib.sha256(_canonical(result).encode("ascii")).hexdigest()
+            created_at = utcnow()
+            run_values = {
+                **result,
+                "evaluator_principal_id": principal_id,
+                "result_sha256": digest,
+                "created_at": created_at,
+            }
             conn.execute(
                 """INSERT INTO trusted_eval_runs(
                        initiative_id,attempt,candidate_sha256,dataset_sha256,grader_sha256,
                        environment_sha256,seed,status,evidence_ref,evidence_sha256,
-                       evaluator_principal_id,result_sha256,created_at
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                       evaluator_principal_id,result_sha256,integrity_signature,created_at
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (initiative_id, attempt, refs["candidate"], refs["dataset"], refs["grader"],
                  refs["environment"], seed, status, evidence_ref, evidence_sha256,
-                 principal_id, digest, utcnow()),
+                 principal_id, digest,
+                 integrity_signature(self.config.db_path, "trusted-eval-run", run_values),
+                 created_at),
             )
         return {**result, "result_sha256": digest}
 

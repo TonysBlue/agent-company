@@ -202,14 +202,21 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                     "SELECT * FROM approvals ORDER BY CASE status WHEN 'pending' THEN 0 ELSE 1 END, id DESC LIMIT 20"
                 ))),
                 "cycles": _row_dicts(list(conn.execute("SELECT * FROM cycles ORDER BY id DESC LIMIT 12"))),
-                "audit": _row_dicts(list(conn.execute("SELECT * FROM audit_log ORDER BY id DESC LIMIT 20"))),
+                "audit": _row_dicts(list(conn.execute(
+                    """SELECT id,ts,actor,action,entity,entity_id
+                       FROM audit_log ORDER BY id DESC LIMIT 20"""
+                ))),
                 "experiments": _row_dicts(list(conn.execute("SELECT * FROM experiments ORDER BY id DESC LIMIT 12"))),
                 "roles": _row_dicts(list(conn.execute("SELECT name, kind, mandate, status FROM roles ORDER BY name ASC"))),
                 "raci": _row_dicts(list(conn.execute(
                     "SELECT domain, responsible, accountable, consulted, informed FROM raci ORDER BY domain ASC"
                 ))),
                 "task_executions": _row_dicts(list(conn.execute(
-                    """SELECT e.*, t.status AS task_status, t.owner AS task_owner, t.title AS task_title
+                    """SELECT e.id,e.task_id,e.executor_id,e.backend,e.process_id,
+                              e.claimed_at,e.heartbeat_at,e.lease_expires_at,
+                              e.attempt_count,e.max_attempts,e.checkpoint,e.next_action,
+                              e.last_error,e.recovery_status,e.generation,e.created_at,e.updated_at,
+                              t.status AS task_status,t.owner AS task_owner,t.title AS task_title
                        FROM task_executions e
                        JOIN tasks t ON t.id=e.task_id
                        ORDER BY CASE e.recovery_status WHEN 'failed' THEN 0 WHEN 'running' THEN 1 WHEN 'requeued' THEN 2 ELSE 3 END,
@@ -237,7 +244,9 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
                     "SELECT * FROM chairman_directives ORDER BY directive_version DESC LIMIT 20"
                 ))) if ceo_table else [],
                 "executors": _row_dicts(list(conn.execute(
-                    "SELECT * FROM executors ORDER BY status, executor_id"
+                    """SELECT executor_id,owner,backend,capabilities,capacity,status,
+                              heartbeat_at,registered_at,updated_at
+                       FROM executors ORDER BY status,executor_id"""
                 ))) if executor_table else [],
                 "task_contexts": _row_dicts(list(conn.execute(
                     "SELECT * FROM task_contexts ORDER BY id DESC LIMIT 50"

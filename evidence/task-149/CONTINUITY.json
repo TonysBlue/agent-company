@@ -1,0 +1,50 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "/home/tony/agent-company/evidence/task-149/verification-report.md",
+        "/home/tony/agent-company/evidence/task-149/evidence-manifest.json",
+        "/home/tony/agent-company/evidence/task-149/completion-trigger-red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-149/focused-test-output.txt",
+        "/home/tony/agent-company/evidence/task-149/full-test-output.txt",
+        "/home/tony/agent-company/evidence/task-149/adversarial-probe-output.txt",
+        "/home/tony/agent-company/evidence/task-149/clean-copy-migration-output.txt",
+        "/home/tony/agent-company/evidence/task-149/pixweave-test-output.txt"
+      ],
+      "decision_needed": "Independently review task 149's claim and execution integrity anchors, one-shot atomic completion transition, trigger restoration, trigger-drop tamper behavior, runtime fences, redaction boundaries, and clean-copy migration evidence; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 149 hardens the bound Phase C pilot from claim through atomic completion and passes 128 focused, 198 Agent Company, 12 adversarial, and 58 PixWeave tests.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "This delivery is limited to the authorized task-149 Phase C controls and does not authorize Phase D or global enforcement.",
+    "No deployment, PixWeave source change, customer-data action, outreach, publication, pricing, payment, contract, or production action was performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review the pushed task-149 commit and evidence before the Phase C exit gate."
+  ],
+  "project_decisions": [
+    "A pilot claim creates a keyed immutable binding before context compilation so later binding removal, demotion, rebinding, generation drift, or fencing-token drift fails closed.",
+    "The claimed task-binding trigger permits only the first complete transition of all completion fields while keeping task identity, initiative, pilot flag, artifact set, and creation time immutable.",
+    "Completion remains one transaction: task and execution completion, assurance completion fields, audit records, and completion event either commit together or roll back together.",
+    "Keyed integrity anchors remain outside SQLite and validators reject protected-row tamper even after immutability triggers are dropped; initialization restores canonical triggers without signing preexisting unanchored rows.",
+    "Runtime enforcement covers context use, heartbeat, checkpoint, and completion; the kill switch remains dispatch-only.",
+    "Task context and dashboard projections omit protected artifact bodies, credentials, principal details, fencing tokens, audit details, and execution session references."
+  ],
+  "project_summary": "Agent Company now protects explicitly bound Phase C pilot work from claim through atomic completion with keyed immutable lineage, fail-closed runtime fences, independently anchored evaluation/review evidence, canonical trigger repair, and minimized context/dashboard projections.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Completed task 149 with strict RED-GREEN TDD, including the resumed completion-trigger diagnosis and minimal one-shot completion predicate, then verified focused, canonical, PixWeave, clean-copy migration, and adversarial suites.",
+  "verified_facts": [
+    "The original task-149 RED run executed 67 tests and failed with 10 failures plus 11 errors before the Phase C hardening implementation.",
+    "The resumed completion-trigger RED run reproduced both completion paths failing with sqlite3.IntegrityError before the canonical trigger predicate was corrected.",
+    "Focused assurance/runtime/context/dashboard verification executed 128 tests with all passing.",
+    "Agent Company canonical verification executed 198 tests with all passing.",
+    "Twelve explicit adversarial completion, immutability, trigger-drop, tamper, and rollback probes passed.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and its canonical suite executed 58 tests with all passing.",
+    "Fresh initialization and clean-copy migration validated successfully, preserved the 148-task operational digest, restored all 18 canonical triggers, and returned SQLite integrity_check=ok.",
+    "git diff --check, Python compileall, and JSON validation passed before commit."
+  ]
+}

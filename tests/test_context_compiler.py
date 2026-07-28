@@ -158,7 +158,10 @@ class ContextCompilerTest(unittest.TestCase):
             "kind": "goal_contract", "version": 1, "status": "draft",
             "initiative_id": "pilot-c2-approved-for-build", "profile": "control-plane-reliability",
             "risk_class": "C2", "owner_principal": "principal-ceo", "repository_id": "pixweave",
-            "content": {"outcome": "compile exact assurance context", "non_goals": ["holdout disclosure"]},
+            "content": {
+                "outcome": "compile exact assurance context; protected-marker-7f91 must stay private",
+                "non_goals": ["holdout disclosure", "sensitive-body-marker-33ac"],
+            },
         }
         kernel.register_artifact(artifact, actor="CEO", principal_id="principal-ceo")
         reviewer_credential = "phase-c-reviewer"
@@ -207,9 +210,16 @@ class ContextCompilerTest(unittest.TestCase):
         self.assertEqual(bundle["assurance"]["initiative_id"], "pilot-c2-approved-for-build")
         self.assertEqual(bundle["assurance"]["artifact_set_sha256"], digest)
         self.assertEqual(bundle["assurance"]["artifacts"][0]["ref"], "phase-c-goal:v1")
+        self.assertEqual(
+            set(bundle["assurance"]["artifacts"][0]),
+            {"ref", "content_sha256"},
+        )
         serialized = json.dumps(bundle["assurance"], sort_keys=True)
         self.assertNotIn("owner_principal", serialized)
         self.assertNotIn("credential", serialized.lower())
+        self.assertNotIn("protected-marker-7f91", serialized)
+        self.assertNotIn("sensitive-body-marker-33ac", serialized)
+        self.assertNotIn('"content"', serialized)
 
     def test_active_execution_generation_and_fencing_token_are_enforced(self) -> None:
         compiler = ContextCompiler(self.config, context_root=Path("/home/tony/agent-company/company_context"))

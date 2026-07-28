@@ -1,0 +1,115 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable outcome, blocker diagnosis, strict-TDD provenance, acceptance mapping, verification, and scope limits",
+      "sha256": "99248b61a462c7506c6ab28028bf60cba37996978061631fa11c74b2d9b48890"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and independent control-review handoff",
+      "sha256": "014793a1462726909df4fa9378f9127d8414e29dcc21db1d1992fb76077ecb27"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Original normalized task-149 RED output against committed base 75289a1",
+      "sha256": "36b1d554994bb3ad75bcf0a3c24ba20e5ece2e3f00a4edb2007860f097a9fe47"
+    },
+    {
+      "path": "completion-trigger-red-test-output.txt",
+      "purpose": "Resumed strict-TDD RED reproduction of the claimed-binding completion-trigger regression",
+      "sha256": "d7d097474b7a8eaf926417c50d84935ba69626ac07db099ccf35340b82ed4288"
+    },
+    {
+      "path": "focused-test-output.txt",
+      "purpose": "Focused assurance, runtime, runner, context, credential, and dashboard verification output",
+      "sha256": "2aa09fc4c79e1233ac2f8b0d77de00feaeb34c50e79ca0c3ea6c8af6ff919cfc"
+    },
+    {
+      "path": "full-test-output.txt",
+      "purpose": "Agent Company canonical full-suite output",
+      "sha256": "2778b7db27d13700e6070936710a9f8f478c08caaf14aba53b267cf941a9b83d"
+    },
+    {
+      "path": "pixweave-test-output.txt",
+      "purpose": "PixWeave canonical suite output from the clean unchanged product repository",
+      "sha256": "85ae62a5b4028b363b49f71ef2de16eb690db53f23a70d1a2703b30da3fa8a45"
+    },
+    {
+      "path": "clean-copy-migration-output.txt",
+      "purpose": "Fresh initialization plus non-interfering clean-copy migration, schema, trigger, ledger-digest, and SQLite-integrity evidence",
+      "sha256": "6cc1ddda4af6ac9d19d5286325f1331d61d7b840278dfce06f38f46caedb1095"
+    },
+    {
+      "path": "adversarial-probe-output.txt",
+      "purpose": "Explicit one-shot completion, immutability, trigger restoration, trigger-drop tamper, and transaction rollback probes",
+      "sha256": "53d489b40c5de1e2fb51bd79c87ec1f8220925776ece0f94a457458c024765e5"
+    }
+  ],
+  "base_commit": "75289a18642148bc8e4cd0a1c6f6eed9d5302776",
+  "base_tree": "4911aa77bfe9b30932accc002896c19f944ca28b",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 198,
+    "result": "pass"
+  },
+  "clean_copy_migration": {
+    "canonical_trigger_count": 18,
+    "integrity_check": "ok",
+    "operational_task_count": 148,
+    "operational_tasks_unchanged": true,
+    "result": "pass",
+    "source_snapshot_unchanged": true
+  },
+  "code_sha256": {
+    ".gitignore": "4054fbd399187d025c3054382d767ccf782050ebdc0f4c96fd71ee08820720ea",
+    "agent_company/assurance.py": "2279e0240bec45760e41565cf7359986d4e8ec7fc68aebf4fa09451b5527c2b5",
+    "agent_company/cli.py": "af6f149ac26eac52d364203c9029b08a9632b3626176affe366f509323072fe9",
+    "agent_company/context_compiler.py": "e145dc4a7b92078be3545f583c5c526035d4d5ee9417f8b07e3d914b3cb9b01a",
+    "agent_company/dashboard.py": "3b6206411de63633bcc1f496147539544a16f7e606007d1cce70a020ec70d6f1",
+    "agent_company/db.py": "70305c6ea3dc9b5cb9fcea6d3fd2cc3357d553500485781c9685cfd45da2f178",
+    "agent_company/integrity.py": "96a73b8e129b0eabafdf145a9d11bfdf744fed4f9825ba818a0e5151b8043b5a",
+    "agent_company/ops.py": "19d1ae3a1a28c2e4094ece11d218835c4095450b2b59727ae4510454cc170c68",
+    "agent_company/pilot_gate.py": "27969e8252f26f01c602a7f109b4f64e572da9c8df57ccf3d8f9efffbd2eb633",
+    "agent_company/trusted_evaluator.py": "7cfea920f1ad7ec65ab695bf44fb2960645e100da5a8b4fc2b03c3eed7d699d4",
+    "tests/test_completion_assurance_gate.py": "79b08d973954d9b32ab6d796249a4feb360aa6c0dcc2eb8de7ef39c2001da423",
+    "tests/test_context_compiler.py": "76d13302251c8d600a280fbc1f988cc146b012375084edc25106b17a4b8db0f6",
+    "tests/test_dashboard.py": "5660fe36ff78ecba4ec96a55b8c262d86a09203cc65c70bc4d58195f78adf191",
+    "tests/test_pilot_gate.py": "022a7a9ea50760bd5f613eaba18583bb04397894a2ed1107f049784bab38a8c3"
+  },
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials tests.test_dashboard -v",
+    "passed": 128,
+    "result": "pass"
+  },
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "worktree": "clean"
+  },
+  "red_tests": [
+    {
+      "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_context_compiler tests.test_dashboard -v",
+      "errors": 11,
+      "exit_status": 1,
+      "failures": 10,
+      "ran": 67,
+      "result": "expected_fail"
+    },
+    {
+      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_claimed_binding_allows_one_completion_write_without_rebinding tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion -v",
+      "errors": 2,
+      "exit_status": 1,
+      "failures": 0,
+      "ran": 2,
+      "result": "expected_fail"
+    }
+  ],
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "task_id": 149
+}

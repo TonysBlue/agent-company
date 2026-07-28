@@ -6,6 +6,7 @@ venv/
 data/*.sqlite3
 data/*.sqlite3-*
 data/assurance-bootstrap.secret*
+data/assurance-integrity.key*
 data/assurance-credentials/
 data/trusted-eval-content/
 data/artifacts/*.json

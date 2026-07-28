@@ -40,6 +40,9 @@ class Store:
 
     def init_assurance(self) -> None:
         """Add shadow assurance tables without touching operational schema or data."""
+        from .integrity import ensure_key
+
+        ensure_key(self.db_path)
         with self.connect() as conn:
             principal_columns = {
                 row[1] for row in conn.execute("PRAGMA table_info(assurance_principals)")
@@ -101,6 +104,16 @@ class Store:
                     version INTEGER NOT NULL,
                     content_sha256 TEXT NOT NULL,
                     created_at TEXT NOT NULL,
+                    integrity_signature TEXT,
+                    PRIMARY KEY(artifact_id, version)
+                );
+                CREATE TABLE IF NOT EXISTS assurance_artifact_approvals (
+                    artifact_id TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    content_sha256 TEXT NOT NULL,
+                    approved_by_principal TEXT NOT NULL,
+                    approved_at TEXT NOT NULL,
+                    integrity_signature TEXT NOT NULL,
                     PRIMARY KEY(artifact_id, version)
                 );
                 CREATE TABLE IF NOT EXISTS assurance_links (
@@ -142,14 +155,36 @@ class Store:
                     mode TEXT NOT NULL DEFAULT 'shadow',
                     created_at TEXT NOT NULL
                 );
+                """
+            )
+            registration_columns = {
+                row[1] for row in conn.execute(
+                    "PRAGMA table_info(assurance_artifact_registrations)"
+                )
+            }
+            if "integrity_signature" not in registration_columns:
+                conn.execute(
+                    "ALTER TABLE assurance_artifact_registrations "
+                    "ADD COLUMN integrity_signature TEXT"
+                )
+            conn.executescript(
+                """
                 DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_delete;
+                DROP TRIGGER IF EXISTS assurance_artifact_approvals_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_artifact_approvals_immutable_delete;
                 CREATE TRIGGER assurance_artifact_registrations_immutable_update
                     BEFORE UPDATE ON assurance_artifact_registrations
                     BEGIN SELECT RAISE(ABORT, 'assurance artifact registration is immutable'); END;
                 CREATE TRIGGER assurance_artifact_registrations_immutable_delete
                     BEFORE DELETE ON assurance_artifact_registrations
                     BEGIN SELECT RAISE(ABORT, 'assurance artifact registration is immutable'); END;
+                CREATE TRIGGER assurance_artifact_approvals_immutable_update
+                    BEFORE UPDATE ON assurance_artifact_approvals
+                    BEGIN SELECT RAISE(ABORT, 'assurance artifact approval is immutable'); END;
+                CREATE TRIGGER assurance_artifact_approvals_immutable_delete
+                    BEFORE DELETE ON assurance_artifact_approvals
+                    BEGIN SELECT RAISE(ABORT, 'assurance artifact approval is immutable'); END;
                 """
             )
 

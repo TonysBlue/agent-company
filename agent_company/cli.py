@@ -76,11 +76,13 @@ def build_parser() -> argparse.ArgumentParser:
     heartbeat.add_argument("task_id", type=int)
     heartbeat.add_argument("--executor-id", required=True)
     heartbeat.add_argument("--lease-seconds", type=int, default=600)
+    heartbeat.add_argument("--fencing-token", default=None)
     checkpoint = sub.add_parser("task-checkpoint", help="Record task execution checkpoint and next action")
     checkpoint.add_argument("task_id", type=int)
     checkpoint.add_argument("--executor-id", required=True)
     checkpoint.add_argument("--checkpoint", required=True)
     checkpoint.add_argument("--next-action", required=True)
+    checkpoint.add_argument("--fencing-token", default=None)
     inspect = sub.add_parser("task-inspect", help="Inspect task execution state")
     inspect.add_argument("task_id", type=int)
     recover = sub.add_parser("task-recover", help="Recover or requeue a task execution")
@@ -117,6 +119,7 @@ def build_parser() -> argparse.ArgumentParser:
     complete.add_argument("--actor", required=True)
     complete.add_argument("--summary", required=True)
     complete.add_argument("--evidence", type=Path, action="append", required=True)
+    complete.add_argument("--fencing-token", default=None)
     cancel = sub.add_parser("task-cancel", help="Cancel obsolete or duplicate work with an audited reason")
     cancel.add_argument("task_id", type=int)
     cancel.add_argument("--actor", required=True)
@@ -271,9 +274,14 @@ def main(argv: list[str] | None = None) -> int:
                 log_paths=args.log_path,
             ), indent=2, sort_keys=True))
         elif args.command == "task-heartbeat":
-            print(json.dumps(osys.heartbeat_task(args.task_id, args.executor_id, args.lease_seconds), indent=2, sort_keys=True))
+            print(json.dumps(osys.heartbeat_task(
+                args.task_id, args.executor_id, args.lease_seconds, args.fencing_token,
+            ), indent=2, sort_keys=True))
         elif args.command == "task-checkpoint":
-            print(json.dumps(osys.checkpoint_task(args.task_id, args.executor_id, args.checkpoint, args.next_action), indent=2, sort_keys=True))
+            print(json.dumps(osys.checkpoint_task(
+                args.task_id, args.executor_id, args.checkpoint, args.next_action,
+                args.fencing_token,
+            ), indent=2, sort_keys=True))
         elif args.command == "task-inspect":
             print(json.dumps(osys.inspect_execution(args.task_id), indent=2, sort_keys=True))
         elif args.command == "task-recover":
@@ -303,7 +311,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "token-summary":
             print(json.dumps(osys.token_usage_summary(), indent=2, sort_keys=True, ensure_ascii=False))
         elif args.command == "task-complete":
-            print(json.dumps(osys.complete_task(args.task_id, args.actor, args.summary, args.evidence), indent=2, sort_keys=True))
+            print(json.dumps(osys.complete_task(
+                args.task_id, args.actor, args.summary, args.evidence,
+                args.fencing_token,
+            ), indent=2, sort_keys=True))
         elif args.command == "task-cancel":
             print(json.dumps(osys.cancel_task(args.task_id, args.actor, args.reason), indent=2, sort_keys=True))
         elif args.command == "chairman-inbox":

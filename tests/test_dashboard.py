@@ -98,6 +98,29 @@ logs = logs
         artifact.write_text('{"schema_version":"test/v1"}\n', encoding="utf-8")
 
     def test_snapshot_uses_live_sources_and_no_fabricated_operations_metrics(self) -> None:
+        secret_marker = "dashboard-secret-marker-4d8a"
+        principal_marker = "principal-dashboard-private"
+        with self.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO executors(
+                       executor_id,owner,backend,capabilities,capacity,status,
+                       session_ref,heartbeat_at,registered_at,updated_at
+                   ) VALUES ('dashboard-executor','CTO','local','[]',1,'healthy',
+                             'executor-session-dashboard-private',?,?,?)""",
+                ("2026-07-11T01:02:03+00:00",) * 3,
+            )
+            conn.execute(
+                "UPDATE audit_log SET details=? WHERE id=1",
+                (json.dumps({
+                    "principal_id": principal_marker,
+                    "credential": secret_marker,
+                    "conditions_json": ["protected-condition-marker"],
+                }),),
+            )
+            conn.execute(
+                "UPDATE task_executions SET fencing_token=?,session_ref=? WHERE task_id=1",
+                ("fence-dashboard-private", "session-dashboard-private"),
+            )
         snapshot = build_snapshot(self.config)
 
         self.assertEqual(snapshot["management"]["task_counts_by_status"]["blocked"], 1)
@@ -117,12 +140,18 @@ logs = logs
         self.assertNotIn("principal_id", serialized_assurance)
         self.assertNotIn("conditions_json", serialized_assurance)
         self.assertNotIn("Assurance bootstrap", serialized_assurance)
-        serialized = json.dumps(snapshot["management"]["context_governance"])
+        serialized = json.dumps(snapshot)
         self.assertNotIn("verified_facts_json", serialized)
         self.assertNotIn("open_items_json", serialized)
         self.assertNotIn("artifact_refs_json", serialized)
         self.assertNotIn("bundle_path", serialized)
         self.assertNotIn("fencing_token", serialized)
+        self.assertNotIn(secret_marker, serialized)
+        self.assertNotIn(principal_marker, serialized)
+        self.assertNotIn("fence-dashboard-private", serialized)
+        self.assertNotIn("session-dashboard-private", serialized)
+        self.assertNotIn("executor-session-dashboard-private", serialized)
+        self.assertNotIn("protected-condition-marker", serialized)
         self.assertEqual(snapshot["operations"]["funnel"][0]["state"], "placeholder")
         sources = {source["id"] for source in snapshot["sources"]}
         self.assertIn("sqlite", sources)

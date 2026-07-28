@@ -1,0 +1,34 @@
+probe_root=<TEMP_WORKSPACE>
+snapshot_method=sqlite_online_backup_readonly
+snapshot_hash_before=7265d3088630194403225f244debf065a4a3402b0a7258049bedf2dd6b51d924
+snapshot_stat_before=216678400:1785234267
+snapshot_operational_before={"task_count": 148, "tasks_sha256": "fab3792d1b688e0080e0d88b61a5f3cec7f57f300e6e7011aa70652585e467ab"}
+fresh_init:
+initialized
+fresh_validate:
+{
+  "errors": [],
+  "ok": true
+}
+fresh_schema:
+{"completion_transition_guarded": true, "tables": ["assurance_artifact_approvals", "assurance_claim_bindings", "assurance_execution_bindings"], "trigger_count": 18, "triggers": ["assurance_artifact_approvals_immutable_delete", "assurance_artifact_approvals_immutable_update", "assurance_artifact_registrations_immutable_delete", "assurance_artifact_registrations_immutable_update", "assurance_claim_bindings_immutable_delete", "assurance_claim_bindings_immutable_update", "assurance_execution_bindings_immutable_delete", "assurance_execution_bindings_immutable_update", "assurance_task_bindings_claimed_immutable_delete", "assurance_task_bindings_claimed_immutable_update", "trusted_eval_contracts_immutable_delete", "trusted_eval_contracts_immutable_update", "trusted_eval_manifests_immutable_delete", "trusted_eval_manifests_immutable_update", "trusted_eval_quarantines_append_only", "trusted_eval_quarantines_no_delete", "trusted_eval_runs_immutable_delete", "trusted_eval_runs_immutable_update"]}
+clean_copy_init:
+initialized
+clean_copy_validate:
+{
+  "errors": [],
+  "ok": true
+}
+clean_copy_operational_before={"task_count": 148, "tasks_sha256": "fab3792d1b688e0080e0d88b61a5f3cec7f57f300e6e7011aa70652585e467ab"}
+clean_copy_operational_after={"task_count": 148, "tasks_sha256": "fab3792d1b688e0080e0d88b61a5f3cec7f57f300e6e7011aa70652585e467ab"}
+clean_copy_operational_unchanged=true
+clean_copy_claim_columns=["task_id", "generation", "initiative_id", "artifact_set_sha256", "fencing_token_sha256", "integrity_signature", "created_at"]
+clean_copy_execution_columns=["task_id", "generation", "initiative_id", "artifact_set_sha256", "evaluation_policy_sha256", "principal_state_sha256", "context_bundle_sha256", "fencing_token_sha256", "integrity_signature", "created_at"]
+clean_copy_trigger_count=18
+clean_copy_integrity_check=ok
+snapshot_hash_after=7265d3088630194403225f244debf065a4a3402b0a7258049bedf2dd6b51d924
+snapshot_stat_after=216678400:1785234267
+snapshot_operational_after={"task_count": 148, "tasks_sha256": "fab3792d1b688e0080e0d88b61a5f3cec7f57f300e6e7011aa70652585e467ab"}
+snapshot_hash_unchanged=true
+snapshot_stat_unchanged=true
+snapshot_operational_unchanged=true

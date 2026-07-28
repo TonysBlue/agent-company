@@ -1,0 +1,32 @@
+test_claimed_binding_allows_one_completion_write_without_rebinding (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_claimed_binding_allows_one_completion_write_without_rebinding) ... ERROR
+test_exact_eval_and_independent_review_allow_atomic_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion) ... ERROR
+
+======================================================================
+ERROR: test_claimed_binding_allows_one_completion_write_without_rebinding (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_claimed_binding_allows_one_completion_write_without_rebinding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 771, in test_claimed_binding_allows_one_completion_write_without_rebinding
+    PilotGate.record_completion(conn, self.task_id, assurance, completed_at)
+  File "/home/tony/agent-company/agent_company/pilot_gate.py", line 956, in record_completion
+    updated = conn.execute(
+              ^^^^^^^^^^^^^
+sqlite3.IntegrityError: claimed assurance task binding is immutable
+
+======================================================================
+ERROR: test_exact_eval_and_independent_review_allow_atomic_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 696, in test_exact_eval_and_independent_review_allow_atomic_completion
+    completed = self.osys.complete_task(
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/ops.py", line 608, in complete_task
+    PilotGate.record_completion(conn, task_id, assurance, now)
+  File "/home/tony/agent-company/agent_company/pilot_gate.py", line 956, in record_completion
+    updated = conn.execute(
+              ^^^^^^^^^^^^^
+sqlite3.IntegrityError: claimed assurance task binding is immutable
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.241s
+
+FAILED (errors=2)

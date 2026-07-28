@@ -88,6 +88,11 @@ class ContextCompiler:
                 raise ValueError("context generation does not match the active fenced execution")
             if execution is None and fencing_token is not None:
                 raise ValueError("context requires an active fenced execution")
+            from .pilot_gate import PilotGate
+
+            claim_fence = PilotGate(self.config).claim_fence_decision(task_id, conn=conn)
+            if not claim_fence["allowed"]:
+                raise ValueError(claim_fence["reason"])
             state = conn.execute("SELECT * FROM ceo_state_versions ORDER BY version DESC LIMIT 1").fetchone()
             directives = [dict(row) for row in conn.execute(
                 "SELECT directive_version, directive_type, objective, constraints_json, priority, status FROM chairman_directives WHERE status IN ('pending','active') ORDER BY directive_version"
@@ -115,17 +120,16 @@ class ContextCompiler:
                 ).fetchone()
                 artifacts = []
                 for row in conn.execute(
-                    """SELECT artifact_id,version,kind,content_sha256,content_json
+                    """SELECT artifact_id,version,kind,content_sha256
                        FROM assurance_artifacts
                        WHERE initiative_id=? AND status='approved'
                          AND kind!='review_decision'
                        ORDER BY artifact_id,version""",
                     (binding["initiative_id"],),
                 ):
-                    payload = json.loads(row["content_json"])
                     artifacts.append({
-                        "ref": f"{row['artifact_id']}:v{row['version']}", "kind": row["kind"],
-                        "content_sha256": row["content_sha256"], "content": payload["content"],
+                        "ref": f"{row['artifact_id']}:v{row['version']}",
+                        "content_sha256": row["content_sha256"],
                     })
                 from .assurance import AssuranceKernel
                 from .pilot_gate import PilotGate

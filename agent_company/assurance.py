@@ -12,6 +12,7 @@ from typing import Any
 
 from .config import CompanyConfig
 from .db import Store, utcnow
+from .integrity import signature as integrity_signature, verify as verify_integrity_signature
 
 
 class AssuranceError(ValueError):
@@ -222,6 +223,28 @@ class AssuranceKernel:
         ).fetchone()
         if run is None or quarantined or not run["evidence_sha256"]:
             raise AssuranceError("G5 requires a completed non-quarantined content-addressed evaluation")
+        run_values = {
+            "initiative_id": run["initiative_id"],
+            "attempt": run["attempt"],
+            "refs": {
+                "candidate": run["candidate_sha256"],
+                "dataset": run["dataset_sha256"],
+                "grader": run["grader_sha256"],
+                "environment": run["environment_sha256"],
+            },
+            "seed": run["seed"],
+            "status": run["status"],
+            "evidence_ref": run["evidence_ref"],
+            "evidence_sha256": run["evidence_sha256"],
+            "evaluator_principal_id": run["evaluator_principal_id"],
+            "result_sha256": run["result_sha256"],
+            "created_at": run["created_at"],
+        }
+        if not verify_integrity_signature(
+            self.config.db_path, "trusted-eval-run", run_values,
+            run["integrity_signature"],
+        ):
+            raise AssuranceError("G5 trusted evaluation integrity anchor mismatch")
         evidence = (self.config.workspace / run["evidence_ref"]).resolve()
         workspace = self.config.workspace.resolve()
         if workspace not in evidence.parents or not evidence.is_file():
@@ -538,13 +561,87 @@ class AssuranceKernel:
         self.init()
         conflicts = []
         with self.store.connect_readonly() as conn:
-            for row in conn.execute("SELECT artifact_id, version, content_json, content_sha256 FROM assurance_artifacts ORDER BY id"):
+            for row in conn.execute(
+                """SELECT artifact_id,version,status,content_json,content_sha256,
+                          approved_by_principal,approved_at
+                   FROM assurance_artifacts ORDER BY id"""
+            ):
                 actual = hashlib.sha256(row["content_json"].encode("ascii")).hexdigest()
                 if actual != row["content_sha256"]:
                     conflicts.append({
                         "artifact_id": row["artifact_id"], "version": row["version"],
                         "expected_sha256": row["content_sha256"], "actual_sha256": actual,
                     })
+                registration = conn.execute(
+                    """SELECT * FROM assurance_artifact_registrations
+                       WHERE artifact_id=? AND version=?""",
+                    (row["artifact_id"], row["version"]),
+                ).fetchone()
+                registration_valid = registration is not None and verify_integrity_signature(
+                    self.config.db_path, "artifact-registration", {
+                        "artifact_id": registration["artifact_id"],
+                        "version": registration["version"],
+                        "content_sha256": registration["content_sha256"],
+                        "created_at": registration["created_at"],
+                    }, registration["integrity_signature"],
+                ) and registration["content_sha256"] == row["content_sha256"]
+                if not registration_valid:
+                    conflicts.append({
+                        "artifact_id": row["artifact_id"], "version": row["version"],
+                        "anchor": "registration",
+                    })
+                if row["status"] == "approved":
+                    approval = conn.execute(
+                        """SELECT * FROM assurance_artifact_approvals
+                           WHERE artifact_id=? AND version=?""",
+                        (row["artifact_id"], row["version"]),
+                    ).fetchone()
+                    approval_valid = approval is not None and verify_integrity_signature(
+                        self.config.db_path, "artifact-approval", {
+                            "artifact_id": approval["artifact_id"],
+                            "version": approval["version"],
+                            "content_sha256": approval["content_sha256"],
+                            "approved_by_principal": approval["approved_by_principal"],
+                            "approved_at": approval["approved_at"],
+                        }, approval["integrity_signature"],
+                    ) and (
+                        approval["content_sha256"] == row["content_sha256"]
+                        and approval["approved_by_principal"] == row["approved_by_principal"]
+                        and approval["approved_at"] == row["approved_at"]
+                    )
+                    if not approval_valid:
+                        conflicts.append({
+                            "artifact_id": row["artifact_id"], "version": row["version"],
+                            "anchor": "approval",
+                        })
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='trusted_eval_runs'"
+            ).fetchone():
+                for run in conn.execute("SELECT * FROM trusted_eval_runs ORDER BY id"):
+                    run_values = {
+                        "initiative_id": run["initiative_id"],
+                        "attempt": run["attempt"],
+                        "refs": {
+                            "candidate": run["candidate_sha256"],
+                            "dataset": run["dataset_sha256"],
+                            "grader": run["grader_sha256"],
+                            "environment": run["environment_sha256"],
+                        },
+                        "seed": run["seed"], "status": run["status"],
+                        "evidence_ref": run["evidence_ref"],
+                        "evidence_sha256": run["evidence_sha256"],
+                        "evaluator_principal_id": run["evaluator_principal_id"],
+                        "result_sha256": run["result_sha256"],
+                        "created_at": run["created_at"],
+                    }
+                    if not verify_integrity_signature(
+                        self.config.db_path, "trusted-eval-run", run_values,
+                        run["integrity_signature"],
+                    ):
+                        conflicts.append({
+                            "initiative_id": run["initiative_id"],
+                            "attempt": run["attempt"], "anchor": "trusted_eval_run",
+                        })
         return {"status": "integrity_conflict" if conflicts else "ok", "conflicts": conflicts, "mode": "shadow"}
 
     def register_artifact(
@@ -599,9 +696,17 @@ class AssuranceKernel:
                 )
                 conn.execute(
                     """INSERT INTO assurance_artifact_registrations(
-                           artifact_id,version,content_sha256,created_at
-                       ) VALUES (?,?,?,?)""",
-                    (payload["artifact_id"], payload["version"], digest, now),
+                           artifact_id,version,content_sha256,created_at,integrity_signature
+                       ) VALUES (?,?,?,?,?)""",
+                    (
+                        payload["artifact_id"], payload["version"], digest, now,
+                        integrity_signature(self.config.db_path, "artifact-registration", {
+                            "artifact_id": payload["artifact_id"],
+                            "version": payload["version"],
+                            "content_sha256": digest,
+                            "created_at": now,
+                        }),
+                    ),
                 )
                 if payload["kind"] == "design_manifest":
                     for edge in payload["content"]["edges"]:
@@ -650,6 +755,25 @@ class AssuranceKernel:
                    SET status='approved', approved_by_principal=?, approved_at=?
                    WHERE artifact_id=? AND version=?""",
                 (principal_id, now, artifact_id, version),
+            )
+            approval_values = {
+                "artifact_id": artifact_id,
+                "version": version,
+                "content_sha256": row["content_sha256"],
+                "approved_by_principal": principal_id,
+                "approved_at": now,
+            }
+            conn.execute(
+                """INSERT INTO assurance_artifact_approvals(
+                       artifact_id,version,content_sha256,approved_by_principal,
+                       approved_at,integrity_signature
+                   ) VALUES (?,?,?,?,?,?)""",
+                (
+                    artifact_id, version, row["content_sha256"], principal_id, now,
+                    integrity_signature(
+                        self.config.db_path, "artifact-approval", approval_values,
+                    ),
+                ),
             )
             self.store.audit(
                 conn, actor, "assurance_artifact_approved", "assurance_artifact",

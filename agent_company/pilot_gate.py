@@ -11,6 +11,7 @@ from typing import Any
 from .config import CompanyConfig
 from .assurance import AssuranceError, AssuranceKernel
 from .db import Store, utcnow
+from .integrity import signature as integrity_signature, verify as verify_integrity_signature
 
 
 APPROVED_PILOT = "pilot-c2-approved-for-build"
@@ -50,17 +51,83 @@ class PilotGate:
                     evaluation_policy_sha256 TEXT NOT NULL,
                     principal_state_sha256 TEXT NOT NULL,
                     context_bundle_sha256 TEXT NOT NULL,
+                    fencing_token_sha256 TEXT,
+                    integrity_signature TEXT,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY(task_id,generation)
+                );
+                CREATE TABLE IF NOT EXISTS assurance_claim_bindings (
+                    task_id INTEGER NOT NULL,
+                    generation INTEGER NOT NULL,
+                    initiative_id TEXT NOT NULL,
+                    artifact_set_sha256 TEXT NOT NULL,
+                    fencing_token_sha256 TEXT NOT NULL,
+                    integrity_signature TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     PRIMARY KEY(task_id,generation)
                 );
                 INSERT OR IGNORE INTO assurance_pilot_config(key,value,updated_at)
                     VALUES ('kill_switch','false','bootstrap');
-                CREATE TRIGGER IF NOT EXISTS assurance_execution_bindings_immutable_update
+                """
+            )
+            execution_binding_columns = {
+                row[1] for row in conn.execute(
+                    "PRAGMA table_info(assurance_execution_bindings)"
+                )
+            }
+            for name in ("fencing_token_sha256", "integrity_signature"):
+                if name not in execution_binding_columns:
+                    conn.execute(
+                        f"ALTER TABLE assurance_execution_bindings ADD COLUMN {name} TEXT"
+                    )
+            conn.executescript(
+                """
+                DROP TRIGGER IF EXISTS assurance_execution_bindings_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_execution_bindings_immutable_delete;
+                DROP TRIGGER IF EXISTS assurance_claim_bindings_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_claim_bindings_immutable_delete;
+                DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_delete;
+                CREATE TRIGGER assurance_execution_bindings_immutable_update
                     BEFORE UPDATE ON assurance_execution_bindings
                     BEGIN SELECT RAISE(ABORT, 'assurance execution binding is immutable'); END;
-                CREATE TRIGGER IF NOT EXISTS assurance_execution_bindings_immutable_delete
+                CREATE TRIGGER assurance_execution_bindings_immutable_delete
                     BEFORE DELETE ON assurance_execution_bindings
                     BEGIN SELECT RAISE(ABORT, 'assurance execution binding is immutable'); END;
+                CREATE TRIGGER assurance_claim_bindings_immutable_update
+                    BEFORE UPDATE ON assurance_claim_bindings
+                    BEGIN SELECT RAISE(ABORT, 'assurance claim binding is immutable'); END;
+                CREATE TRIGGER assurance_claim_bindings_immutable_delete
+                    BEFORE DELETE ON assurance_claim_bindings
+                    BEGIN SELECT RAISE(ABORT, 'assurance claim binding is immutable'); END;
+                CREATE TRIGGER assurance_task_bindings_claimed_immutable_update
+                    BEFORE UPDATE ON assurance_task_bindings
+                    WHEN EXISTS (
+                        SELECT 1 FROM assurance_claim_bindings
+                        WHERE task_id=OLD.task_id
+                    )
+                    AND (
+                        NEW.task_id IS NOT OLD.task_id
+                        OR NEW.initiative_id IS NOT OLD.initiative_id
+                        OR NEW.pilot IS NOT OLD.pilot
+                        OR NEW.artifact_set_sha256 IS NOT OLD.artifact_set_sha256
+                        OR NEW.created_at IS NOT OLD.created_at
+                        OR OLD.completion_result_sha256 IS NOT NULL
+                        OR OLD.review_decision_ref IS NOT NULL
+                        OR OLD.completed_at IS NOT NULL
+                        OR NEW.completion_result_sha256 IS NULL
+                        OR NEW.review_decision_ref IS NULL
+                        OR NEW.completed_at IS NULL
+                        OR NEW.updated_at IS NOT NEW.completed_at
+                    )
+                    BEGIN SELECT RAISE(ABORT, 'claimed assurance task binding is immutable'); END;
+                CREATE TRIGGER assurance_task_bindings_claimed_immutable_delete
+                    BEFORE DELETE ON assurance_task_bindings
+                    WHEN EXISTS (
+                        SELECT 1 FROM assurance_claim_bindings
+                        WHERE task_id=OLD.task_id
+                    )
+                    BEGIN SELECT RAISE(ABORT, 'claimed assurance task binding is immutable'); END;
                 """
             )
             columns = {
@@ -81,11 +148,12 @@ class PilotGate:
 
     def _execution_snapshot(self, conn: Any, initiative_id: str) -> dict[str, str]:
         initiative = conn.execute(
-            "SELECT profile,risk_class FROM assurance_initiatives WHERE initiative_id=?",
+            """SELECT profile,risk_class,status,mode,owner_principal
+               FROM assurance_initiatives WHERE initiative_id=?""",
             (initiative_id,),
         ).fetchone()
         gate = conn.execute(
-            """SELECT decision,artifact_set_sha256,conditions_json,expires_at
+            """SELECT decision,artifact_set_sha256,conditions_json,expires_at,principal_id
                FROM assurance_gate_decisions
                WHERE initiative_id=? AND gate='G4' ORDER BY id DESC LIMIT 1""",
             (initiative_id,),
@@ -99,6 +167,8 @@ class PilotGate:
         policy = {
             "profile": initiative["profile"],
             "risk_class": initiative["risk_class"],
+            "status": initiative["status"],
+            "mode": initiative["mode"],
             "g4": {
                 "decision": gate["decision"],
                 "artifact_set_sha256": gate["artifact_set_sha256"],
@@ -106,6 +176,32 @@ class PilotGate:
                 "expires_at": gate["expires_at"],
             },
         }
+        principal_ids = {initiative["owner_principal"], gate["principal_id"]}
+        principal_ids.update(
+            row["principal_id"] for row in conn.execute(
+                """SELECT owner_principal AS principal_id FROM assurance_artifacts
+                   WHERE initiative_id=?
+                   UNION SELECT approved_by_principal FROM assurance_artifacts
+                   WHERE initiative_id=? AND approved_by_principal IS NOT NULL""",
+                (initiative_id, initiative_id),
+            )
+        )
+        principal_ids.update(
+            row["principal_id"] for row in conn.execute(
+                """SELECT principal_id FROM assurance_principals
+                   WHERE actor IN ('Trusted Evaluator','Control & Reliability Reviewer')"""
+            )
+        )
+        if conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='trusted_eval_runs'"
+        ).fetchone():
+            principal_ids.update(
+                row["evaluator_principal_id"] for row in conn.execute(
+                    """SELECT evaluator_principal_id FROM trusted_eval_runs
+                       WHERE initiative_id=? AND evaluator_principal_id IS NOT NULL""",
+                    (initiative_id,),
+                )
+            )
         principals = [
             {
                 "principal_id": row["principal_id"],
@@ -118,6 +214,7 @@ class PilotGate:
                 """SELECT principal_id,actor,authority,credential_sha256,status
                    FROM assurance_principals ORDER BY principal_id"""
             )
+            if row["principal_id"] in principal_ids
         ]
         return {
             "artifact_set_sha256": AssuranceKernel(
@@ -140,6 +237,9 @@ class PilotGate:
             "SELECT generation,fencing_token,recovery_status FROM task_executions WHERE task_id=?",
             (task_id,),
         ).fetchone()
+        claim_fence = self._claim_fence_decision(conn, task_id, execution)
+        if not claim_fence["allowed"]:
+            raise ValueError(claim_fence["reason"])
         if task_binding is None or not task_binding["pilot"]:
             return
         if (
@@ -162,18 +262,151 @@ class PilotGate:
             raise ValueError(
                 "bound pilot principal authority or credential changed during context compilation"
             )
+        created_at = utcnow()
+        fencing_token_sha256 = hashlib.sha256(fencing_token.encode("utf-8")).hexdigest()
+        binding_values = {
+            "task_id": task_id,
+            "generation": generation,
+            "initiative_id": task_binding["initiative_id"],
+            "artifact_set_sha256": artifact_set_sha256,
+            "evaluation_policy_sha256": evaluation_policy_sha256,
+            "principal_state_sha256": principal_state_sha256,
+            "context_bundle_sha256": context_bundle_sha256,
+            "fencing_token_sha256": fencing_token_sha256,
+            "created_at": created_at,
+        }
         conn.execute(
             """INSERT INTO assurance_execution_bindings(
                    task_id,generation,initiative_id,artifact_set_sha256,
                    evaluation_policy_sha256,principal_state_sha256,
-                   context_bundle_sha256,created_at
-               ) VALUES (?,?,?,?,?,?,?,?)""",
+                   context_bundle_sha256,fencing_token_sha256,integrity_signature,created_at
+               ) VALUES (?,?,?,?,?,?,?,?,?,?)""",
             (
                 task_id, generation, task_binding["initiative_id"], artifact_set_sha256,
                 evaluation_policy_sha256, principal_state_sha256,
-                context_bundle_sha256, utcnow(),
+                context_bundle_sha256, fencing_token_sha256,
+                integrity_signature(
+                    self._config.db_path, "execution-binding", binding_values,
+                ),
+                created_at,
             ),
         )
+
+    def record_claim_binding(
+        self, conn: Any, task_id: int, generation: int, fencing_token: str,
+    ) -> None:
+        task_binding = conn.execute(
+            """SELECT initiative_id,pilot,artifact_set_sha256
+               FROM assurance_task_bindings WHERE task_id=?""",
+            (task_id,),
+        ).fetchone()
+        if task_binding is None or not task_binding["pilot"]:
+            return
+        created_at = utcnow()
+        values = {
+            "task_id": task_id,
+            "generation": generation,
+            "initiative_id": task_binding["initiative_id"],
+            "artifact_set_sha256": str(task_binding["artifact_set_sha256"] or ""),
+            "fencing_token_sha256": hashlib.sha256(
+                fencing_token.encode("utf-8")
+            ).hexdigest(),
+            "created_at": created_at,
+        }
+        conn.execute(
+            """INSERT INTO assurance_claim_bindings(
+                   task_id,generation,initiative_id,artifact_set_sha256,
+                   fencing_token_sha256,integrity_signature,created_at
+               ) VALUES (?,?,?,?,?,?,?)""",
+            (
+                task_id, generation, task_binding["initiative_id"],
+                values["artifact_set_sha256"], values["fencing_token_sha256"],
+                integrity_signature(
+                    self._config.db_path, "claim-binding", values,
+                ),
+                created_at,
+            ),
+        )
+
+    def claim_fence_decision(
+        self, task_id: int, *, conn: Any | None = None,
+    ) -> dict[str, Any]:
+        if conn is not None:
+            execution = conn.execute(
+                "SELECT generation,fencing_token FROM task_executions WHERE task_id=?",
+                (task_id,),
+            ).fetchone()
+            return self._claim_fence_decision(conn, task_id, execution)
+        self.init()
+        with self.store.connect_readonly() as readonly:
+            execution = readonly.execute(
+                "SELECT generation,fencing_token FROM task_executions WHERE task_id=?",
+                (task_id,),
+            ).fetchone()
+            return self._claim_fence_decision(readonly, task_id, execution)
+
+    def _claim_fence_decision(
+        self, conn: Any, task_id: int, execution: Any | None,
+    ) -> dict[str, Any]:
+        task_binding = conn.execute(
+            """SELECT initiative_id,pilot,artifact_set_sha256
+               FROM assurance_task_bindings WHERE task_id=?""",
+            (task_id,),
+        ).fetchone()
+        if execution is None:
+            return {"allowed": True, "reason": "no active execution"}
+        claim = conn.execute(
+            """SELECT * FROM assurance_claim_bindings
+               WHERE task_id=? AND generation=?""",
+            (task_id, int(execution["generation"])),
+        ).fetchone()
+        if claim is None:
+            prior_claim = conn.execute(
+                "SELECT 1 FROM assurance_claim_bindings WHERE task_id=? LIMIT 1",
+                (task_id,),
+            ).fetchone()
+            if prior_claim is not None:
+                return {
+                    "allowed": False,
+                    "reason": "bound pilot claim execution generation changed",
+                }
+            if task_binding is not None and task_binding["pilot"]:
+                return {
+                    "allowed": False,
+                    "reason": "bound pilot claim task binding anchor is missing",
+                }
+            return {"allowed": True, "reason": "claim was not pilot-bound"}
+        values = {
+            key: claim[key] for key in (
+                "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                "fencing_token_sha256", "created_at",
+            )
+        }
+        if not verify_integrity_signature(
+            self._config.db_path, "claim-binding", values,
+            claim["integrity_signature"],
+        ):
+            return {
+                "allowed": False,
+                "reason": "bound pilot claim binding integrity conflict",
+            }
+        current_token_sha256 = hashlib.sha256(
+            str(execution["fencing_token"] or "").encode("utf-8")
+        ).hexdigest()
+        if claim["fencing_token_sha256"] != current_token_sha256:
+            return {"allowed": False, "reason": "bound pilot claim fencing token changed"}
+        if (
+            task_binding is None
+            or not task_binding["pilot"]
+            or task_binding["initiative_id"] != claim["initiative_id"]
+            or str(task_binding["artifact_set_sha256"] or "")
+            != claim["artifact_set_sha256"]
+        ):
+            return {
+                "allowed": False,
+                "reason": "bound pilot claim task binding changed or is missing",
+            }
+        return {"allowed": True, "reason": "bound pilot claim binding is current"}
 
     def runtime_fence_decision(
         self, task_id: int, *, conn: Any | None = None,
@@ -184,6 +417,14 @@ class PilotGate:
         with self.store.connect_readonly() as readonly:
             return self._runtime_fence_decision(readonly, task_id)
 
+    @staticmethod
+    def execution_requires_fencing_token(conn: Any, task_id: int) -> bool:
+        return conn.execute(
+            """SELECT 1 FROM assurance_execution_bindings WHERE task_id=?
+               UNION SELECT 1 FROM assurance_claim_bindings WHERE task_id=? LIMIT 1""",
+            (task_id, task_id),
+        ).fetchone() is not None
+
     def _runtime_fence_decision(self, conn: Any, task_id: int) -> dict[str, Any]:
         if conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assurance_task_bindings'"
@@ -193,14 +434,29 @@ class PilotGate:
             "SELECT initiative_id,pilot,artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
             (task_id,),
         ).fetchone()
-        if task_binding is None:
-            return {"allowed": True, "reason": "unbound"}
-        if not task_binding["pilot"]:
-            return {"allowed": True, "reason": "non-pilot"}
         execution = conn.execute(
             "SELECT generation,fencing_token FROM task_executions WHERE task_id=?",
             (task_id,),
         ).fetchone()
+        claim_fence = self._claim_fence_decision(conn, task_id, execution)
+        if not claim_fence["allowed"]:
+            return claim_fence
+        prior_execution_binding = conn.execute(
+            "SELECT 1 FROM assurance_execution_bindings WHERE task_id=? LIMIT 1",
+            (task_id,),
+        ).fetchone()
+        if task_binding is None:
+            return (
+                {"allowed": False, "reason": "bound pilot task binding is missing"}
+                if prior_execution_binding is not None
+                else {"allowed": True, "reason": "unbound"}
+            )
+        if not task_binding["pilot"]:
+            return (
+                {"allowed": False, "reason": "bound pilot task binding was demoted"}
+                if prior_execution_binding is not None
+                else {"allowed": True, "reason": "non-pilot"}
+            )
         if execution is None:
             return {"allowed": False, "reason": "bound pilot execution generation is missing"}
         binding = conn.execute(
@@ -219,6 +475,23 @@ class PilotGate:
                 else "bound pilot execution assurance context is missing"
             )
             return {"allowed": False, "reason": reason}
+        binding_values = {
+            key: binding[key] for key in (
+                "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                "evaluation_policy_sha256", "principal_state_sha256",
+                "context_bundle_sha256", "fencing_token_sha256", "created_at",
+            )
+        }
+        if not verify_integrity_signature(
+            self._config.db_path, "execution-binding", binding_values,
+            binding["integrity_signature"],
+        ):
+            return {"allowed": False, "reason": "bound pilot execution binding integrity conflict"}
+        current_token_sha256 = hashlib.sha256(
+            str(execution["fencing_token"] or "").encode("utf-8")
+        ).hexdigest()
+        if binding["fencing_token_sha256"] != current_token_sha256:
+            return {"allowed": False, "reason": "bound pilot fencing token changed"}
         context = conn.execute(
             """SELECT bundle_sha256,fencing_token,status FROM task_contexts
                WHERE task_id=? AND generation=?""",
@@ -242,8 +515,32 @@ class PilotGate:
             return {"allowed": False, "reason": str(exc)}
         if current["artifact_set_sha256"] != binding["artifact_set_sha256"]:
             return {"allowed": False, "reason": "bound pilot artifact set changed or became stale"}
+        initiative = conn.execute(
+            "SELECT status,mode FROM assurance_initiatives WHERE initiative_id=?",
+            (task_binding["initiative_id"],),
+        ).fetchone()
+        if (
+            initiative is None
+            or initiative["status"] not in {"approved_for_build", "implementation", "independent_evaluation"}
+            or initiative["mode"] != "pilot"
+        ):
+            return {"allowed": False, "reason": "bound pilot lifecycle is no longer executable"}
         if current["evaluation_policy_sha256"] != binding["evaluation_policy_sha256"]:
             return {"allowed": False, "reason": "bound pilot evaluation policy changed"}
+        gate = conn.execute(
+            """SELECT expires_at FROM assurance_gate_decisions
+               WHERE initiative_id=? AND gate='G4' ORDER BY id DESC LIMIT 1""",
+            (task_binding["initiative_id"],),
+        ).fetchone()
+        if gate is None:
+            return {"allowed": False, "reason": "bound pilot evaluation policy is missing"}
+        if gate["expires_at"]:
+            try:
+                expiry = datetime.fromisoformat(gate["expires_at"])
+            except ValueError:
+                return {"allowed": False, "reason": "bound pilot G4 expiry is invalid"}
+            if expiry.tzinfo is None or expiry <= datetime.now(timezone.utc):
+                return {"allowed": False, "reason": "bound pilot G4 decision expired"}
         if current["principal_state_sha256"] != binding["principal_state_sha256"]:
             return {
                 "allowed": False,
@@ -355,11 +652,51 @@ class PilotGate:
             kernel = AssuranceKernel(self._config)
             conflicts = []
             for artifact in conn.execute(
-                """SELECT artifact_id,version,content_json,content_sha256
-                   FROM assurance_artifacts WHERE kind!='review_decision'"""
+                """SELECT artifact_id,version,status,content_json,content_sha256,
+                          approved_by_principal,approved_at
+                   FROM assurance_artifacts
+                   WHERE initiative_id=? AND kind!='review_decision'""",
+                (binding["initiative_id"],),
             ):
                 actual = hashlib.sha256(artifact["content_json"].encode("utf-8")).hexdigest()
-                if actual != artifact["content_sha256"]:
+                registration = conn.execute(
+                    """SELECT * FROM assurance_artifact_registrations
+                       WHERE artifact_id=? AND version=?""",
+                    (artifact["artifact_id"], artifact["version"]),
+                ).fetchone()
+                registration_valid = registration is not None and verify_integrity_signature(
+                    self._config.db_path, "artifact-registration", {
+                        "artifact_id": registration["artifact_id"],
+                        "version": registration["version"],
+                        "content_sha256": registration["content_sha256"],
+                        "created_at": registration["created_at"],
+                    }, registration["integrity_signature"],
+                ) and registration["content_sha256"] == artifact["content_sha256"]
+                approval_valid = True
+                if artifact["status"] == "approved":
+                    approval = conn.execute(
+                        """SELECT * FROM assurance_artifact_approvals
+                           WHERE artifact_id=? AND version=?""",
+                        (artifact["artifact_id"], artifact["version"]),
+                    ).fetchone()
+                    approval_valid = approval is not None and verify_integrity_signature(
+                        self._config.db_path, "artifact-approval", {
+                            "artifact_id": approval["artifact_id"],
+                            "version": approval["version"],
+                            "content_sha256": approval["content_sha256"],
+                            "approved_by_principal": approval["approved_by_principal"],
+                            "approved_at": approval["approved_at"],
+                        }, approval["integrity_signature"],
+                    ) and (
+                        approval["content_sha256"] == artifact["content_sha256"]
+                        and approval["approved_by_principal"] == artifact["approved_by_principal"]
+                        and approval["approved_at"] == artifact["approved_at"]
+                    )
+                if (
+                    actual != artifact["content_sha256"]
+                    or not registration_valid
+                    or not approval_valid
+                ):
                     conflicts.append(f"{artifact['artifact_id']}:v{artifact['version']}")
             if conflicts:
                 return {"allowed": False, "reason": "assurance integrity conflict"}
@@ -437,28 +774,23 @@ class PilotGate:
             except (KeyError, TypeError, UnicodeEncodeError, json.JSONDecodeError):
                 metadata_matches = False
             registration = conn.execute(
-                """SELECT content_sha256 FROM assurance_artifact_registrations
+                """SELECT content_sha256,created_at,integrity_signature
+                   FROM assurance_artifact_registrations
                    WHERE artifact_id=? AND version=?""",
                 (artifact["artifact_id"], artifact["version"]),
             ).fetchone()
             registration_matches = (
                 registration is not None
                 and registration["content_sha256"] == artifact["content_sha256"]
+                and verify_integrity_signature(
+                    self._config.db_path, "artifact-registration", {
+                        "artifact_id": artifact["artifact_id"],
+                        "version": artifact["version"],
+                        "content_sha256": registration["content_sha256"],
+                        "created_at": registration["created_at"],
+                    }, registration["integrity_signature"],
+                )
             )
-            if artifact["kind"] != "review_decision" and registration is None:
-                registered_hashes = []
-                artifact_ref = f"{artifact['artifact_id']}:v{artifact['version']}"
-                for row in conn.execute(
-                    """SELECT details FROM audit_log
-                       WHERE action='assurance_artifact_registered'
-                         AND entity='assurance_artifact' AND entity_id=?""",
-                    (artifact_ref,),
-                ):
-                    try:
-                        registered_hashes.append(json.loads(row["details"])["sha256"])
-                    except (KeyError, TypeError, json.JSONDecodeError):
-                        continue
-                registration_matches = registered_hashes == [artifact["content_sha256"]]
             if (
                 actual != artifact["content_sha256"]
                 or not metadata_matches
@@ -546,6 +878,20 @@ class PilotGate:
             }
         review_ref = ""
         for review in reviews:
+            approval_anchor = conn.execute(
+                """SELECT * FROM assurance_artifact_approvals
+                   WHERE artifact_id=? AND version=?""",
+                (review["artifact_id"], review["version"]),
+            ).fetchone()
+            approval_anchor_valid = approval_anchor is not None and verify_integrity_signature(
+                self._config.db_path, "artifact-approval", {
+                    "artifact_id": approval_anchor["artifact_id"],
+                    "version": approval_anchor["version"],
+                    "content_sha256": approval_anchor["content_sha256"],
+                    "approved_by_principal": approval_anchor["approved_by_principal"],
+                    "approved_at": approval_anchor["approved_at"],
+                }, approval_anchor["integrity_signature"],
+            )
             approver = conn.execute(
                 """SELECT authority,status FROM assurance_principals
                    WHERE principal_id=?""",
@@ -570,6 +916,10 @@ class PilotGate:
             if (
                 not review["approved_by_principal"]
                 or not review["approved_at"]
+                or not approval_anchor_valid
+                or approval_anchor["content_sha256"] != review["content_sha256"]
+                or approval_anchor["approved_by_principal"] != review["approved_by_principal"]
+                or approval_anchor["approved_at"] != review["approved_at"]
                 or review["approved_by_principal"] == review["owner_principal"]
                 or approver is None
                 or approver["status"] != "active"

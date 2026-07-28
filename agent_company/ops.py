@@ -23,6 +23,11 @@ class CompanyOS:
         for path in [self.config.chairman_inbox, self.config.chairman_outbox, self.config.artifacts_dir, self.config.logs_dir]:
             path.mkdir(parents=True, exist_ok=True)
         self.store.init()
+        from .pilot_gate import PilotGate
+        from .trusted_evaluator import TrustedEvaluator
+
+        PilotGate(self.config).init()
+        TrustedEvaluator(self.config).init()
 
     def status(self) -> dict[str, object]:
         self.init()
@@ -387,6 +392,12 @@ class CompanyOS:
                 evidence_json=evidence_json,
                 log_json=log_json,
             )
+            PilotGate(self.config).record_claim_binding(
+                conn,
+                task_id,
+                int(details["generation"]),
+                str(details["fencing_token"]),
+            )
             self.store.audit(conn, actor, "claim_task", "task", task_id, {"title": task["title"]})
             self.store.audit(conn, actor, "claim_task_execution", "task_execution", task_id, details)
             return {"task_id": task_id, "status": "in_progress", "owner": actor, **details}
@@ -404,6 +415,11 @@ class CompanyOS:
         pilot_gate.init()
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
+            if (
+                pilot_gate.execution_requires_fencing_token(conn, task_id)
+                and fencing_token is None
+            ):
+                raise ValueError(f"task {task_id} requires its exact fencing token")
             task, execution = self._active_execution(conn, task_id, executor_id, fencing_token=fencing_token)
             fence = pilot_gate.runtime_fence_decision(task_id, conn=conn)
             if not fence["allowed"]:
@@ -423,13 +439,32 @@ class CompanyOS:
             self.store.audit(conn, task["owner"], "heartbeat_task_execution", "task_execution", task_id, details)
             return {"task_id": task_id, **details}
 
-    def checkpoint_task(self, task_id: int, executor_id: str, checkpoint: str, next_action: str) -> dict[str, object]:
+    def checkpoint_task(
+        self, task_id: int, executor_id: str, checkpoint: str, next_action: str,
+        fencing_token: str | None = None,
+    ) -> dict[str, object]:
         self.init()
         if not checkpoint.strip() or not next_action.strip():
             raise ValueError("checkpoint and next_action must not be empty")
+        from .pilot_gate import PilotGate
+
+        pilot_gate = PilotGate(self.config)
+        pilot_gate.init()
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
-            task, _ = self._active_execution(conn, task_id, executor_id)
+            if (
+                pilot_gate.execution_requires_fencing_token(conn, task_id)
+                and fencing_token is None
+            ):
+                raise ValueError(f"task {task_id} requires its exact fencing token")
+            task, _ = self._active_execution(
+                conn, task_id, executor_id, fencing_token=fencing_token,
+            )
+            fence = pilot_gate.runtime_fence_decision(task_id, conn=conn)
+            if not fence["allowed"]:
+                raise ValueError(
+                    f"task {task_id} blocked by assurance runtime fence: {fence['reason']}"
+                )
             now = utcnow()
             conn.execute(
                 "UPDATE task_executions SET checkpoint=?, next_action=?, heartbeat_at=?, lease_expires_at=?, recovery_status='running', updated_at=? WHERE task_id=?",
@@ -532,6 +567,11 @@ class CompanyOS:
             ).fetchone()
             if execution is None:
                 raise ValueError(f"task {task_id} has no active execution")
+            if (
+                pilot_gate.execution_requires_fencing_token(conn, task_id)
+                and fencing_token is None
+            ):
+                raise ValueError(f"task {task_id} requires its exact fencing token")
             if fencing_token is not None and execution["fencing_token"] != fencing_token:
                 raise ValueError(f"task {task_id} rejected stale fencing token")
             if self._execution_lease_expired(self._execution_details(execution)):
