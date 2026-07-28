@@ -1,0 +1,49 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "/home/tony/agent-company/evidence/task-151/verification-report.md",
+        "/home/tony/agent-company/evidence/task-151/evidence-manifest.json",
+        "/home/tony/agent-company/evidence/task-151/red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-151/focused-test-output.txt",
+        "/home/tony/agent-company/evidence/task-151/full-test-output.txt",
+        "/home/tony/agent-company/evidence/task-151/clean-copy-migration-output.txt",
+        "/home/tony/agent-company/evidence/task-151/pixweave-test-output.txt"
+      ],
+      "decision_needed": "Independently review task 151's exact legacy manifest, historical audit reconciliation, all-or-nothing anchor writes, post-backfill audit checks, idempotence, backup-only dry-run, and operational noninterference; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 151 completes assurance-init coverage and exact fail-closed legacy migration, passing 101 focused, 207 Agent Company, 58 PixWeave, and backup-only dry-run verification.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "This delivery is limited to authorized task-151 initialization and legacy anchor migration; it does not authorize Phase D or global enforcement.",
+    "No live initialization, deployment, PixWeave source change, customer-data action, outreach, publication, pricing, payment, contract, or production action was performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review the pushed task-151 commit and evidence before relying on the migrated bootstrap anchors."
+  ],
+  "project_decisions": [
+    "assurance-init initializes AssuranceKernel, TrustedEvaluator, and PilotGate before running migration and integrity verification.",
+    "Legacy backfill is restricted to six version-1 bootstrap artifacts with exact fixed hashes, kinds, immutable metadata, approval lineage, historical audit events, and active principal identities.",
+    "Candidate reconciliation is all-or-nothing; any conflict prevents every candidate anchor write, and partial anchors require independent review.",
+    "Approved migrated legacy rows are audit-reconciled again on every init so later audit tampering remains fail-closed while valid reruns remain idempotent.",
+    "Live-copy verification uses a mode=ro SQLite online backup and runs initialization or tamper probes only on temporary copies."
+  ],
+  "project_summary": "Agent Company assurance-init now initializes the complete Phase C schema surface and performs an exact, all-or-nothing, idempotent migration of only audit-reconciled legacy bootstrap artifacts without changing operational state.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Completed interrupted task 151 from the authorized dirty worktree, preserved prior changes and RED evidence, audited and tightened migration reconciliation, and verified focused, canonical, PixWeave, and backup-only noninterference behavior.",
+  "verified_facts": [
+    "The retained RED run executed 5 task-151 methods and produced 4 expected failures plus 1 expected error against committed base behavior.",
+    "Focused assurance and operational verification executed 101 tests with all passing.",
+    "Agent Company canonical verification executed 207 tests with all passing.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and its canonical suite executed 58 tests with all passing.",
+    "The mode=ro live connection rejected a write probe and recorded total_changes=0; all initialization and tamper changes occurred only on temporary backup copies.",
+    "The normal backup copy backfilled exactly 6 registrations, 6 approvals, and 12 lifecycle rows; the second init wrote zero anchors.",
+    "Content, stored-hash, approval, and audit tamper copies all exited 1 with integrity_conflict and retained zero anchors.",
+    "All operational table digests remained unchanged, including 148 tasks at f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442.",
+    "git diff --check, Python compileall, JSON validation, CompanyOS.validate(), and SQLite integrity_check passed before commit."
+  ]
+}

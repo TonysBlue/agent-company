@@ -331,12 +331,24 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.demo(), indent=2, sort_keys=True))
         elif args.command == "assurance-init":
             from .assurance import AssuranceKernel
+            from .pilot_gate import PilotGate
             from .trusted_evaluator import TrustedEvaluator
 
             kernel = AssuranceKernel(osys.config)
             kernel.init()
             TrustedEvaluator(osys.config).init()
-            print(json.dumps({"initialized": True, "mode": "shadow"}, indent=2, sort_keys=True))
+            PilotGate(osys.config).init()
+            migration = kernel.migrate_legacy_phase_c_artifacts()
+            integrity = kernel.verify_integrity()
+            result = {
+                "initialized": True,
+                "mode": "shadow",
+                "migration": migration,
+                "integrity": integrity,
+            }
+            print(json.dumps(result, indent=2, sort_keys=True))
+            if migration["status"] != "ok" or integrity["status"] != "ok":
+                return 1
         elif args.command == "assurance-list":
             from .assurance import AssuranceKernel
 

@@ -1,0 +1,105 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable task-151 outcome, implementation audit, verification, backup-only dry-run, acceptance mapping, and scope limits",
+      "sha256": "6b653bc0644ca816514147164969ea560883047b771482f88c1179bc584be923"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and independent control-review handoff",
+      "sha256": "aa33a820755ad639b9605063d759154afd27a1fa2923574c09fe1a11b3f552f9"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Original interrupted task-151 RED output for the five assurance-init migration methods",
+      "sha256": "2619cefb658bf2ed739cb3db1634993acb731995334349b86e40c5a9caa899f8"
+    },
+    {
+      "path": "focused-test-output.txt",
+      "purpose": "Focused assurance, trusted evaluation, pilot, completion, and operational verification output",
+      "sha256": "920cba5dc9f60e5e537a180f5bb395f1d0c4001ece3417e86b915049c297b51a"
+    },
+    {
+      "path": "full-test-output.txt",
+      "purpose": "Agent Company canonical 207-test suite output",
+      "sha256": "8cc47d5628050fd84d18931474164d589c1b87a8076d94c197b28d9ea49853e5"
+    },
+    {
+      "path": "clean-copy-migration-output.txt",
+      "purpose": "Mode-ro live backup, exact migration/idempotence, operational noninterference, and four fail-closed tamper-copy probes",
+      "sha256": "25c0d78f15f292f541d78a76109e83e8b7c87b2acc404480b03f755196a8d0d9"
+    },
+    {
+      "path": "pixweave-test-output.txt",
+      "purpose": "PixWeave clean-worktree identity and canonical 58-test suite output",
+      "sha256": "4fbf701a441292c5b7e95a0494c700f2d46632ae828ee8d24b04c610f0994f25"
+    }
+  ],
+  "base_commit": "a96321066829e047453ee53dad8c27fd83091213",
+  "base_tree": "2c652e63cd82b34449bf93a48d90da8494a997c9",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 207,
+    "result": "pass"
+  },
+  "code_sha256": {
+    "agent_company/assurance.py": "ff6b3553ea6f1551b77f6408c3621e3b68a73e05826f0490d76d0fdeb1bcbfed",
+    "agent_company/cli.py": "ebfa5492dac98d0426075461a56d58a33600e98b6fae6d983170390a70944189",
+    "tests/test_assurance_cli.py": "fe1bbf5a0b12696109bf1f8295ae8d4a677d3206e3fff42cfebd74b472119257"
+  },
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest tests.test_assurance_cli tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_pilot_gate tests.test_completion_assurance_gate tests.test_company_os -v",
+    "passed": 101,
+    "result": "pass"
+  },
+  "live_copy_dry_run": {
+    "anchor_counts_after_first": {
+      "approvals": 6,
+      "lifecycle": 12,
+      "registrations": 6
+    },
+    "anchor_counts_written_on_second": {
+      "approvals": 0,
+      "lifecycle": 0,
+      "registrations": 0
+    },
+    "live_source_mode": "ro",
+    "live_source_total_changes": 0,
+    "live_write_probe": "rejected",
+    "operational_tables_unchanged": true,
+    "phase_c_table_count": 11,
+    "phase_c_trigger_count": 22,
+    "result": "pass",
+    "snapshot_method": "sqlite_online_backup_from_mode_ro_connection",
+    "sqlite_integrity_check": "ok",
+    "tamper_variants_fail_closed": [
+      "content",
+      "hash",
+      "approval",
+      "audit"
+    ],
+    "task_count": 148,
+    "task_sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442",
+    "validation_errors": []
+  },
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "worktree": "clean"
+  },
+  "red_test": {
+    "errors": 1,
+    "exit_status": 1,
+    "failures": 4,
+    "ran": 5,
+    "result": "expected_fail"
+  },
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "task_id": 151
+}

@@ -1,0 +1,252 @@
+{
+  "anchor_counts_after_first": {
+    "approvals": 6,
+    "lifecycle": 12,
+    "registrations": 6
+  },
+  "anchor_counts_after_second": {
+    "approvals": 6,
+    "lifecycle": 12,
+    "registrations": 6
+  },
+  "backup_before": {
+    "anchor_counts": {
+      "approvals": 0,
+      "lifecycle": 0,
+      "registrations": 0
+    },
+    "operational_snapshot": {
+      "approval_deliveries": {
+        "count": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "approvals": {
+        "count": 4,
+        "sha256": "f90879f888d4707cb850bd89b979810d39b6c575a68d0ec4366daa9c4988fee1"
+      },
+      "audit_log": {
+        "count": 353766,
+        "sha256": "80514b50c144575e44a5b6b387578424fcfebb6bb0e3a1a32a4909829e66c227"
+      },
+      "ceo_runs": {
+        "count": 786,
+        "sha256": "5b100623f841bba55b7380b1c4aaa4a2576dd99fa64a1174b9c955cead2b34ec"
+      },
+      "ceo_runtime_migrations": {
+        "count": 1,
+        "sha256": "43cbabed43254d7a98ab9db869f3cc5dd60e1ee1a8aa4dcb5c0fee07df9eb3ea"
+      },
+      "ceo_state_versions": {
+        "count": 37,
+        "sha256": "67c40c09facfb73301c5616edf8ec0bc3f2a5f64410f25ec2490866ab5e59e73"
+      },
+      "chairman_directives": {
+        "count": 1,
+        "sha256": "ee77d0b8a44b53ec119996687eeb2165e36f7a58b9f13c1703a6bc9d8c259e41"
+      },
+      "cycles": {
+        "count": 337,
+        "sha256": "cdf5a42d0bd2ee6de214d86d5c0a40ddd3cffb163c222d4fb38885407dc30d31"
+      },
+      "event_worker_state": {
+        "count": 1,
+        "sha256": "372669c02299ac2730e6cc0c76a0f576f52015e8f6ed9951b530a923d2a6a19b"
+      },
+      "execution_events": {
+        "count": 253,
+        "sha256": "4fc098cd4b2025b424b5c4b00860b2e6994cd49236a4671bbb2cfdafd796f10f"
+      },
+      "executors": {
+        "count": 5,
+        "sha256": "0d88d4fbf4b4d45cbf3d5ac86cc2e91b096ec3487377e77548ff58d6647d3b7b"
+      },
+      "experiments": {
+        "count": 1,
+        "sha256": "b7f06096b57d6a13276e966e402737981c760c25458a689a4f6884b09edb2ac3"
+      },
+      "handoffs": {
+        "count": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "metrics": {
+        "count": 1011,
+        "sha256": "d259f8350f8f7f6c5b0e1f7839b976bfc967a16f34a55e039c7e772e3ad12720"
+      },
+      "project_history": {
+        "count": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "raci": {
+        "count": 14,
+        "sha256": "62301255d770ab18a7319ff28926275f965664cc672f72927a5b914f867cc0ff"
+      },
+      "role_continuity": {
+        "count": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "roles": {
+        "count": 16,
+        "sha256": "8fc0ca3359f7fc5218b1ee35c616bb8571d96c26a89656816d60a3a3f67730ee"
+      },
+      "strategic_phases": {
+        "count": 1,
+        "sha256": "9349cfd48ac38c33e0b9b37308f2f2a567088be7722fd7925e1670234607bf31"
+      },
+      "task_contexts": {
+        "count": 18,
+        "sha256": "1eb443617e0994f5a4fa6946f1569dad33c65d48faeb3d079f0f11933f074ce4"
+      },
+      "task_executions": {
+        "count": 29,
+        "sha256": "58c706f9854f123267ed1a97377eae8282f385180f587f15173df9dd6258a29f"
+      },
+      "tasks": {
+        "count": 148,
+        "sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442"
+      },
+      "token_usage": {
+        "count": 0,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    },
+    "sha256": "e56799f280e5c31c2eca06522ba3e26996e3d124b667c9c6ed959a28cd46e9be"
+  },
+  "first_backup_sha256": "3ab836f88a7008704b58b98123cc0c4ff744811945fd888954998879e5aab396",
+  "first_init": {
+    "initialized": true,
+    "integrity": {
+      "conflicts": [],
+      "mode": "shadow",
+      "status": "ok"
+    },
+    "migration": {
+      "anchors_backfilled": {
+        "approvals": 6,
+        "lifecycle": 12,
+        "registrations": 6
+      },
+      "conflicts": [],
+      "migration_version": "legacy-phase-c-artifact-anchors/v1",
+      "status": "ok"
+    },
+    "mode": "shadow"
+  },
+  "first_init_exit_code": 0,
+  "live_source": {
+    "connection_uri_mode": "ro",
+    "path": "/home/tony/agent-company/data/company.sqlite3",
+    "query_only": 1,
+    "total_changes": 0,
+    "write_probe_error": "attempt to write a readonly database"
+  },
+  "operational_snapshot_unchanged_after_first": true,
+  "operational_snapshot_unchanged_after_second": true,
+  "phase_c_tables_present": [
+    "assurance_artifact_approvals",
+    "assurance_artifact_lifecycle",
+    "assurance_artifact_registrations",
+    "assurance_claim_bindings",
+    "assurance_execution_bindings",
+    "assurance_pilot_config",
+    "assurance_task_bindings",
+    "trusted_eval_contracts",
+    "trusted_eval_manifests",
+    "trusted_eval_quarantines",
+    "trusted_eval_runs"
+  ],
+  "phase_c_trigger_count": 22,
+  "second_init": {
+    "initialized": true,
+    "integrity": {
+      "conflicts": [],
+      "mode": "shadow",
+      "status": "ok"
+    },
+    "migration": {
+      "anchors_backfilled": {
+        "approvals": 0,
+        "lifecycle": 0,
+        "registrations": 0
+      },
+      "conflicts": [],
+      "migration_version": "legacy-phase-c-artifact-anchors/v1",
+      "status": "ok"
+    },
+    "mode": "shadow"
+  },
+  "second_init_exit_code": 0,
+  "snapshot_method": "sqlite_online_backup_from_mode_ro_connection",
+  "sqlite_integrity_check": "ok",
+  "tamper_variants": {
+    "approval": {
+      "anchor_counts": {
+        "approvals": 0,
+        "lifecycle": 0,
+        "registrations": 0
+      },
+      "conflicts": [
+        {
+          "artifact_id": "assurance-bootstrap-goal",
+          "reason": "approval metadata does not match approved legacy manifest",
+          "version": 1
+        }
+      ],
+      "exit_code": 1,
+      "integrity_status": "integrity_conflict",
+      "migration_status": "integrity_conflict"
+    },
+    "audit": {
+      "anchor_counts": {
+        "approvals": 0,
+        "lifecycle": 0,
+        "registrations": 0
+      },
+      "conflicts": [
+        {
+          "artifact_id": "assurance-bootstrap-goal",
+          "reason": "registration audit evidence mismatch",
+          "version": 1
+        }
+      ],
+      "exit_code": 1,
+      "integrity_status": "integrity_conflict",
+      "migration_status": "integrity_conflict"
+    },
+    "content": {
+      "anchor_counts": {
+        "approvals": 0,
+        "lifecycle": 0,
+        "registrations": 0
+      },
+      "conflicts": [
+        {
+          "artifact_id": "assurance-bootstrap-goal",
+          "reason": "content hash does not match approved legacy manifest",
+          "version": 1
+        }
+      ],
+      "exit_code": 1,
+      "integrity_status": "integrity_conflict",
+      "migration_status": "integrity_conflict"
+    },
+    "hash": {
+      "anchor_counts": {
+        "approvals": 0,
+        "lifecycle": 0,
+        "registrations": 0
+      },
+      "conflicts": [
+        {
+          "artifact_id": "assurance-bootstrap-goal",
+          "reason": "content hash does not match approved legacy manifest",
+          "version": 1
+        }
+      ],
+      "exit_code": 1,
+      "integrity_status": "integrity_conflict",
+      "migration_status": "integrity_conflict"
+    }
+  },
+  "validation_errors": []
+}
+LIVE_COPY_DRY_RUN=PASS

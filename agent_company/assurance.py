@@ -88,6 +88,45 @@ ARTIFACT_KEYS = {
     "schema_version", "artifact_id", "kind", "version", "status", "initiative_id",
     "profile", "risk_class", "owner_principal", "repository_id", "content",
 }
+LEGACY_PHASE_C_MIGRATION = "legacy-phase-c-artifact-anchors/v1"
+LEGACY_PHASE_C_ARTIFACTS = {
+    "assurance-bootstrap-goal": {
+        "kind": "goal_contract",
+        "content_sha256": "57517bbca04010778f43cb61d641670f6ad3effb03946de5ef75b670370d65f1",
+        "registered_at": "2026-07-24T03:59:59+00:00",
+        "approved_at": "2026-07-24T03:59:59+00:00",
+    },
+    "assurance-system-design": {
+        "kind": "design_record",
+        "content_sha256": "57cf1ceda798b58ed1922767a6712f086b7a491cbe8e19fbb8ff04b0edd87c51",
+        "registered_at": "2026-07-24T03:59:59+00:00",
+        "approved_at": "2026-07-24T03:59:59+00:00",
+    },
+    "assurance-shadow-spec": {
+        "kind": "behavior_spec",
+        "content_sha256": "38b3c95aaab93e061a475356f4d764e9f68dbab3ea953243882a53bdfd7a680a",
+        "registered_at": "2026-07-24T03:59:59+00:00",
+        "approved_at": "2026-07-24T03:59:59+00:00",
+    },
+    "assurance-shadow-eval": {
+        "kind": "eval_contract",
+        "content_sha256": "9740c2c64b4d2ae94710de56668fef2739d8f59b01d9c6d0b4db7518d86cdcc7",
+        "registered_at": "2026-07-24T03:59:59+00:00",
+        "approved_at": "2026-07-24T03:59:59+00:00",
+    },
+    "assurance-shadow-baseline": {
+        "kind": "baseline_report",
+        "content_sha256": "728cc195f50d50d68f082e62b0184a07280042869a22a106dba1f646505dba49",
+        "registered_at": "2026-07-24T03:59:59+00:00",
+        "approved_at": "2026-07-24T03:59:59+00:00",
+    },
+    "assurance-bootstrap-manifest": {
+        "kind": "design_manifest",
+        "content_sha256": "14768cc283423018ecac38768180dc26e31714c339b470680eb2ad9dd74685a7",
+        "registered_at": "2026-07-24T03:59:59+00:00",
+        "approved_at": "2026-07-24T04:00:00+00:00",
+    },
+}
 
 
 def _canonical(value: Any) -> str:
@@ -103,6 +142,224 @@ class AssuranceKernel:
 
     def init(self) -> None:
         self.store.init_assurance()
+
+    def migrate_legacy_phase_c_artifacts(self) -> dict[str, Any]:
+        """Anchor only the known bootstrap artifacts and their exact audit lineage."""
+        self.init()
+        counts = {"registrations": 0, "approvals": 0, "lifecycle": 0}
+        conflicts: list[dict[str, Any]] = []
+        candidates: list[tuple[Any, dict[str, str]]] = []
+        with self.store.connect() as conn:
+            for artifact in conn.execute(
+                "SELECT * FROM assurance_artifacts ORDER BY id"
+            ).fetchall():
+                key = (artifact["artifact_id"], artifact["version"])
+                registration = conn.execute(
+                    """SELECT 1 FROM assurance_artifact_registrations
+                       WHERE artifact_id=? AND version=?""",
+                    key,
+                ).fetchone()
+                approval = conn.execute(
+                    """SELECT 1 FROM assurance_artifact_approvals
+                       WHERE artifact_id=? AND version=?""",
+                    key,
+                ).fetchone()
+                lifecycle = conn.execute(
+                    """SELECT 1 FROM assurance_artifact_lifecycle
+                       WHERE artifact_id=? AND version=? LIMIT 1""",
+                    key,
+                ).fetchone()
+                anchors = (registration is not None, approval is not None, lifecycle is not None)
+                if lifecycle is not None:
+                    manifest = LEGACY_PHASE_C_ARTIFACTS.get(artifact["artifact_id"])
+                    if manifest is not None and artifact["version"] == 1 and artifact["status"] == "approved":
+                        reason = self._legacy_phase_c_conflict(conn, artifact, manifest)
+                        if reason:
+                            conflicts.append(self._legacy_conflict(artifact, reason))
+                    continue
+                if any(anchors):
+                    conflicts.append(self._legacy_conflict(
+                        artifact, "partial integrity anchors require independent review",
+                    ))
+                    continue
+                manifest = LEGACY_PHASE_C_ARTIFACTS.get(artifact["artifact_id"])
+                reason = self._legacy_phase_c_conflict(conn, artifact, manifest)
+                if reason:
+                    conflicts.append(self._legacy_conflict(artifact, reason))
+                else:
+                    candidates.append((artifact, manifest))
+
+            if conflicts:
+                return {
+                    "migration_version": LEGACY_PHASE_C_MIGRATION,
+                    "status": "integrity_conflict",
+                    "anchors_backfilled": counts,
+                    "conflicts": conflicts,
+                }
+
+            for artifact, manifest in candidates:
+                registration_values = {
+                    "artifact_id": artifact["artifact_id"],
+                    "version": artifact["version"],
+                    "content_sha256": artifact["content_sha256"],
+                    "created_at": manifest["registered_at"],
+                }
+                conn.execute(
+                    """INSERT INTO assurance_artifact_registrations(
+                           artifact_id,version,content_sha256,created_at,integrity_signature
+                       ) VALUES (?,?,?,?,?)""",
+                    (*registration_values.values(), integrity_signature(
+                        self.config.db_path, "artifact-registration", registration_values,
+                    )),
+                )
+                approval_values = {
+                    "artifact_id": artifact["artifact_id"],
+                    "version": artifact["version"],
+                    "content_sha256": artifact["content_sha256"],
+                    "approved_by_principal": artifact["approved_by_principal"],
+                    "approved_at": manifest["approved_at"],
+                }
+                conn.execute(
+                    """INSERT INTO assurance_artifact_approvals(
+                           artifact_id,version,content_sha256,approved_by_principal,
+                           approved_at,integrity_signature
+                       ) VALUES (?,?,?,?,?,?)""",
+                    (*approval_values.values(), integrity_signature(
+                        self.config.db_path, "artifact-approval", approval_values,
+                    )),
+                )
+                self._record_artifact_lifecycle(
+                    conn, artifact["artifact_id"], artifact["version"], None, "draft",
+                    manifest["registered_at"], "principal-platform", "artifact registered",
+                )
+                self._record_artifact_lifecycle(
+                    conn, artifact["artifact_id"], artifact["version"], "draft", "approved",
+                    manifest["approved_at"], "principal-ceo", "artifact approved",
+                )
+                counts["registrations"] += 1
+                counts["approvals"] += 1
+                counts["lifecycle"] += 2
+        return {
+            "migration_version": LEGACY_PHASE_C_MIGRATION,
+            "status": "ok",
+            "anchors_backfilled": counts,
+            "conflicts": [],
+        }
+
+    @staticmethod
+    def _legacy_conflict(artifact: Any, reason: str) -> dict[str, Any]:
+        return {
+            "artifact_id": artifact["artifact_id"],
+            "version": artifact["version"],
+            "reason": reason,
+        }
+
+    def _legacy_phase_c_conflict(
+        self, conn: Any, artifact: Any, manifest: dict[str, str] | None,
+    ) -> str | None:
+        if manifest is None or artifact["version"] != 1:
+            return "artifact is not in the approved legacy migration manifest"
+        actual_sha256 = hashlib.sha256(artifact["content_json"].encode("ascii")).hexdigest()
+        if (
+            actual_sha256 != artifact["content_sha256"]
+            or artifact["content_sha256"] != manifest["content_sha256"]
+            or artifact["kind"] != manifest["kind"]
+        ):
+            return "content hash does not match approved legacy manifest"
+        if (
+            artifact["initiative_id"] != "development-assurance-bootstrap"
+            or artifact["status"] != "approved"
+            or artifact["profile"] != "control-plane-reliability"
+            or artifact["risk_class"] != "C2"
+            or artifact["owner_principal"] != "principal-platform"
+            or artifact["repository_id"] != "agent-company"
+            or artifact["approved_by_principal"] != "principal-ceo"
+            or artifact["created_at"] != manifest["registered_at"]
+            or artifact["approved_at"] != manifest["approved_at"]
+        ):
+            return "approval metadata does not match approved legacy manifest"
+        try:
+            payload = json.loads(artifact["content_json"])
+        except (TypeError, json.JSONDecodeError):
+            return "content hash does not match approved legacy manifest"
+        if (
+            not isinstance(payload, dict)
+            or payload.get("artifact_id") != artifact["artifact_id"]
+            or payload.get("version") != artifact["version"]
+            or payload.get("kind") != artifact["kind"]
+            or payload.get("initiative_id") != artifact["initiative_id"]
+            or payload.get("profile") != artifact["profile"]
+            or payload.get("risk_class") != artifact["risk_class"]
+            or payload.get("owner_principal") != artifact["owner_principal"]
+            or payload.get("repository_id") != artifact["repository_id"]
+            or payload.get("status") != "draft"
+        ):
+            return "artifact metadata does not match immutable content"
+
+        ref = f"{artifact['artifact_id']}:v{artifact['version']}"
+        audits = conn.execute(
+            """SELECT id,ts,actor,action,entity,entity_id,details FROM audit_log
+               WHERE entity_id=? AND action IN (
+                   'assurance_artifact_registered', 'assurance_artifact_approved',
+                   'assurance_artifact_superseded'
+               ) ORDER BY id""",
+            (ref,),
+        ).fetchall()
+        expected = [
+            {
+                "ts": manifest["registered_at"],
+                "actor": "Company Platform Engineer",
+                "action": "assurance_artifact_registered",
+                "entity": "assurance_artifact",
+                "entity_id": ref,
+                "details": {
+                    "kind": manifest["kind"], "mode": "shadow",
+                    "principal_id": "principal-platform",
+                    "sha256": manifest["content_sha256"],
+                },
+            },
+            {
+                "ts": manifest["approved_at"],
+                "actor": "CEO",
+                "action": "assurance_artifact_approved",
+                "entity": "assurance_artifact",
+                "entity_id": ref,
+                "details": {"mode": "shadow", "principal_id": "principal-ceo"},
+            },
+        ]
+        if len(audits) != len(expected):
+            return "historical lifecycle audit evidence is incomplete or ambiguous"
+        for row, wanted in zip(audits, expected):
+            try:
+                details = json.loads(row["details"])
+            except (TypeError, json.JSONDecodeError):
+                return "historical lifecycle audit evidence is invalid"
+            actual = {name: row[name] for name in wanted if name != "details"}
+            actual["details"] = details
+            if actual != wanted:
+                audit_kind = {
+                    "assurance_artifact_registered": "registration",
+                    "assurance_artifact_approved": "approval",
+                }[wanted["action"]]
+                return f"{audit_kind} audit evidence mismatch"
+
+        for principal_id, actor, authority in (
+            ("principal-platform", "Company Platform Engineer", "implementer"),
+            ("principal-ceo", "CEO", "executive"),
+        ):
+            principal = conn.execute(
+                """SELECT actor,authority,status FROM assurance_principals
+                   WHERE principal_id=?""",
+                (principal_id,),
+            ).fetchone()
+            if (
+                principal is None
+                or principal["actor"] != actor
+                or principal["authority"] != authority
+                or principal["status"] != "active"
+            ):
+                return "historical principal identity does not reconcile"
+        return None
 
     def register_principal(
         self, principal_id: str, actor: str, authority: str, *, bootstrap_secret: str,
