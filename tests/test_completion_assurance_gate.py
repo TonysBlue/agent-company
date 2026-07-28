@@ -12,6 +12,7 @@ from agent_company.assurance import AssuranceKernel
 from agent_company.config import load_config
 from agent_company.context_compiler import ContextCompiler
 from agent_company.integrity import signature as integrity_signature
+from agent_company.integrity import verify as verify_integrity_signature
 from agent_company.ops import CompanyOS
 from agent_company.pilot_gate import PilotGate
 from agent_company.trusted_evaluator import TrustedEvaluator
@@ -294,16 +295,39 @@ class CompletionAssuranceGateTest(unittest.TestCase):
                 "SELECT * FROM assurance_claim_bindings WHERE task_id=? AND generation=?",
                 (self.task_id, int(self.claim["generation"])),
             ).fetchone()
+            history = conn.execute(
+                """SELECT * FROM assurance_pilot_claim_history
+                   WHERE task_id=? AND generation=?""",
+                (self.task_id, int(self.claim["generation"])),
+            ).fetchone()
         self.assertIsNotNone(binding)
+        self.assertIsNotNone(history)
         self.assertEqual(binding["initiative_id"], self.initiative_id)
         self.assertEqual(binding["artifact_set_sha256"], self.artifact_set_sha256)
         self.assertEqual(len(binding["fencing_token_sha256"]), 64)
         self.assertEqual(len(binding["integrity_signature"]), 64)
+        history_values = {
+            key: history[key] for key in (
+                "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                "fencing_token_sha256", "created_at",
+            )
+        }
+        self.assertTrue(verify_integrity_signature(
+            self.config.db_path, "pilot-claim-history", history_values,
+            history["integrity_signature"],
+        ))
 
         with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
             with self.osys.store.connect() as conn:
                 conn.execute(
                     "UPDATE assurance_claim_bindings SET initiative_id='forged' "
+                    "WHERE task_id=? AND generation=?",
+                    (self.task_id, int(self.claim["generation"])),
+                )
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+            with self.osys.store.connect() as conn:
+                conn.execute(
+                    "DELETE FROM assurance_pilot_claim_history "
                     "WHERE task_id=? AND generation=?",
                     (self.task_id, int(self.claim["generation"])),
                 )
@@ -756,6 +780,105 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             errors,
         )
 
+    def test_validate_reports_forged_completion_after_claim_anchor_deletion(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER tasks_bound_pilot_completion_guard")
+            conn.execute("DROP TRIGGER assurance_claim_bindings_immutable_delete")
+            conn.execute(
+                "DELETE FROM assurance_claim_bindings WHERE task_id=?", (self.task_id,)
+            )
+            conn.execute(
+                "UPDATE tasks SET status='done',result=? WHERE id=?",
+                ('{"summary":"forged after claim deletion"}', self.task_id),
+            )
+
+        errors = self.osys.validate()
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent", errors,
+        )
+
+    def test_validate_reports_forged_completion_after_pilot_demotion(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER tasks_bound_pilot_completion_guard")
+            conn.execute("DROP TRIGGER assurance_task_bindings_claimed_immutable_update")
+            conn.execute(
+                "UPDATE assurance_task_bindings SET pilot=0 WHERE task_id=?",
+                (self.task_id,),
+            )
+            conn.execute(
+                "UPDATE tasks SET status='done',result=? WHERE id=?",
+                ('{"summary":"forged after pilot demotion"}', self.task_id),
+            )
+
+        errors = self.osys.validate()
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent", errors,
+        )
+
+    def test_validate_keeps_never_bound_and_nonpilot_completions_compatible(self) -> None:
+        with self.osys.store.connect() as conn:
+            now = "2026-07-28T12:00:00+00:00"
+            never_bound = int(conn.execute(
+                """INSERT INTO tasks(
+                       created_at,updated_at,owner,title,domain,status,priority,result
+                   ) VALUES (?,?,?,?,?,'done',1,'legacy result')""",
+                (now, now, "Company Platform Engineer", "Never bound completion", "review"),
+            ).lastrowid)
+            nonpilot = int(conn.execute(
+                """INSERT INTO tasks(
+                       created_at,updated_at,owner,title,domain,status,priority
+                   ) VALUES (?,?,?,?,?,'open',1)""",
+                (now, now, "Company Platform Engineer", "Nonpilot completion", "review"),
+            ).lastrowid)
+        self.gate.bind(
+            nonpilot, "nonpilot-initiative", pilot=False,
+            actor="CEO", principal_id="principal-ceo",
+        )
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE tasks SET status='done',result='legacy result' WHERE id=?",
+                (nonpilot,),
+            )
+
+        self.assertEqual(self.osys.validate(), [])
+
+    def test_init_backfills_signed_pilot_claim_history_idempotently(self) -> None:
+        task_before = dict(self.osys.store.fetch_one(
+            "SELECT * FROM tasks WHERE id=?", (self.task_id,)
+        ))
+        execution_before = dict(self.osys.store.fetch_one(
+            "SELECT * FROM task_executions WHERE task_id=?", (self.task_id,)
+        ))
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TABLE assurance_pilot_claim_history")
+
+        self.gate.init()
+        self.gate.init()
+
+        histories = self.osys.store.fetch_all(
+            "SELECT * FROM assurance_pilot_claim_history WHERE task_id=?",
+            (self.task_id,),
+        )
+        self.assertEqual(len(histories), 1)
+        values = {
+            key: histories[0][key] for key in (
+                "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                "fencing_token_sha256", "created_at",
+            )
+        }
+        self.assertTrue(verify_integrity_signature(
+            self.config.db_path, "pilot-claim-history", values,
+            histories[0]["integrity_signature"],
+        ))
+        self.assertEqual(dict(self.osys.store.fetch_one(
+            "SELECT * FROM tasks WHERE id=?", (self.task_id,)
+        )), task_before)
+        self.assertEqual(dict(self.osys.store.fetch_one(
+            "SELECT * FROM task_executions WHERE task_id=?", (self.task_id,)
+        )), execution_before)
+
     def test_superseded_artifact_status_cannot_be_rolled_back_with_raw_sql(self) -> None:
         self.kernel.supersede_artifact(
             "completion-eval-contract", 1,
@@ -1101,6 +1224,7 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             for name in (
                 "assurance_execution_bindings_immutable_update",
                 "assurance_claim_bindings_immutable_delete",
+                "assurance_pilot_claim_history_immutable_update",
                 "assurance_task_bindings_claimed_immutable_update",
                 "assurance_artifact_registrations_immutable_delete",
                 "assurance_artifact_approvals_immutable_update",
@@ -1117,6 +1241,8 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             "assurance_execution_bindings_immutable_delete",
             "assurance_claim_bindings_immutable_update",
             "assurance_claim_bindings_immutable_delete",
+            "assurance_pilot_claim_history_immutable_update",
+            "assurance_pilot_claim_history_immutable_delete",
             "assurance_task_bindings_claimed_immutable_update",
             "assurance_task_bindings_claimed_immutable_delete",
             "assurance_artifact_registrations_immutable_update",
@@ -1213,6 +1339,12 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             "task_id", "generation", "initiative_id", "artifact_set_sha256",
             "fencing_token_sha256", "integrity_signature", "created_at",
         })
+        history_columns = {
+            row["name"] for row in self.osys.store.fetch_all(
+                "PRAGMA table_info(assurance_pilot_claim_history)"
+            )
+        }
+        self.assertEqual(history_columns, claim_columns)
 
 
 if __name__ == "__main__":

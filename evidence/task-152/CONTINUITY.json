@@ -1,0 +1,50 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "/home/tony/agent-company/evidence/task-152/verification-report.md",
+        "/home/tony/agent-company/evidence/task-152/evidence-manifest.json",
+        "/home/tony/agent-company/evidence/task-152/red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-152/focused-test-output.txt",
+        "/home/tony/agent-company/evidence/task-152/full-test-output.txt",
+        "/home/tony/agent-company/evidence/task-152/clean-copy-migration-output.txt",
+        "/home/tony/agent-company/evidence/task-152/pixweave-test-output.txt"
+      ],
+      "decision_needed": "Independently review task 152's signed pilot-claim history, history-driven validation, schema migration, removal of generic lifecycle backfill, transactional legacy preflight, and retained verification evidence; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 152 closes the two final Phase C High findings with 3 exact RED probes, 106 focused tests, 212 Agent Company tests, 58 PixWeave tests, and read-only-source backup verification.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "This delivery is limited to the requested final Phase C findings and does not authorize Phase D or deployment.",
+    "No live initialization, PixWeave source change, customer-data action, outreach, publication, pricing, payment, contract, or production action was performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review the pushed task-152 commit and evidence before relying on the new durable claim history or legacy-anchor migration."
+  ],
+  "project_decisions": [
+    "Every pilot claim receives a separate pilot-claim-history HMAC in the same SQLite transaction as its current claim binding.",
+    "Valid pre-history signed claim rows are preflighted and backfilled into pilot claim history atomically and idempotently; invalid claim/history signatures fail closed.",
+    "Task-binding immutability, raw completion protection, runtime fencing, and CompanyOS validation derive pilot-claimed identity from durable history rather than current claim presence or a mutable pilot flag.",
+    "Never-bound and nonpilot tasks remain outside pilot completion validation because they never receive pilot claim history.",
+    "Store.init_assurance is schema-only and never synthesizes artifact lifecycle anchors.",
+    "The bounded legacy migration preflights content, metadata, audits, principals, and all candidates in one immediate transaction before any anchor insertion."
+  ],
+  "project_summary": "Agent Company Phase C now retains signed evidence that a task was pilot-claimed and validates completion from that immutable history, while legacy lifecycle backfill is bounded, fully preflighted, atomic, idempotent, and operationally noninterfering.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Completed task 152 from clean base 4cb798a with strict TDD, closed both independent High findings, verified migration/noninterference on read-only-source backups, and passed full Agent Company and PixWeave suites.",
+  "verified_facts": [
+    "The clean-base RED replay executed exactly 3 probes and produced 3 expected failures.",
+    "Both direct-SQL forged completion variants now produce the bound-pilot inconsistency error after current guards and anchors are removed or demoted.",
+    "A signed current claim is upgraded into exactly one valid pilot claim history row; repeated initialization leaves task and execution rows unchanged.",
+    "Partial signed anchors plus tampered approval audit remain at 1 registration, 1 approval, and 0 lifecycle rows.",
+    "Focused assurance and operational verification executed 106 tests with all passing.",
+    "Agent Company canonical verification executed 212 tests with all passing.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and its canonical suite executed 58 tests with all passing.",
+    "The live SQLite connection was mode=ro/query_only, rejected a write probe, and recorded total_changes=0; mutations occurred only on temporary backups.",
+    "The normal backup migrated 6/6/12 anchors, then 0/0/0, while every one of 23 operational-table digests remained identical and validation/integrity passed."
+  ]
+}

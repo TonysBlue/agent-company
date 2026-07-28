@@ -1,0 +1,107 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable task-152 outcome, implementation audit, TDD record, backup-only migration verification, acceptance mapping, and scope limits",
+      "sha256": "14dce80ddbb1482b3b415b1ba0c7660585de5cc6943852c52e2fd567edf80087"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and independent control-review handoff",
+      "sha256": "a1c8f646889723a576726ecbd8e9a12f84601bc9844e6429661505b12e9875f3"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Clean-base strict RED replay for the two validation bypasses and early lifecycle mutation",
+      "sha256": "777398ed0a36c0d519101a29d57e3b56ae20bcb9fe6954791d93817c8e279d42"
+    },
+    {
+      "path": "focused-test-output.txt",
+      "purpose": "Focused assurance, trusted evaluation, pilot, completion, and operational verification output",
+      "sha256": "b54c07fb64e4fbfd17e8271a80f288c41151c82fd7d7f3affbbe73d975a610ab"
+    },
+    {
+      "path": "full-test-output.txt",
+      "purpose": "Agent Company canonical 212-test suite output",
+      "sha256": "f9ad906248511602a033ac309230870c39935e26bb9eb059ee3b2db5ba4ed3d1"
+    },
+    {
+      "path": "clean-copy-migration-output.txt",
+      "purpose": "Read-only live-source backup, exact idempotence/noninterference, and atomic partial-anchor audit-conflict output",
+      "sha256": "f62969f28d7d2e400cfce59fc08c94904e73565fddfa33e93d1b10841d81cba1"
+    },
+    {
+      "path": "pixweave-test-output.txt",
+      "purpose": "PixWeave clean-worktree identity and canonical 58-test suite output",
+      "sha256": "16df452fb2136d4721f729b60776fb49ae2863c560c8afdf5b93544a72441955"
+    }
+  ],
+  "base_commit": "4cb798a0ce2f4e74372261d4e9a605d9c83820ee",
+  "base_tree": "2c4e551371dfe2930744cb796334c66ff0c6401a",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 212,
+    "result": "pass"
+  },
+  "code_sha256": {
+    "agent_company/assurance.py": "a98234340649467b71876a99c65864445896668e326409e4003bc6397b32c4cf",
+    "agent_company/db.py": "e32168943eca6a582cd3eda888f37b28d9be54c60e7af922b870b91175de9546",
+    "agent_company/ops.py": "3ede682e6c595ad9e0f9aadfe2a205dc80d5f36f92848ea71cef752693341c5d",
+    "agent_company/pilot_gate.py": "0599dd5c3da69481946d28bde4b3ed1254cda21353ee62f1c1fb43830c2d1e4b",
+    "tests/test_assurance_cli.py": "413083754dcf2685156c06f07c83ab6c20067833d94d41c1f36f6d40d4f46bd9",
+    "tests/test_completion_assurance_gate.py": "65415611eecca95621b088b628be150cf1b9d3548f96fe386185af08e07b031b"
+  },
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest tests.test_assurance_cli tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_pilot_gate tests.test_completion_assurance_gate tests.test_company_os -v",
+    "passed": 106,
+    "result": "pass"
+  },
+  "live_copy_dry_run": {
+    "anchor_counts_after_first": {
+      "approvals": 6,
+      "lifecycle": 12,
+      "registrations": 6
+    },
+    "anchor_counts_written_on_second": {
+      "approvals": 0,
+      "lifecycle": 0,
+      "registrations": 0
+    },
+    "live_source_mode": "ro",
+    "live_source_query_only": true,
+    "live_source_total_changes": 0,
+    "live_write_probe": "rejected",
+    "operational_table_count": 23,
+    "operational_tables_unchanged": true,
+    "partial_anchor_counts_after_conflict": {
+      "approvals": 1,
+      "lifecycle": 0,
+      "registrations": 1
+    },
+    "result": "pass",
+    "snapshot_method": "sqlite_online_backup_from_mode_ro_connection",
+    "sqlite_integrity_check": "ok",
+    "task_count": 148,
+    "tasks_sha256": "a64f2314ec6975b2ab54a872763d52e0ba6a55b3d8d1aa38a035a1b3b6406ccf",
+    "validation_errors": []
+  },
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "worktree": "clean"
+  },
+  "red_test": {
+    "errors": 0,
+    "exit_status": 1,
+    "failures": 3,
+    "ran": 3,
+    "result": "expected_fail"
+  },
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "task_id": 152
+}

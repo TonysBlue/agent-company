@@ -150,6 +150,7 @@ class AssuranceKernel:
         conflicts: list[dict[str, Any]] = []
         candidates: list[tuple[Any, dict[str, str]]] = []
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             for artifact in conn.execute(
                 "SELECT * FROM assurance_artifacts ORDER BY id"
             ).fetchall():
@@ -170,24 +171,33 @@ class AssuranceKernel:
                     key,
                 ).fetchone()
                 anchors = (registration is not None, approval is not None, lifecycle is not None)
+                manifest = LEGACY_PHASE_C_ARTIFACTS.get(artifact["artifact_id"])
                 if lifecycle is not None:
-                    manifest = LEGACY_PHASE_C_ARTIFACTS.get(artifact["artifact_id"])
-                    if manifest is not None and artifact["version"] == 1 and artifact["status"] == "approved":
+                    if (
+                        manifest is not None
+                        and artifact["version"] == 1
+                        and artifact["status"] == "approved"
+                    ):
                         reason = self._legacy_phase_c_conflict(conn, artifact, manifest)
                         if reason:
                             conflicts.append(self._legacy_conflict(artifact, reason))
                     continue
+                if manifest is not None:
+                    reason = self._legacy_phase_c_conflict(conn, artifact, manifest)
+                    if reason:
+                        conflicts.append(self._legacy_conflict(artifact, reason))
+                        continue
                 if any(anchors):
                     conflicts.append(self._legacy_conflict(
                         artifact, "partial integrity anchors require independent review",
                     ))
                     continue
-                manifest = LEGACY_PHASE_C_ARTIFACTS.get(artifact["artifact_id"])
-                reason = self._legacy_phase_c_conflict(conn, artifact, manifest)
-                if reason:
-                    conflicts.append(self._legacy_conflict(artifact, reason))
-                else:
-                    candidates.append((artifact, manifest))
+                if manifest is None:
+                    conflicts.append(self._legacy_conflict(
+                        artifact, "artifact is not in the approved legacy migration manifest",
+                    ))
+                    continue
+                candidates.append((artifact, manifest))
 
             if conflicts:
                 return {

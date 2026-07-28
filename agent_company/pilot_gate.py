@@ -66,6 +66,16 @@ class PilotGate:
                     created_at TEXT NOT NULL,
                     PRIMARY KEY(task_id,generation)
                 );
+                CREATE TABLE IF NOT EXISTS assurance_pilot_claim_history (
+                    task_id INTEGER NOT NULL,
+                    generation INTEGER NOT NULL,
+                    initiative_id TEXT NOT NULL,
+                    artifact_set_sha256 TEXT NOT NULL,
+                    fencing_token_sha256 TEXT NOT NULL,
+                    integrity_signature TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    PRIMARY KEY(task_id,generation)
+                );
                 INSERT OR IGNORE INTO assurance_pilot_config(key,value,updated_at)
                     VALUES ('kill_switch','false','bootstrap');
                 """
@@ -86,6 +96,8 @@ class PilotGate:
                 DROP TRIGGER IF EXISTS assurance_execution_bindings_immutable_delete;
                 DROP TRIGGER IF EXISTS assurance_claim_bindings_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_claim_bindings_immutable_delete;
+                DROP TRIGGER IF EXISTS assurance_pilot_claim_history_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_pilot_claim_history_immutable_delete;
                 DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_delete;
                 DROP TRIGGER IF EXISTS tasks_bound_pilot_completion_guard;
@@ -101,10 +113,16 @@ class PilotGate:
                 CREATE TRIGGER assurance_claim_bindings_immutable_delete
                     BEFORE DELETE ON assurance_claim_bindings
                     BEGIN SELECT RAISE(ABORT, 'assurance claim binding is immutable'); END;
+                CREATE TRIGGER assurance_pilot_claim_history_immutable_update
+                    BEFORE UPDATE ON assurance_pilot_claim_history
+                    BEGIN SELECT RAISE(ABORT, 'assurance pilot claim history is immutable'); END;
+                CREATE TRIGGER assurance_pilot_claim_history_immutable_delete
+                    BEFORE DELETE ON assurance_pilot_claim_history
+                    BEGIN SELECT RAISE(ABORT, 'assurance pilot claim history is immutable'); END;
                 CREATE TRIGGER assurance_task_bindings_claimed_immutable_update
                     BEFORE UPDATE ON assurance_task_bindings
                     WHEN EXISTS (
-                        SELECT 1 FROM assurance_claim_bindings
+                        SELECT 1 FROM assurance_pilot_claim_history
                         WHERE task_id=OLD.task_id
                     )
                     AND (
@@ -125,17 +143,15 @@ class PilotGate:
                 CREATE TRIGGER assurance_task_bindings_claimed_immutable_delete
                     BEFORE DELETE ON assurance_task_bindings
                     WHEN EXISTS (
-                        SELECT 1 FROM assurance_claim_bindings
+                        SELECT 1 FROM assurance_pilot_claim_history
                         WHERE task_id=OLD.task_id
                     )
                     BEGIN SELECT RAISE(ABORT, 'claimed assurance task binding is immutable'); END;
                 CREATE TRIGGER tasks_bound_pilot_completion_guard
                     BEFORE UPDATE OF status,result ON tasks
                     WHEN EXISTS (
-                        SELECT 1 FROM assurance_task_bindings binding
-                        JOIN assurance_claim_bindings claim
-                          ON claim.task_id=binding.task_id
-                        WHERE binding.task_id=OLD.id AND binding.pilot=1
+                        SELECT 1 FROM assurance_pilot_claim_history
+                        WHERE task_id=OLD.id
                     )
                     AND NEW.status='done'
                     AND (
@@ -165,6 +181,52 @@ class PilotGate:
             ):
                 if name not in columns:
                     conn.execute(f"ALTER TABLE assurance_task_bindings ADD COLUMN {name} TEXT")
+            conn.commit()
+            conn.execute("BEGIN IMMEDIATE")
+            history_candidates: list[dict[str, Any]] = []
+            for claim in conn.execute(
+                "SELECT * FROM assurance_claim_bindings ORDER BY task_id,generation"
+            ).fetchall():
+                values = {
+                    key: claim[key] for key in (
+                        "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                        "fencing_token_sha256", "created_at",
+                    )
+                }
+                if not verify_integrity_signature(
+                    self._config.db_path, "claim-binding", values,
+                    claim["integrity_signature"],
+                ):
+                    raise ValueError("assurance claim binding integrity conflict")
+                history = conn.execute(
+                    """SELECT * FROM assurance_pilot_claim_history
+                       WHERE task_id=? AND generation=?""",
+                    (claim["task_id"], claim["generation"]),
+                ).fetchone()
+                if history is None:
+                    history_candidates.append(values)
+                    continue
+                history_values = {key: history[key] for key in values}
+                if history_values != values or not verify_integrity_signature(
+                    self._config.db_path, "pilot-claim-history", history_values,
+                    history["integrity_signature"],
+                ):
+                    raise ValueError("assurance pilot claim history integrity conflict")
+            for values in history_candidates:
+                conn.execute(
+                    """INSERT INTO assurance_pilot_claim_history(
+                           task_id,generation,initiative_id,artifact_set_sha256,
+                           fencing_token_sha256,integrity_signature,created_at
+                       ) VALUES (?,?,?,?,?,?,?)""",
+                    (
+                        values["task_id"], values["generation"], values["initiative_id"],
+                        values["artifact_set_sha256"], values["fencing_token_sha256"],
+                        integrity_signature(
+                            self._config.db_path, "pilot-claim-history", values,
+                        ),
+                        values["created_at"],
+                    ),
+                )
 
     @staticmethod
     def _snapshot_sha256(value: Any) -> str:
@@ -354,6 +416,20 @@ class PilotGate:
                 created_at,
             ),
         )
+        conn.execute(
+            """INSERT INTO assurance_pilot_claim_history(
+                   task_id,generation,initiative_id,artifact_set_sha256,
+                   fencing_token_sha256,integrity_signature,created_at
+               ) VALUES (?,?,?,?,?,?,?)""",
+            (
+                task_id, generation, task_binding["initiative_id"],
+                values["artifact_set_sha256"], values["fencing_token_sha256"],
+                integrity_signature(
+                    self._config.db_path, "pilot-claim-history", values,
+                ),
+                created_at,
+            ),
+        )
 
     def claim_fence_decision(
         self, task_id: int, *, conn: Any | None = None,
@@ -389,7 +465,7 @@ class PilotGate:
         ).fetchone()
         if claim is None:
             prior_claim = conn.execute(
-                "SELECT 1 FROM assurance_claim_bindings WHERE task_id=? LIMIT 1",
+                "SELECT 1 FROM assurance_pilot_claim_history WHERE task_id=? LIMIT 1",
                 (task_id,),
             ).fetchone()
             if prior_claim is not None:
@@ -448,8 +524,9 @@ class PilotGate:
     def execution_requires_fencing_token(conn: Any, task_id: int) -> bool:
         return conn.execute(
             """SELECT 1 FROM assurance_execution_bindings WHERE task_id=?
-               UNION SELECT 1 FROM assurance_claim_bindings WHERE task_id=? LIMIT 1""",
-            (task_id, task_id),
+               UNION SELECT 1 FROM assurance_claim_bindings WHERE task_id=?
+               UNION SELECT 1 FROM assurance_pilot_claim_history WHERE task_id=? LIMIT 1""",
+            (task_id, task_id, task_id),
         ).fetchone() is not None
 
     def _runtime_fence_decision(self, conn: Any, task_id: int) -> dict[str, Any]:

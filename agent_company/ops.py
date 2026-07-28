@@ -742,7 +742,13 @@ class CompanyOS:
         if not self.config.db_path.is_file():
             errors.append(f"Database does not exist: {self.config.db_path}")
             return errors
-        required_tables = {"audit_log", "roles", "raci", "tasks", "approvals", "metrics", "experiments", "cycles", "task_executions", "token_usage", "strategic_phases", "execution_events", "event_worker_state"}
+        required_tables = {
+            "audit_log", "roles", "raci", "tasks", "approvals", "metrics",
+            "experiments", "cycles", "task_executions", "token_usage",
+            "strategic_phases", "execution_events", "event_worker_state",
+            "assurance_task_bindings", "assurance_claim_bindings",
+            "assurance_pilot_claim_history",
+        }
         with self.store.connect_readonly() as conn:
             rows = list(conn.execute("SELECT name FROM sqlite_master WHERE type='table'"))
             present = {row["name"] for row in rows}
@@ -773,26 +779,76 @@ class CompanyOS:
                 )
             ]
             pilot_completion_rows = list(conn.execute(
-                """SELECT t.id,t.status,t.result,t.updated_at AS task_updated_at,
+                """SELECT history.task_id AS claimed_task_id,
+                          t.id,t.status,t.result,t.updated_at AS task_updated_at,
                           execution.recovery_status,
                           execution.updated_at AS execution_updated_at,
-                          binding.initiative_id,binding.artifact_set_sha256,
+                          binding.initiative_id,binding.pilot,
+                          binding.artifact_set_sha256,
                           binding.completion_result_sha256,binding.review_decision_ref,
-                          binding.completed_at
-                   FROM tasks t
-                   JOIN assurance_task_bindings binding ON binding.task_id=t.id
-                   JOIN assurance_claim_bindings claim ON claim.task_id=t.id
+                          binding.completed_at,
+                          history.generation AS claim_generation,
+                          history.initiative_id AS claimed_initiative_id,
+                          history.artifact_set_sha256 AS claimed_artifact_set_sha256,
+                          history.fencing_token_sha256 AS claimed_fencing_token_sha256,
+                          history.integrity_signature AS history_integrity_signature,
+                          history.created_at AS claim_created_at,
+                          claim.task_id AS current_claim_task_id,
+                          claim.initiative_id AS current_claim_initiative_id,
+                          claim.artifact_set_sha256 AS current_claim_artifact_set_sha256,
+                          claim.fencing_token_sha256 AS current_claim_fencing_token_sha256,
+                          claim.integrity_signature AS current_claim_integrity_signature,
+                          claim.created_at AS current_claim_created_at
+                   FROM assurance_pilot_claim_history history
+                   LEFT JOIN tasks t ON t.id=history.task_id
+                   LEFT JOIN assurance_task_bindings binding ON binding.task_id=t.id
+                   LEFT JOIN assurance_claim_bindings claim
+                     ON claim.task_id=history.task_id
+                    AND claim.generation=history.generation
                    LEFT JOIN task_executions execution ON execution.task_id=t.id
-                   WHERE binding.pilot=1
-                   GROUP BY t.id ORDER BY t.id"""
+                   ORDER BY history.task_id,history.generation"""
             ))
+            from .integrity import verify as verify_integrity_signature
+
+            reported_pilot_tasks: set[int] = set()
             for row in pilot_completion_rows:
+                task_id = int(row["claimed_task_id"])
+                history_values = {
+                    "task_id": task_id,
+                    "generation": row["claim_generation"],
+                    "initiative_id": row["claimed_initiative_id"],
+                    "artifact_set_sha256": row["claimed_artifact_set_sha256"],
+                    "fencing_token_sha256": row["claimed_fencing_token_sha256"],
+                    "created_at": row["claim_created_at"],
+                }
+                current_claim_values = {
+                    "task_id": row["current_claim_task_id"],
+                    "generation": row["claim_generation"],
+                    "initiative_id": row["current_claim_initiative_id"],
+                    "artifact_set_sha256": row["current_claim_artifact_set_sha256"],
+                    "fencing_token_sha256": row["current_claim_fencing_token_sha256"],
+                    "created_at": row["current_claim_created_at"],
+                }
                 completion_values = (
                     row["completion_result_sha256"], row["review_decision_ref"],
                     row["completed_at"],
                 )
                 inconsistent = (
-                    (row["status"] == "done")
+                    row["id"] is None
+                    or not verify_integrity_signature(
+                        self.config.db_path, "pilot-claim-history", history_values,
+                        row["history_integrity_signature"],
+                    )
+                    or current_claim_values != history_values
+                    or not verify_integrity_signature(
+                        self.config.db_path, "claim-binding", current_claim_values,
+                        row["current_claim_integrity_signature"],
+                    )
+                    or row["pilot"] != 1
+                    or row["initiative_id"] != row["claimed_initiative_id"]
+                    or str(row["artifact_set_sha256"] or "")
+                    != row["claimed_artifact_set_sha256"]
+                    or (row["status"] == "done")
                     != (row["recovery_status"] == "completed")
                     or (row["status"] == "done") != all(completion_values)
                     or any(completion_values) and not all(completion_values)
@@ -804,17 +860,20 @@ class CompanyOS:
                         inconsistent = True
                     else:
                         inconsistent = (
-                            assurance.get("initiative_id") != row["initiative_id"]
-                            or assurance.get("artifact_set_sha256") != row["artifact_set_sha256"]
+                            assurance.get("initiative_id") != row["claimed_initiative_id"]
+                            or assurance.get("artifact_set_sha256")
+                            != row["claimed_artifact_set_sha256"]
                             or assurance.get("result_sha256") != row["completion_result_sha256"]
                             or assurance.get("review_decision_ref") != row["review_decision_ref"]
                             or row["task_updated_at"] != row["completed_at"]
                             or row["execution_updated_at"] != row["completed_at"]
                         )
                 if inconsistent:
-                    errors.append(
-                        f"Bound pilot task {row['id']} completion state is inconsistent"
-                    )
+                    if task_id not in reported_pilot_tasks:
+                        errors.append(
+                            f"Bound pilot task {task_id} completion state is inconsistent"
+                        )
+                        reported_pilot_tasks.add(task_id)
         lanes = [self._wip_lane(domain) for domain in active_domains]
         if lanes.count("product") > 1 or lanes.count("commercial") > 1 or None in lanes:
             errors.append("Active WIP must contain at most one product and one commercial task")

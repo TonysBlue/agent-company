@@ -13,6 +13,7 @@ from agent_company.assurance import AssuranceKernel
 from agent_company.cli import main as cli_main
 from agent_company.config import load_config
 from agent_company.db import Store
+from agent_company.integrity import signature as integrity_signature
 
 
 class AssuranceCliTest(unittest.TestCase):
@@ -161,7 +162,7 @@ class AssuranceCliTest(unittest.TestCase):
                 "trusted_eval_manifests", "trusted_eval_quarantines",
                 "trusted_eval_contracts", "assurance_task_bindings",
                 "assurance_pilot_config", "assurance_execution_bindings",
-                "assurance_claim_bindings",
+                "assurance_claim_bindings", "assurance_pilot_claim_history",
             } <= phase_c_tables)
             phase_c_triggers = {
                 row["name"] for row in conn.execute(
@@ -180,6 +181,8 @@ class AssuranceCliTest(unittest.TestCase):
                 "assurance_execution_bindings_immutable_delete",
                 "assurance_claim_bindings_immutable_update",
                 "assurance_claim_bindings_immutable_delete",
+                "assurance_pilot_claim_history_immutable_update",
+                "assurance_pilot_claim_history_immutable_delete",
                 "assurance_task_bindings_claimed_immutable_update",
                 "assurance_task_bindings_claimed_immutable_delete",
                 "tasks_bound_pilot_completion_guard",
@@ -394,6 +397,65 @@ class AssuranceCliTest(unittest.TestCase):
             self.assertEqual(conn.execute(
                 "SELECT COUNT(*) FROM assurance_artifact_registrations"
             ).fetchone()[0], 1)
+
+    def test_assurance_init_does_not_mutate_partial_anchors_before_audit_conflict(self) -> None:
+        Store(load_config().db_path).init()
+        legacy = self.insert_legacy_artifact()
+        config = load_config()
+        registration = {
+            "artifact_id": "assurance-bootstrap-goal",
+            "version": 1,
+            "content_sha256": legacy["sha256"],
+            "created_at": "2026-07-24T03:59:59+00:00",
+        }
+        approval = {
+            "artifact_id": "assurance-bootstrap-goal",
+            "version": 1,
+            "content_sha256": legacy["sha256"],
+            "approved_by_principal": "principal-ceo",
+            "approved_at": "2026-07-24T03:59:59+00:00",
+        }
+        with Store(config.db_path).connect() as conn:
+            conn.execute(
+                """INSERT INTO assurance_artifact_registrations(
+                       artifact_id,version,content_sha256,created_at,integrity_signature
+                   ) VALUES (?,?,?,?,?)""",
+                (*registration.values(), integrity_signature(
+                    config.db_path, "artifact-registration", registration,
+                )),
+            )
+            conn.execute(
+                """INSERT INTO assurance_artifact_approvals(
+                       artifact_id,version,content_sha256,approved_by_principal,
+                       approved_at,integrity_signature
+                   ) VALUES (?,?,?,?,?,?)""",
+                (*approval.values(), integrity_signature(
+                    config.db_path, "artifact-approval", approval,
+                )),
+            )
+            conn.execute(
+                """UPDATE audit_log SET actor='tampered-actor'
+                   WHERE action='assurance_artifact_approved'
+                     AND entity_id='assurance-bootstrap-goal:v1'"""
+            )
+
+        code, result = self.run_cli_with_code("assurance-init")
+
+        self.assertEqual(code, 1)
+        self.assertEqual(result["migration"]["conflicts"], [{
+            "artifact_id": "assurance-bootstrap-goal",
+            "reason": "approval audit evidence mismatch", "version": 1,
+        }])
+        with Store(config.db_path).connect_readonly() as conn:
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM assurance_artifact_registrations"
+            ).fetchone()[0], 1)
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM assurance_artifact_approvals"
+            ).fetchone()[0], 1)
+            self.assertEqual(conn.execute(
+                "SELECT COUNT(*) FROM assurance_artifact_lifecycle"
+            ).fetchone()[0], 0)
 
 
 if __name__ == "__main__":
