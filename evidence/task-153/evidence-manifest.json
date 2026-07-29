@@ -1,0 +1,106 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable Task 153 outcome, implementation audit, TDD record, migration verification, acceptance mapping, and scope limits",
+      "sha256": "dc9eed04661c82a9c2a53389cb99b030aea141b144c3cc74e2d51c22062ffec8"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and independent control-review handoff",
+      "sha256": "424dec48de5d6c063e269a5df79df5aec1679b6d5effdf3bce20ec20e081d1ac"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Clean-base strict RED replay for the full signed current/history claim reconciliation probe set",
+      "sha256": "e7e3d4671be77e6afea5d8103ad1571c933d64fbc63d2abaa692fbff4869e76f"
+    },
+    {
+      "path": "adversarial-probe-output.txt",
+      "purpose": "Final exact missing-counterpart, forgery, mismatch, signature, and compatibility probe output",
+      "sha256": "2b495c98324ee65cf4df7ada6125f57d8f6506293b01fa9bf9c619f471ca1d1a"
+    },
+    {
+      "path": "focused-test-output.txt",
+      "purpose": "Focused assurance, trusted evaluation, pilot, completion, and operational verification output",
+      "sha256": "2b0784a2eb8224b0884f3074328a1ad0604a861f7dd32bdefdcae25e3a9fd732"
+    },
+    {
+      "path": "full-test-output.txt",
+      "purpose": "Agent Company canonical 220-test suite output",
+      "sha256": "218fc3d77f85d2e5025957b8ffce551f5bd4b42906b3c65e18ec6378088bc426"
+    },
+    {
+      "path": "clean-copy-migration-output.txt",
+      "purpose": "Read-only live-source backup migration idempotence and operational noninterference output",
+      "sha256": "9f6f1632b730d1672aef2e079ce447eae7cabc2f94a4c338a478d8e40049a4d2"
+    },
+    {
+      "path": "pixweave-test-output.txt",
+      "purpose": "PixWeave clean-worktree identity and canonical 58-test suite output",
+      "sha256": "6556298132cf764e80d8a5702db59e5bce9bb2989ef674cc0846f677e08668ef"
+    }
+  ],
+  "base_commit": "f65138181da8f3fee4b76f733cf255fda8d9967b",
+  "base_tree": "93c9b284dad6d74012d898df29dbe56b9a5192aa",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 220,
+    "result": "pass"
+  },
+  "code_sha256": {
+    "agent_company/ops.py": "8f1646880be5fff9da6fdf85e2c76ddabafe5aacdb1f965478e706a66fe249fa",
+    "tests/test_completion_assurance_gate.py": "3e0f774b50b9036499aa3f828b3cd15d26c40e28dd651cce8d1a3d93e5c47041"
+  },
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest tests.test_assurance_cli tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_pilot_gate tests.test_completion_assurance_gate tests.test_company_os -v",
+    "passed": 114,
+    "result": "pass"
+  },
+  "live_copy_dry_run": {
+    "claim_count": 0,
+    "first_anchor_counts": {
+      "approvals": 6,
+      "lifecycle": 12,
+      "registrations": 6
+    },
+    "live_source_mode": "ro",
+    "live_source_query_only": true,
+    "live_source_total_changes": 0,
+    "live_write_probe": "rejected",
+    "operational_table_count": 23,
+    "operational_tables_unchanged": true,
+    "pilot_claim_history_count": 0,
+    "result": "pass",
+    "second_anchor_counts": {
+      "approvals": 0,
+      "lifecycle": 0,
+      "registrations": 0
+    },
+    "snapshot_method": "sqlite_online_backup_from_mode_ro_connection",
+    "sqlite_integrity_check": "ok",
+    "task_count": 148,
+    "tasks_sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442",
+    "validation_errors": []
+  },
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "worktree": "clean"
+  },
+  "red_test": {
+    "errors": 0,
+    "exit_status": 1,
+    "failures": 2,
+    "passed_controls": 8,
+    "ran": 10,
+    "result": "expected_fail"
+  },
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "task_id": 153
+}

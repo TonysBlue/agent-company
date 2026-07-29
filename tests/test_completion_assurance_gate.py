@@ -739,6 +739,16 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self.assertEqual(binding["review_decision_ref"], "completion-review:v1")
         self.assertIsNotNone(binding["completed_at"])
 
+    def test_validate_accepts_legitimate_completed_pilot(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self.osys.complete_task(
+            self.task_id, "Company Platform Engineer", "guarded result",
+            [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
+        )
+
+        self.assertEqual(self.osys.validate(), [])
+
     def test_direct_sql_cannot_complete_a_claimed_bound_pilot(self) -> None:
         with self.assertRaisesRegex(sqlite3.IntegrityError, "pilot completion"):
             with self.osys.store.connect() as conn:
@@ -784,6 +794,7 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         with self.osys.store.connect() as conn:
             conn.execute("DROP TRIGGER tasks_bound_pilot_completion_guard")
             conn.execute("DROP TRIGGER assurance_claim_bindings_immutable_delete")
+            conn.execute("DROP TRIGGER assurance_pilot_claim_history_immutable_delete")
             conn.execute(
                 "DELETE FROM assurance_claim_bindings WHERE task_id=?", (self.task_id,)
             )
@@ -796,6 +807,141 @@ class CompletionAssuranceGateTest(unittest.TestCase):
 
         self.assertIn(
             f"Bound pilot task {self.task_id} completion state is inconsistent", errors,
+        )
+
+    def test_validate_reports_current_claim_without_history_counterpart(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_claim_bindings_immutable_delete")
+            conn.execute("DROP TRIGGER assurance_pilot_claim_history_immutable_delete")
+            conn.execute(
+                "DELETE FROM assurance_pilot_claim_history WHERE task_id=?",
+                (self.task_id,),
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+
+    def test_validate_reports_history_without_current_claim_counterpart(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_claim_bindings_immutable_delete")
+            conn.execute("DROP TRIGGER assurance_pilot_claim_history_immutable_delete")
+            conn.execute(
+                "DELETE FROM assurance_claim_bindings WHERE task_id=?", (self.task_id,)
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+
+    def test_validate_reports_forged_completion_after_history_deletion(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER tasks_bound_pilot_completion_guard")
+            conn.execute("DROP TRIGGER assurance_claim_bindings_immutable_delete")
+            conn.execute("DROP TRIGGER assurance_pilot_claim_history_immutable_delete")
+            conn.execute(
+                "DELETE FROM assurance_pilot_claim_history WHERE task_id=?",
+                (self.task_id,),
+            )
+            conn.execute(
+                "UPDATE tasks SET status='done',result=? WHERE id=?",
+                ('{"summary":"forged after history deletion"}', self.task_id),
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+
+    def test_validate_reports_claim_history_value_mismatch(self) -> None:
+        with self.osys.store.connect() as conn:
+            history = conn.execute(
+                "SELECT * FROM assurance_pilot_claim_history WHERE task_id=?",
+                (self.task_id,),
+            ).fetchone()
+            conn.execute("DROP TRIGGER assurance_pilot_claim_history_immutable_update")
+            values = {
+                key: history[key] for key in (
+                    "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                    "fencing_token_sha256", "created_at",
+                )
+            }
+            values["artifact_set_sha256"] = "0" * 64
+            conn.execute(
+                "UPDATE assurance_pilot_claim_history "
+                "SET artifact_set_sha256=?,integrity_signature=? WHERE task_id=?",
+                (
+                    values["artifact_set_sha256"],
+                    integrity_signature(
+                        self.config.db_path, "pilot-claim-history", values,
+                    ),
+                    self.task_id,
+                ),
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+
+    def test_validate_reports_claim_history_generation_mismatch(self) -> None:
+        with self.osys.store.connect() as conn:
+            history = conn.execute(
+                "SELECT * FROM assurance_pilot_claim_history WHERE task_id=?",
+                (self.task_id,),
+            ).fetchone()
+            conn.execute("DROP TRIGGER assurance_pilot_claim_history_immutable_update")
+            values = {
+                key: history[key] for key in (
+                    "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                    "fencing_token_sha256", "created_at",
+                )
+            }
+            values["generation"] = int(values["generation"]) + 1
+            conn.execute(
+                "UPDATE assurance_pilot_claim_history "
+                "SET generation=?,integrity_signature=? WHERE task_id=?",
+                (
+                    values["generation"],
+                    integrity_signature(
+                        self.config.db_path, "pilot-claim-history", values,
+                    ),
+                    self.task_id,
+                ),
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+
+    def test_validate_reports_invalid_current_claim_signature(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_claim_bindings_immutable_update")
+            conn.execute(
+                "UPDATE assurance_claim_bindings SET integrity_signature=? WHERE task_id=?",
+                ("0" * 64, self.task_id),
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+
+    def test_validate_reports_invalid_claim_history_signature(self) -> None:
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_pilot_claim_history_immutable_update")
+            conn.execute(
+                "UPDATE assurance_pilot_claim_history SET integrity_signature=? "
+                "WHERE task_id=?",
+                ("0" * 64, self.task_id),
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
         )
 
     def test_validate_reports_forged_completion_after_pilot_demotion(self) -> None:

@@ -1,0 +1,46 @@
+{
+  "normal_copy": {
+    "claim_count": 0,
+    "first_migration": {
+      "anchors_backfilled": {
+        "approvals": 6,
+        "lifecycle": 12,
+        "registrations": 6
+      },
+      "conflicts": [],
+      "migration_version": "legacy-phase-c-artifact-anchors/v1",
+      "status": "ok"
+    },
+    "integrity": {
+      "conflicts": [],
+      "mode": "shadow",
+      "status": "ok"
+    },
+    "operational_table_count": 23,
+    "operational_tables_unchanged": true,
+    "pilot_claim_history_count": 0,
+    "second_migration": {
+      "anchors_backfilled": {
+        "approvals": 0,
+        "lifecycle": 0,
+        "registrations": 0
+      },
+      "conflicts": [],
+      "migration_version": "legacy-phase-c-artifact-anchors/v1",
+      "status": "ok"
+    },
+    "sqlite_integrity_check": "ok",
+    "task_count": 148,
+    "tasks_sha256": "f190cc379118beb8cb4aeb53ad12d13ec2200c403e557d9dd7433914af54c442",
+    "validation_errors": []
+  },
+  "source": {
+    "mode": "ro",
+    "query_only": 1,
+    "total_changes": 0,
+    "write_probe": "attempt to write a readonly database"
+  }
+}
+LIVE_CONNECTION_READ_ONLY=PASS
+COPY_MIGRATION_IDEMPOTENT_NONINTERFERING=PASS
+CLAIM_HISTORY_CARDINALITY_RECONCILED=PASS

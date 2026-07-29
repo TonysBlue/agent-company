@@ -779,7 +779,13 @@ class CompanyOS:
                 )
             ]
             pilot_completion_rows = list(conn.execute(
-                """SELECT history.task_id AS claimed_task_id,
+                """WITH claim_keys AS (
+                       SELECT task_id,generation FROM assurance_claim_bindings
+                       UNION
+                       SELECT task_id,generation FROM assurance_pilot_claim_history
+                   )
+                   SELECT claim_keys.task_id AS claimed_task_id,
+                          claim_keys.generation AS claim_generation,
                           t.id,t.status,t.result,t.updated_at AS task_updated_at,
                           execution.recovery_status,
                           execution.updated_at AS execution_updated_at,
@@ -787,26 +793,31 @@ class CompanyOS:
                           binding.artifact_set_sha256,
                           binding.completion_result_sha256,binding.review_decision_ref,
                           binding.completed_at,
-                          history.generation AS claim_generation,
+                          history.task_id AS history_task_id,
+                          history.generation AS history_generation,
                           history.initiative_id AS claimed_initiative_id,
                           history.artifact_set_sha256 AS claimed_artifact_set_sha256,
                           history.fencing_token_sha256 AS claimed_fencing_token_sha256,
                           history.integrity_signature AS history_integrity_signature,
                           history.created_at AS claim_created_at,
                           claim.task_id AS current_claim_task_id,
+                          claim.generation AS current_claim_generation,
                           claim.initiative_id AS current_claim_initiative_id,
                           claim.artifact_set_sha256 AS current_claim_artifact_set_sha256,
                           claim.fencing_token_sha256 AS current_claim_fencing_token_sha256,
                           claim.integrity_signature AS current_claim_integrity_signature,
                           claim.created_at AS current_claim_created_at
-                   FROM assurance_pilot_claim_history history
-                   LEFT JOIN tasks t ON t.id=history.task_id
-                   LEFT JOIN assurance_task_bindings binding ON binding.task_id=t.id
+                   FROM claim_keys
+                   LEFT JOIN assurance_pilot_claim_history history
+                     ON history.task_id=claim_keys.task_id
+                    AND history.generation=claim_keys.generation
                    LEFT JOIN assurance_claim_bindings claim
-                     ON claim.task_id=history.task_id
-                    AND claim.generation=history.generation
+                     ON claim.task_id=claim_keys.task_id
+                    AND claim.generation=claim_keys.generation
+                   LEFT JOIN tasks t ON t.id=claim_keys.task_id
+                   LEFT JOIN assurance_task_bindings binding ON binding.task_id=t.id
                    LEFT JOIN task_executions execution ON execution.task_id=t.id
-                   ORDER BY history.task_id,history.generation"""
+                   ORDER BY claim_keys.task_id,claim_keys.generation"""
             ))
             from .integrity import verify as verify_integrity_signature
 
@@ -814,8 +825,8 @@ class CompanyOS:
             for row in pilot_completion_rows:
                 task_id = int(row["claimed_task_id"])
                 history_values = {
-                    "task_id": task_id,
-                    "generation": row["claim_generation"],
+                    "task_id": row["history_task_id"],
+                    "generation": row["history_generation"],
                     "initiative_id": row["claimed_initiative_id"],
                     "artifact_set_sha256": row["claimed_artifact_set_sha256"],
                     "fencing_token_sha256": row["claimed_fencing_token_sha256"],
@@ -823,7 +834,7 @@ class CompanyOS:
                 }
                 current_claim_values = {
                     "task_id": row["current_claim_task_id"],
-                    "generation": row["claim_generation"],
+                    "generation": row["current_claim_generation"],
                     "initiative_id": row["current_claim_initiative_id"],
                     "artifact_set_sha256": row["current_claim_artifact_set_sha256"],
                     "fencing_token_sha256": row["current_claim_fencing_token_sha256"],
@@ -835,6 +846,8 @@ class CompanyOS:
                 )
                 inconsistent = (
                     row["id"] is None
+                    or row["history_task_id"] is None
+                    or row["current_claim_task_id"] is None
                     or not verify_integrity_signature(
                         self.config.db_path, "pilot-claim-history", history_values,
                         row["history_integrity_signature"],

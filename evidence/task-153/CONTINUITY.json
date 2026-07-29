@@ -1,0 +1,49 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "/home/tony/agent-company/evidence/task-153/verification-report.md",
+        "/home/tony/agent-company/evidence/task-153/evidence-manifest.json",
+        "/home/tony/agent-company/evidence/task-153/red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-153/adversarial-probe-output.txt",
+        "/home/tony/agent-company/evidence/task-153/focused-test-output.txt",
+        "/home/tony/agent-company/evidence/task-153/full-test-output.txt",
+        "/home/tony/agent-company/evidence/task-153/clean-copy-migration-output.txt",
+        "/home/tony/agent-company/evidence/task-153/pixweave-test-output.txt"
+      ],
+      "decision_needed": "Independently review Task 153's union-based current/history claim reconciliation and retained evidence; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 153 closes the history-deletion validation bypass with exact RED/green probes, 114 focused tests, 220 Agent Company tests, 58 PixWeave tests, and backup-only migration noninterference proof.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "This delivery changes CompanyOS validation only and does not authorize deployment or live initialization.",
+    "No PixWeave source change, customer-data action, outreach, publication, pricing, payment, contract, or production action was performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review the pushed Task 153 commit and evidence before relying on the union reconciliation."
+  ],
+  "project_decisions": [
+    "CompanyOS validation derives the pilot claim audit surface from the union of assurance_claim_bindings and assurance_pilot_claim_history task/generation keys.",
+    "Every union member requires both signed counterparts with exact task, generation, initiative, artifact set, fencing-token digest, and creation timestamp values.",
+    "Missing counterparts, generation/value differences, and either invalid domain-specific signature use the existing bound-pilot inconsistency error.",
+    "Never-bound and nonpilot tasks remain outside pilot reconciliation because neither signed pilot claim table contains a key for them."
+  ],
+  "project_summary": "Agent Company validation now symmetrically reconciles signed current and historical pilot claims, so deleting either side cannot erase a forged completion from validation.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Completed Task 153 from clean HEAD f651381 with strict TDD, union-based signed claim reconciliation, backup-only migration verification, and full Agent Company/PixWeave regression coverage.",
+  "verified_facts": [
+    "The clean-base replay executed 10 exact probes with 2 expected failures exposing the current-claim-without-history bypass and forged completion after history deletion.",
+    "The identical 10-probe set passes after implementation.",
+    "Independent missing-current, missing-history, value mismatch, generation mismatch, current-signature, and history-signature probes report the bound-pilot inconsistency error.",
+    "Legitimate assurance-gated pilot completion and genuine never-bound/nonpilot completion validate without errors.",
+    "Focused verification executed 114 tests with all passing.",
+    "Agent Company canonical verification executed 220 tests with all passing.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and its canonical suite executed 58 tests with all passing.",
+    "The live SQLite connection was mode=ro/query_only, rejected a write probe, and recorded total_changes=0; migration writes occurred only on a temporary backup.",
+    "The backup migration wrote 6/6/12 anchors then 0/0/0 while all 23 operational-table digests remained identical and validation/integrity passed."
+  ]
+}
