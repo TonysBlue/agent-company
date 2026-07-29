@@ -1,0 +1,6 @@
+test_campaign_manifest_fails_closed_on_provenance (tests.test_product_workflows.TempWorkspaceTest.test_campaign_manifest_fails_closed_on_provenance) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+OK

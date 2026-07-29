@@ -1,0 +1,6 @@
+test_visual_qa_rejects_invalid_measurements_and_stop_thresholds (tests.test_product_workflows.TempWorkspaceTest.test_visual_qa_rejects_invalid_measurements_and_stop_thresholds) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK

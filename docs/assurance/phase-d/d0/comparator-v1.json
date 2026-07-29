@@ -1,0 +1,26 @@
+{
+  "schema_version": "phase-d-d0-comparator/v1",
+  "id": "frozen-current-workflow-reference-v1",
+  "mode": "baseline_replay_only",
+  "attempt_budget_per_case": 1,
+  "python": "3.11",
+  "test_protocol": "one exact unittest method subprocess per frozen case",
+  "repositories": {
+    "agent-company": {
+      "commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "path": "/home/tony/agent-company"
+    },
+    "pixweave": {
+      "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "path": "/home/tony/products/pixweave"
+    }
+  },
+  "timeouts": {
+    "case_timeout_seconds": 600,
+    "automated_gate_p90_ceiling_minutes": 10,
+    "human_review_gate_p90_ceiling_hours": 24
+  },
+  "external_spend_cny": 0,
+  "protected_holdout_attempts": 0,
+  "treatment_execution_authorized": false
+}

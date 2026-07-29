@@ -1,0 +1,43 @@
+{
+  "schema_version": "phase-d-d0-comparison-plan/v1",
+  "id": "phase-d-d0-to-d1-d2-comparison-plan-v1",
+  "baseline": "frozen-current-workflow-reference-v1",
+  "equal_budget_dimensions": [
+    "attempts",
+    "model",
+    "timeout",
+    "evidence"
+  ],
+  "metrics": [
+    "raw_timestamps",
+    "artifact_preparation_time",
+    "implementation_evaluation_review_elapsed",
+    "p50_p90_gate_waits",
+    "model_tokens_if_observed",
+    "engineering_evaluator_reviewer_minutes",
+    "defects_before_during_after_review",
+    "hard_gates",
+    "rework_count_minutes",
+    "false_blocks",
+    "reviewer_disagreement",
+    "unauthorized_transitions",
+    "lineage_completeness"
+  ],
+  "missing_data": "not_collected",
+  "d1": {
+    "status": "blocked",
+    "future_primary_estimand": "source-scenario blind preference win rate",
+    "future_positive_signal": "source-clustered-bootstrap lower confidence bound exceeds 0.05 with no hard-gate or protected-dimension regression",
+    "holdout_attempts_in_d0": 0
+  },
+  "d2": {
+    "status": "blocked",
+    "future_success": "all seeded critical/high faults detected, zero false pass, zero unauthorized transition, complete lineage, false blocks <= 0.10"
+  },
+  "start_conditions": [
+    "D0 baseline report produced",
+    "independent baseline review completed",
+    "Chairman confirms frozen comparison manifests and numerical ceilings",
+    "CEO records the relevant D1 or D2 start decision"
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "metrics": {
+    "all": {
+      "case_count": 22,
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 16,
+          "seeded_faults_detected": 16,
+          "severity_weighted": 58,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "elapsed_ms": {
+        "evaluation": {
+          "p50": 216,
+          "p90": 305
+        },
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "false_blocks": {
+        "count": 0,
+        "valid_controls": 6
+      },
+      "fault_detection": {
+        "detected": 16,
+        "seeded_faults": 16
+      },
+      "hard_gates": {
+        "failed": 0,
+        "passed": 22
+      },
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "human_review_wait_ms": "not_collected",
+      "lineage_completeness": {
+        "complete": 22,
+        "rate": 1.0,
+        "total": 22
+      },
+      "model_tokens": "not_collected",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "unauthorized_transitions": {
+        "count": 0,
+        "observed": 12
+      },
+      "waits_ms": {
+        "automated_gate": {
+          "p50": 216,
+          "p90": 305
+        },
+        "cycle": {
+          "p50": 216,
+          "p90": 305
+        },
+        "queue": {
+          "p50": 0,
+          "p90": 0
+        }
+      }
+    },
+    "control": {
+      "case_count": 16,
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 13,
+          "seeded_faults_detected": 13,
+          "severity_weighted": 49,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "elapsed_ms": {
+        "evaluation": {
+          "p50": 246,
+          "p90": 314
+        },
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "false_blocks": {
+        "count": 0,
+        "valid_controls": 3
+      },
+      "fault_detection": {
+        "detected": 13,
+        "seeded_faults": 13
+      },
+      "hard_gates": {
+        "failed": 0,
+        "passed": 16
+      },
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "human_review_wait_ms": "not_collected",
+      "lineage_completeness": {
+        "complete": 16,
+        "rate": 1.0,
+        "total": 16
+      },
+      "model_tokens": "not_collected",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "unauthorized_transitions": {
+        "count": 0,
+        "observed": 12
+      },
+      "waits_ms": {
+        "automated_gate": {
+          "p50": 246,
+          "p90": 314
+        },
+        "cycle": {
+          "p50": 246,
+          "p90": 314
+        },
+        "queue": {
+          "p50": 0,
+          "p90": 0
+        }
+      }
+    },
+    "product": {
+      "case_count": 6,
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 3,
+          "seeded_faults_detected": 3,
+          "severity_weighted": 9,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "elapsed_ms": {
+        "evaluation": {
+          "p50": 108,
+          "p90": 136
+        },
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "false_blocks": {
+        "count": 0,
+        "valid_controls": 3
+      },
+      "fault_detection": {
+        "detected": 3,
+        "seeded_faults": 3
+      },
+      "hard_gates": {
+        "failed": 0,
+        "passed": 6
+      },
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "human_review_wait_ms": "not_collected",
+      "lineage_completeness": {
+        "complete": 6,
+        "rate": 1.0,
+        "total": 6
+      },
+      "model_tokens": "not_collected",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "unauthorized_transitions": {
+        "count": 0,
+        "observed": 0
+      },
+      "waits_ms": {
+        "automated_gate": {
+          "p50": 108,
+          "p90": 136
+        },
+        "cycle": {
+          "p50": 108,
+          "p90": 136
+        },
+        "queue": {
+          "p50": 0,
+          "p90": 0
+        }
+      }
+    }
+  },
+  "run_id": "phase-d-d0-baseline-v1",
+  "schema_version": "phase-d-d0-metrics/v1"
+}

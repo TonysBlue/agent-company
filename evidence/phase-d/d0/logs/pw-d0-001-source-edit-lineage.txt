@@ -1,0 +1,6 @@
+test_source_image_edit_accepts_bounded_upload_and_writes_lineage (tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_accepts_bounded_upload_and_writes_lineage) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.003s
+
+OK

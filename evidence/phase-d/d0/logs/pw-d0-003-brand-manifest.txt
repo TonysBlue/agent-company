@@ -1,0 +1,6 @@
+test_brand_kit_validation_and_deterministic_campaign_manifest (tests.test_product_workflows.TempWorkspaceTest.test_brand_kit_validation_and_deterministic_campaign_manifest) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+OK

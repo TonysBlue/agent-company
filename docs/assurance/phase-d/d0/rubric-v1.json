@@ -1,0 +1,31 @@
+{
+  "schema_version": "phase-d-d0-rubric/v1",
+  "id": "phase-d-d0-baseline-rubric-v1",
+  "hard_gate_rule": "the exact replay probe exits zero",
+  "defect_rule": {
+    "before_review": "count each detected seeded fault or unexpected probe failure",
+    "during_independent_review": "not_collected until independent review",
+    "after_nominal_completion": "not_collected until subsequent observation",
+    "severity_weights": {
+      "critical": 4,
+      "high": 3,
+      "medium": 2,
+      "low": 1
+    }
+  },
+  "timing_rule": "retain UTC queue/start/end timestamps and derive nearest-rank p50/p90 milliseconds",
+  "missing_data_rule": "unobserved values are exactly not_collected and never zero or estimated",
+  "lineage_required": [
+    "case_definition_sha256",
+    "freeze_manifest_sha256",
+    "repository_commit",
+    "test_target",
+    "log_sha256",
+    "raw_timestamps",
+    "exit_code"
+  ],
+  "false_block_rule": "a valid control whose replay probe fails",
+  "unauthorized_transition_rule": "a transition-protection replay probe that fails to demonstrate fail-closed behavior",
+  "reviewer_disagreement_rule": "not_collected until two independent observations exist",
+  "attempt_outcome_rule": "retain failures, ties, abstentions, abandoned attempts, and protocol violations without dropping cases"
+}

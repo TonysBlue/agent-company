@@ -1,0 +1,6 @@
+test_unbound_and_nonpilot_tasks_are_unchanged (tests.test_pilot_gate.PilotGateTest.test_unbound_and_nonpilot_tasks_are_unchanged) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.052s
+
+OK

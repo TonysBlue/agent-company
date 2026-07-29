@@ -1,0 +1,6 @@
+test_source_image_edit_rejects_unsafe_and_polyglot_uploads_without_artifacts (tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_rejects_unsafe_and_polyglot_uploads_without_artifacts) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+OK

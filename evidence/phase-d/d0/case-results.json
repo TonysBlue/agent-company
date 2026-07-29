@@ -1,0 +1,1793 @@
+{
+  "results": [
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "pw-d0-001-source-edit-lineage",
+      "case_kind": "synthetic_product_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 0,
+          "seeded_faults_detected": 0,
+          "severity_weighted": 0,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "product",
+      "elapsed_ms": {
+        "evaluation": 108,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/pw-d0-001-source-edit-lineage.txt",
+        "log_sha256": "6c38969570cc84dd0a4f5560e6f722d4bd20588a8f2ecf7418c24ee5c34d2e6e"
+      },
+      "exit_code": 0,
+      "expected_signal": "review-ready local edit retains complete source and output lineage",
+      "false_block": false,
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "70ebe17282c59f6eb5186591730d1655c4f523cb354144fb8e26a5b247f54565",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "6c38969570cc84dd0a4f5560e6f722d4bd20588a8f2ecf7418c24ee5c34d2e6e",
+          "raw_timestamps": true,
+          "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+          "test_target": "tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_accepts_bounded_upload_and_writes_lineage"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "pixweave",
+      "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": false,
+      "severity": "high",
+      "test_target": "tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_accepts_bounded_upload_and_writes_lineage",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:20.974484+00:00",
+        "queued_at": "2026-07-29T07:40:20.866326+00:00",
+        "started_at": "2026-07-29T07:40:20.866331+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": true,
+      "waits_ms": {
+        "automated_gate": 108,
+        "cycle": 108,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "pw-d0-002-unsafe-source-rejection",
+      "case_kind": "synthetic_adversarial_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 3,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "product",
+      "elapsed_ms": {
+        "evaluation": 134,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/pw-d0-002-unsafe-source-rejection.txt",
+        "log_sha256": "0ced851bebcd04c6438a24289d770b29abf38629c201943c101dbfdbb70b5063"
+      },
+      "exit_code": 0,
+      "expected_signal": "unsafe input fails closed without retained artifacts",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "7bcdbbbf26c3002415e0f7932ac1c4da672b7a00fa4ef0786c8a48878c06b2ba",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "0ced851bebcd04c6438a24289d770b29abf38629c201943c101dbfdbb70b5063",
+          "raw_timestamps": true,
+          "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+          "test_target": "tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_rejects_unsafe_and_polyglot_uploads_without_artifacts"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "pixweave",
+      "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "high",
+      "test_target": "tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_rejects_unsafe_and_polyglot_uploads_without_artifacts",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:21.118232+00:00",
+        "queued_at": "2026-07-29T07:40:20.984376+00:00",
+        "started_at": "2026-07-29T07:40:20.984385+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 134,
+        "cycle": 134,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "pw-d0-003-brand-manifest",
+      "case_kind": "synthetic_product_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 0,
+          "seeded_faults_detected": 0,
+          "severity_weighted": 0,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "product",
+      "elapsed_ms": {
+        "evaluation": 136,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/pw-d0-003-brand-manifest.txt",
+        "log_sha256": "f5b8d7cdc54a953bc46a0495166c947fcee1cbf9b14fcd1af98b06adc18a460e"
+      },
+      "exit_code": 0,
+      "expected_signal": "fixed brand constraints yield deterministic lineage-bound variants",
+      "false_block": false,
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "0056b52df4babf02f2952ad6bbf215da2486c226ceb6d4f75b52512b8b180204",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "f5b8d7cdc54a953bc46a0495166c947fcee1cbf9b14fcd1af98b06adc18a460e",
+          "raw_timestamps": true,
+          "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+          "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_brand_kit_validation_and_deterministic_campaign_manifest"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "pixweave",
+      "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": false,
+      "severity": "medium",
+      "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_brand_kit_validation_and_deterministic_campaign_manifest",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:21.262777+00:00",
+        "queued_at": "2026-07-29T07:40:21.127205+00:00",
+        "started_at": "2026-07-29T07:40:21.127213+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": true,
+      "waits_ms": {
+        "automated_gate": 136,
+        "cycle": 136,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "pw-d0-004-provenance-faults",
+      "case_kind": "synthetic_adversarial_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 3,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "product",
+      "elapsed_ms": {
+        "evaluation": 97,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/pw-d0-004-provenance-faults.txt",
+        "log_sha256": "fdc0f53ad199c73a8131572c499c94e0de9e2599a78a8a7389c61fd33cd63774"
+      },
+      "exit_code": 0,
+      "expected_signal": "missing, pending, and mismatched provenance are rejected",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "820e42697db55cd3963c4b051ee0785f0e775d2752a45d9f09d48702ee519585",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "fdc0f53ad199c73a8131572c499c94e0de9e2599a78a8a7389c61fd33cd63774",
+          "raw_timestamps": true,
+          "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+          "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_campaign_manifest_fails_closed_on_provenance"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "pixweave",
+      "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "high",
+      "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_campaign_manifest_fails_closed_on_provenance",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:21.367988+00:00",
+        "queued_at": "2026-07-29T07:40:21.271219+00:00",
+        "started_at": "2026-07-29T07:40:21.271227+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 97,
+        "cycle": 97,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "pw-d0-005-reviewable-render",
+      "case_kind": "synthetic_product_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 0,
+          "seeded_faults_detected": 0,
+          "severity_weighted": 0,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "product",
+      "elapsed_ms": {
+        "evaluation": 113,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/pw-d0-005-reviewable-render.txt",
+        "log_sha256": "ed04b2a3cf7f405413bf3208a10e49f9e8e35edb8c2931c5d074cc0b0ed61baf"
+      },
+      "exit_code": 0,
+      "expected_signal": "complete deterministic local bundle remains internal and reviewable",
+      "false_block": false,
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "a588ced5fe57dafb652e2590458486b6b285650b70f59028f60f7f53f3d471ef",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "ed04b2a3cf7f405413bf3208a10e49f9e8e35edb8c2931c5d074cc0b0ed61baf",
+          "raw_timestamps": true,
+          "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+          "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_campaign_render_writes_deterministic_escaped_svg_bundle"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "pixweave",
+      "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": false,
+      "severity": "medium",
+      "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_campaign_render_writes_deterministic_escaped_svg_bundle",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:21.485219+00:00",
+        "queued_at": "2026-07-29T07:40:21.372618+00:00",
+        "started_at": "2026-07-29T07:40:21.372627+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": true,
+      "waits_ms": {
+        "automated_gate": 113,
+        "cycle": 113,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "pw-d0-006-hard-gate-thresholds",
+      "case_kind": "synthetic_adversarial_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 3,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "product",
+      "elapsed_ms": {
+        "evaluation": 99,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/pw-d0-006-hard-gate-thresholds.txt",
+        "log_sha256": "cbe1a7a10e00927bbcdc4e679b1c6975c90b7fd74dc24088bffaefddb8d69f05"
+      },
+      "exit_code": 0,
+      "expected_signal": "invalid observations and stop-threshold failures fail closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "96951a376286e9593ef90f34825f20c492a2e9a4efd8e104188ea96ea3fc657c",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "cbe1a7a10e00927bbcdc4e679b1c6975c90b7fd74dc24088bffaefddb8d69f05",
+          "raw_timestamps": true,
+          "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+          "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_visual_qa_rejects_invalid_measurements_and_stop_thresholds"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "pixweave",
+      "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "high",
+      "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_visual_qa_rejects_invalid_measurements_and_stop_thresholds",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:21.592437+00:00",
+        "queued_at": "2026-07-29T07:40:21.493850+00:00",
+        "started_at": "2026-07-29T07:40:21.493858+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 99,
+        "cycle": 99,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-001-stale-artifact",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 305,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-001-stale-artifact.txt",
+        "log_sha256": "991318d90fbfcd9eedcad15add1c3108617d64a1debe3fa9596580d13b5895bf"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "03fd3d9f74ed225345d1133c42d459df35a735a569e58bae5ccced3e9c8ac1e1",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "991318d90fbfcd9eedcad15add1c3108617d64a1debe3fa9596580d13b5895bf",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:21.901963+00:00",
+        "queued_at": "2026-07-29T07:40:21.597306+00:00",
+        "started_at": "2026-07-29T07:40:21.597313+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 305,
+        "cycle": 305,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-002-threshold-drift",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 289,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-002-threshold-drift.txt",
+        "log_sha256": "2b566bcac896bb694d094077270e9f65f6a68e564ecfb7223ea455b2beaedab2"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "7459ed58c6605784693bfd0bdfde4f6e454033148f7e9844c6b7588d05f2f038",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "2b566bcac896bb694d094077270e9f65f6a68e564ecfb7223ea455b2beaedab2",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:22.199054+00:00",
+        "queued_at": "2026-07-29T07:40:21.910333+00:00",
+        "started_at": "2026-07-29T07:40:21.910341+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 289,
+        "cycle": 289,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-003-profile-drift",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 3,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 265,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-003-profile-drift.txt",
+        "log_sha256": "afb2a195102f5e35312cae2942eda172e06a0b062ab953aa5353bca65304682d"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "8de9f43c2b045e5c0561d2de235c2f085cdb930cf2caa699cd8daca783bd3f58",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "afb2a195102f5e35312cae2942eda172e06a0b062ab953aa5353bca65304682d",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "high",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:22.472368+00:00",
+        "queued_at": "2026-07-29T07:40:22.207568+00:00",
+        "started_at": "2026-07-29T07:40:22.207576+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 265,
+        "cycle": 265,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-004-authority-drift",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 314,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-004-authority-drift.txt",
+        "log_sha256": "58e5e8f28d7628b83dc0459804544cbc2ebbe084f6d93427ca545adcef996a39"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "b2fd9b94250e57d40e2c179acb7c0e72f76245ad316d07d68beb08683a1fe4e9",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "58e5e8f28d7628b83dc0459804544cbc2ebbe084f6d93427ca545adcef996a39",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:22.795418+00:00",
+        "queued_at": "2026-07-29T07:40:22.481007+00:00",
+        "started_at": "2026-07-29T07:40:22.481014+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 314,
+        "cycle": 314,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-005-credential-drift",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 280,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-005-credential-drift.txt",
+        "log_sha256": "6adfe1ad26f9304771a9bc123cd1186ee6df1b01c492fb11b2fc9dcc08e0462d"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "096e60af14e56608994063222a7584e54c48e8e91187f9d54c8042a3dced2c49",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "6adfe1ad26f9304771a9bc123cd1186ee6df1b01c492fb11b2fc9dcc08e0462d",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:23.084410+00:00",
+        "queued_at": "2026-07-29T07:40:22.804855+00:00",
+        "started_at": "2026-07-29T07:40:22.804863+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 280,
+        "cycle": 280,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-006-generation-drift",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 317,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-006-generation-drift.txt",
+        "log_sha256": "33c7052c73e9eee27196795a7804798c44e7d33492afb1e4f0a2639684f56409"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "07d4653bcacf4ba378e281f23729bb065b48b7f00fb106b50fd3ef1d26d03018",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "33c7052c73e9eee27196795a7804798c44e7d33492afb1e4f0a2639684f56409",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:23.409377+00:00",
+        "queued_at": "2026-07-29T07:40:23.092724+00:00",
+        "started_at": "2026-07-29T07:40:23.092731+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 317,
+        "cycle": 317,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-007-direct-completion-bypass",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 160,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-007-direct-completion-bypass.txt",
+        "log_sha256": "de4b5915b284a5b08faef07b17cdd20d1c56e510c00d7b5c22b267fd41baef88"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "d9bbc65dfae820b0d19b6899ffe83df6d362b18d531b229fc1043f06d69025c0",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "de4b5915b284a5b08faef07b17cdd20d1c56e510c00d7b5c22b267fd41baef88",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_direct_sql_cannot_complete_a_claimed_bound_pilot"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_direct_sql_cannot_complete_a_claimed_bound_pilot",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:23.577658+00:00",
+        "queued_at": "2026-07-29T07:40:23.418021+00:00",
+        "started_at": "2026-07-29T07:40:23.418028+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 160,
+        "cycle": 160,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-008-forged-binding-trigger",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 262,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-008-forged-binding-trigger.txt",
+        "log_sha256": "b10af94d09e55c209317b22269eff55c31f7c3fe6659bbb8b8ce478af9a23297"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "f54233ea66318cabbabea4417be25c4653130e46c5e0e84c6d4110407b7a2cb9",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "b10af94d09e55c209317b22269eff55c31f7c3fe6659bbb8b8ce478af9a23297",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_execution_binding_and_dropped_triggers_fail_closed"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_execution_binding_and_dropped_triggers_fail_closed",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:23.849215+00:00",
+        "queued_at": "2026-07-29T07:40:23.586951+00:00",
+        "started_at": "2026-07-29T07:40:23.586958+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 262,
+        "cycle": 262,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-009-quarantined-eval",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 246,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-009-quarantined-eval.txt",
+        "log_sha256": "f9e0b38ef25ca9145d2701bf02410cda60ddbffe47bb0b52fb49535721a113a0"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "2ec471d87080dc01482b6f671547663b555c9505efc72c73495a40128a47f2e6",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "f9e0b38ef25ca9145d2701bf02410cda60ddbffe47bb0b52fb49535721a113a0",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_quarantined_eval_fails_closed"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_quarantined_eval_fails_closed",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:24.105240+00:00",
+        "queued_at": "2026-07-29T07:40:23.859027+00:00",
+        "started_at": "2026-07-29T07:40:23.859033+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 246,
+        "cycle": 246,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-010-nonindependent-review",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 3,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 216,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-010-nonindependent-review.txt",
+        "log_sha256": "e5ec5d8ba4e9f9ebd838b401c97ce89a335031385b18d05f45bf583b0e8cfc65"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "a7066965268c9c8afc4209270f15b87ef48f589c79aeaa20929f5cd83c422e0d",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "e5ec5d8ba4e9f9ebd838b401c97ce89a335031385b18d05f45bf583b0e8cfc65",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_implementer_authored_review_is_not_independent"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "high",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_implementer_authored_review_is_not_independent",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:24.329235+00:00",
+        "queued_at": "2026-07-29T07:40:24.113625+00:00",
+        "started_at": "2026-07-29T07:40:24.113631+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 216,
+        "cycle": 216,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-011-dashboard-context-leak",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 3,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 217,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-011-dashboard-context-leak.txt",
+        "log_sha256": "a4dd6733b099f7e1ec1caf88926e1781c186902eeb5669592f2839378e7da599"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "adafe6a32a788c0244a8b8fdb02a36f9eb1f12b14386c02a0c901efa5d79ad7c",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "a4dd6733b099f7e1ec1caf88926e1781c186902eeb5669592f2839378e7da599",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_dashboard.DashboardTest.test_complete_snapshot_and_api_redact_raw_runtime_fields"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "high",
+      "test_target": "tests.test_dashboard.DashboardTest.test_complete_snapshot_and_api_redact_raw_runtime_fields",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:24.550947+00:00",
+        "queued_at": "2026-07-29T07:40:24.333867+00:00",
+        "started_at": "2026-07-29T07:40:24.333874+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 217,
+        "cycle": 217,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-012-lifecycle-rollback",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 257,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-012-lifecycle-rollback.txt",
+        "log_sha256": "a3a2b4aa929d4139cc814567e0dbe240cbeaf7f2a450f7fbe01297960b92b1e0"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "0feccd65ec1153bd2edf3f04a78a8bffa68c3a5db6e2f0767ea42b2d035b5e20",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "a3a2b4aa929d4139cc814567e0dbe240cbeaf7f2a450f7fbe01297960b92b1e0",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_dropped_status_guard_cannot_hide_supersession_rollback"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_dropped_status_guard_cannot_hide_supersession_rollback",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:24.817276+00:00",
+        "queued_at": "2026-07-29T07:40:24.559983+00:00",
+        "started_at": "2026-07-29T07:40:24.559989+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 257,
+        "cycle": 257,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-013-claim-history-asymmetry",
+      "case_kind": "seeded_fault_replay",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 1,
+          "seeded_faults_detected": 1,
+          "severity_weighted": 4,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 183,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-013-claim-history-asymmetry.txt",
+        "log_sha256": "929eb5157663608795e27c0e3b314a3e620e73a9ff7a347e13302719995e487f"
+      },
+      "exit_code": 0,
+      "expected_signal": "fault_detected_fail_closed",
+      "false_block": "not_applicable",
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "b243bc3892b621c95c3e9a65acb42074199b8dec148cb1e661d58e95670dda9d",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "929eb5157663608795e27c0e3b314a3e620e73a9ff7a347e13302719995e487f",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_reports_forged_completion_after_history_deletion"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": true,
+      "severity": "critical",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_reports_forged_completion_after_history_deletion",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:25.008193+00:00",
+        "queued_at": "2026-07-29T07:40:24.825591+00:00",
+        "started_at": "2026-07-29T07:40:24.825597+00:00"
+      },
+      "unauthorized_transition": false,
+      "valid_control": false,
+      "waits_ms": {
+        "automated_gate": 183,
+        "cycle": 183,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-014-never-bound-control",
+      "case_kind": "valid_compatibility_control",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 0,
+          "seeded_faults_detected": 0,
+          "severity_weighted": 0,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 195,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-014-never-bound-control.txt",
+        "log_sha256": "3c111eecd64016ae65c954d8335c06a0f2a0e1a32503e7a175a6a476543bcd07"
+      },
+      "exit_code": 0,
+      "expected_signal": "valid_control_allowed",
+      "false_block": false,
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "744796dc1c1b976e4b6d3329a1e8bd9b0cecfabb0fb850797a8999a4321fc6dd",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "3c111eecd64016ae65c954d8335c06a0f2a0e1a32503e7a175a6a476543bcd07",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": false,
+      "severity": "high",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:25.211885+00:00",
+        "queued_at": "2026-07-29T07:40:25.016786+00:00",
+        "started_at": "2026-07-29T07:40:25.016793+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": true,
+      "waits_ms": {
+        "automated_gate": 195,
+        "cycle": 195,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-015-approved-completion-control",
+      "case_kind": "valid_compatibility_control",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 0,
+          "seeded_faults_detected": 0,
+          "severity_weighted": 0,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 230,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-015-approved-completion-control.txt",
+        "log_sha256": "77ba394e1aa357cd38bca360818491de62051550b9dd2597a3e27214fc101698"
+      },
+      "exit_code": 0,
+      "expected_signal": "valid_control_allowed",
+      "false_block": false,
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "1e446ae973e84823f1b2f648b2b3c8ad8961508b801953c1e44c6451c181a4ed",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "77ba394e1aa357cd38bca360818491de62051550b9dd2597a3e27214fc101698",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_accepts_legitimate_completed_pilot"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": false,
+      "severity": "high",
+      "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_accepts_legitimate_completed_pilot",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:25.446287+00:00",
+        "queued_at": "2026-07-29T07:40:25.216028+00:00",
+        "started_at": "2026-07-29T07:40:25.216034+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": true,
+      "waits_ms": {
+        "automated_gate": 230,
+        "cycle": 230,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    },
+    {
+      "attempt_outcome": {
+        "abandoned": false,
+        "abstention": false,
+        "completed": true,
+        "failure": false,
+        "protocol_violation": false,
+        "tie": "not_applicable"
+      },
+      "case_id": "os-d0-016-unbound-dispatch-control",
+      "case_kind": "valid_compatibility_control",
+      "defects": {
+        "after_nominal_completion": "not_collected",
+        "before_review": {
+          "count": 0,
+          "seeded_faults_detected": 0,
+          "severity_weighted": 0,
+          "unexpected_probe_failures": 0
+        },
+        "during_independent_review": "not_collected"
+      },
+      "domain": "control",
+      "elapsed_ms": {
+        "evaluation": 134,
+        "implementation": "not_collected",
+        "independent_review": "not_collected"
+      },
+      "evidence": {
+        "log_path": "logs/os-d0-016-unbound-dispatch-control.txt",
+        "log_sha256": "88fbf94c5641a214236385d5552402d48bbf20100e63d7c40f51d3d9c7f90213"
+      },
+      "exit_code": 0,
+      "expected_signal": "valid_control_allowed",
+      "false_block": false,
+      "hard_gate": "pass",
+      "human_minutes": {
+        "engineering": "not_collected",
+        "evaluation": "not_collected",
+        "review": "not_collected"
+      },
+      "lineage": {
+        "complete": true,
+        "present": 7,
+        "required": 7,
+        "values": {
+          "case_definition_sha256": "03c8e97d0ef14d990623a916b126f1f84b70099cffc74ffca1652ff0dfa9bd5b",
+          "exit_code": 0,
+          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "log_sha256": "88fbf94c5641a214236385d5552402d48bbf20100e63d7c40f51d3d9c7f90213",
+          "raw_timestamps": true,
+          "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+          "test_target": "tests.test_pilot_gate.PilotGateTest.test_unbound_and_nonpilot_tasks_are_unchanged"
+        }
+      },
+      "model_tokens": "not_collected",
+      "probe_result": "pass",
+      "repository": "agent-company",
+      "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "reviewer_disagreement": "not_collected",
+      "rework": {
+        "count": "not_collected",
+        "minutes": "not_collected"
+      },
+      "seeded_fault": false,
+      "severity": "medium",
+      "test_target": "tests.test_pilot_gate.PilotGateTest.test_unbound_and_nonpilot_tasks_are_unchanged",
+      "timestamps": {
+        "ended_at": "2026-07-29T07:40:25.586207+00:00",
+        "queued_at": "2026-07-29T07:40:25.452657+00:00",
+        "started_at": "2026-07-29T07:40:25.452663+00:00"
+      },
+      "unauthorized_transition": "not_applicable",
+      "valid_control": true,
+      "waits_ms": {
+        "automated_gate": 134,
+        "cycle": 134,
+        "human_review": "not_collected",
+        "queue": 0
+      }
+    }
+  ],
+  "run": {
+    "artifact_preparation": {
+      "elapsed_ms": 195,
+      "ended_at": "2026-07-29T07:40:20.866150+00:00",
+      "started_at": "2026-07-29T07:40:20.671518+00:00"
+    },
+    "attempt_budget_per_case": 1,
+    "case_count": 22,
+    "ended_at": "2026-07-29T07:40:25.635779+00:00",
+    "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+    "repositories": {
+      "agent-company": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "pixweave": "d78094f26eb697c810899a40771a8af6dec7ce19"
+    },
+    "results_sha256": "b4f00211f5554e9abd33a409c566f9379127b3fae18301a8ae5f37a6abe27104",
+    "run_id": "phase-d-d0-baseline-v1",
+    "schema_version": "phase-d-d0-run/v1",
+    "scope": "Phase D Stage D0 only",
+    "stage_gates": {
+      "d1": "blocked",
+      "d2": "blocked"
+    },
+    "started_at": "2026-07-29T07:40:20.866158+00:00",
+    "tooling_sha256": {
+      "agent_company/phase_d_d0.py": "823e147ae27ca54ffe6e2edc3dbc22b70cd62a74c21d22ef6c5195f13b395119",
+      "scripts/run_phase_d_d0.py": "5096f17d0e2739b9400927394034dd0c03586e93654be35da706c9c69ac95bbb"
+    }
+  },
+  "schema_version": "phase-d-d0-case-results/v1"
+}

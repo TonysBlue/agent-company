@@ -1,0 +1,182 @@
+test_artifact_route_serves_only_local_beta_files (test_beta_product.LocalBetaProductTest.test_artifact_route_serves_only_local_beta_files) ... ok
+test_home_and_status_show_internal_no_publish_controls (test_beta_product.LocalBetaProductTest.test_home_and_status_show_internal_no_publish_controls) ... ok
+test_malformed_and_sensitive_input_fail_closed_without_artifacts (test_beta_product.LocalBetaProductTest.test_malformed_and_sensitive_input_fail_closed_without_artifacts) ... ok
+test_render_review_and_feedback_flow_writes_bounded_local_artifacts (test_beta_product.LocalBetaProductTest.test_render_review_and_feedback_flow_writes_bounded_local_artifacts) ... ok
+test_review_rejects_bundle_path_outside_local_beta_root (test_beta_product.LocalBetaProductTest.test_review_rejects_bundle_path_outside_local_beta_root) ... ok
+test_review_rejects_tampered_bundle_without_retaining_decisions (test_beta_product.LocalBetaProductTest.test_review_rejects_tampered_bundle_without_retaining_decisions) ... ok
+test_source_image_edit_accepts_bounded_upload_and_writes_lineage (test_beta_product.LocalBetaProductTest.test_source_image_edit_accepts_bounded_upload_and_writes_lineage) ... ok
+test_source_image_edit_rejects_unsafe_and_polyglot_uploads_without_artifacts (test_beta_product.LocalBetaProductTest.test_source_image_edit_rejects_unsafe_and_polyglot_uploads_without_artifacts) ... ok
+test_protocol_defines_metrics_and_thresholds_without_inferred_values (test_controlled_beta_protocol.ControlledBetaProtocolTest.test_protocol_defines_metrics_and_thresholds_without_inferred_values) ... ok
+test_protocol_defines_target_customer_and_core_scenarios (test_controlled_beta_protocol.ControlledBetaProtocolTest.test_protocol_defines_target_customer_and_core_scenarios) ... ok
+test_protocol_is_versioned_and_bounded_by_governance (test_controlled_beta_protocol.ControlledBetaProtocolTest.test_protocol_is_versioned_and_bounded_by_governance) ... ok
+test_protocol_sets_pause_stop_and_evidence_requirements (test_controlled_beta_protocol.ControlledBetaProtocolTest.test_protocol_sets_pause_stop_and_evidence_requirements) ... ok
+test_builds_auditable_record_and_preserves_missing_values (test_controlled_beta_protocol.ControlledBetaSessionCaptureTest.test_builds_auditable_record_and_preserves_missing_values) ... ok
+test_cli_writes_validated_record (test_controlled_beta_protocol.ControlledBetaSessionCaptureTest.test_cli_writes_validated_record) ... {
+  "approval_reference": "internal-only-no-customer-data",
+  "artifacts": [
+    {
+      "artifact_id": "fixture-svg-001",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "asset_rights": {
+    "attested": true,
+    "provenance": "synthetic fixture generated for internal testing"
+  },
+  "consent": {
+    "granted": true,
+    "recorded_at": "2026-07-13T08:00:00+08:00",
+    "withdrawal_route_recorded": true
+  },
+  "contains_sensitive_data": false,
+  "elapsed_minutes": 6.5,
+  "eligible_session": true,
+  "ended_at": "2026-07-13T08:07:30+08:00",
+  "external_action_authorized": false,
+  "feedback_id": "synthetic-feedback-001",
+  "human_review_minutes": "not_collected",
+  "human_support_minutes": "not_collected",
+  "intended_outcome": "Create a reviewable branded crop",
+  "issues": [
+    {
+      "issue_id": "issue-001",
+      "severity": "low"
+    }
+  ],
+  "operation_duration_minutes": {
+    "session_id": "internal-session-001",
+    "source": "session_timestamps",
+    "value": 6.5
+  },
+  "participant_pseudonym": "internal-reviewer-01",
+  "protocol_version": "pixweave-controlled-beta/v1.0",
+  "quality_review": {
+    "passed": true
+  },
+  "quality_score": "not_collected",
+  "retention_status": "retained",
+  "satisfaction": "not_collected",
+  "scenario": "source-image-edit",
+  "schema_version": "pixweave-beta-session/v1",
+  "session_id": "internal-session-001",
+  "session_sha256": "d4104263d1b8df0d6455b9f282019860b831368bd34a206b7ed89e2922d089a8",
+  "started_at": "2026-07-13T08:01:00+08:00",
+  "task_outcome": "success",
+  "token_usage": "not_collected"
+}
+ok
+test_rejects_unsafe_or_invalid_evidence (test_controlled_beta_protocol.ControlledBetaSessionCaptureTest.test_rejects_unsafe_or_invalid_evidence) ... ok
+test_beta_launch_readiness_example_is_deterministic_and_never_authorizes_launch (test_product_workflows.TempWorkspaceTest.test_beta_launch_readiness_example_is_deterministic_and_never_authorizes_launch) ... ok
+test_beta_launch_readiness_fails_closed_on_missing_and_tampered_evidence (test_product_workflows.TempWorkspaceTest.test_beta_launch_readiness_fails_closed_on_missing_and_tampered_evidence) ... ok
+test_beta_launch_readiness_rejects_malformed_input_and_no_partial_cli_output (test_product_workflows.TempWorkspaceTest.test_beta_launch_readiness_rejects_malformed_input_and_no_partial_cli_output) ... ok
+test_brand_kit_rejects_invalid_palette_version_and_dimensions (test_product_workflows.TempWorkspaceTest.test_brand_kit_rejects_invalid_palette_version_and_dimensions) ... ok
+test_brand_kit_validation_and_deterministic_campaign_manifest (test_product_workflows.TempWorkspaceTest.test_brand_kit_validation_and_deterministic_campaign_manifest) ... ok
+test_campaign_manifest_fails_closed_on_provenance (test_product_workflows.TempWorkspaceTest.test_campaign_manifest_fails_closed_on_provenance) ... ok
+test_campaign_manifest_rejects_duplicate_identity_dimensions (test_product_workflows.TempWorkspaceTest.test_campaign_manifest_rejects_duplicate_identity_dimensions) ... ok
+test_campaign_render_provider_rejects_unbounded_local_images (test_product_workflows.TempWorkspaceTest.test_campaign_render_provider_rejects_unbounded_local_images) ... ok
+test_campaign_render_publication_failure_leaves_no_partial_output (test_product_workflows.TempWorkspaceTest.test_campaign_render_publication_failure_leaves_no_partial_output) ... ok
+test_campaign_render_rejects_malformed_input_and_preserves_existing_output (test_product_workflows.TempWorkspaceTest.test_campaign_render_rejects_malformed_input_and_preserves_existing_output) ... ok
+test_campaign_render_verify_accepts_complete_bundle_through_cli (test_product_workflows.TempWorkspaceTest.test_campaign_render_verify_accepts_complete_bundle_through_cli) ... ok
+test_campaign_render_verify_fails_closed_on_tampering (test_product_workflows.TempWorkspaceTest.test_campaign_render_verify_fails_closed_on_tampering) ... ok
+test_campaign_render_writes_deterministic_escaped_svg_bundle (test_product_workflows.TempWorkspaceTest.test_campaign_render_writes_deterministic_escaped_svg_bundle) ... ok
+test_campaign_review_fails_on_tampered_bundle_and_incomplete_or_malformed_decisions (test_product_workflows.TempWorkspaceTest.test_campaign_review_fails_on_tampered_bundle_and_incomplete_or_malformed_decisions) ... ok
+test_campaign_review_is_deterministic_and_leaves_no_partial_output (test_product_workflows.TempWorkspaceTest.test_campaign_review_is_deterministic_and_leaves_no_partial_output) ... ok
+test_campaign_review_records_complete_internal_decisions_through_cli (test_product_workflows.TempWorkspaceTest.test_campaign_review_records_complete_internal_decisions_through_cli) ... ok
+test_feedback_capture_and_triage_are_bounded_and_auditable (test_product_workflows.TempWorkspaceTest.test_feedback_capture_and_triage_are_bounded_and_auditable) ... ok
+test_json_artifact_write_preserves_existing_file_when_replace_fails (test_product_workflows.TempWorkspaceTest.test_json_artifact_write_preserves_existing_file_when_replace_fails) ... ok
+test_product_shot_workflow_fails_closed_on_provenance_and_scenario_count (test_product_workflows.TempWorkspaceTest.test_product_shot_workflow_fails_closed_on_provenance_and_scenario_count) ... ok
+test_product_shot_workflow_manifest_is_deterministic_and_atomic (test_product_workflows.TempWorkspaceTest.test_product_shot_workflow_manifest_is_deterministic_and_atomic) ... ok
+test_prompt_pack_expands_deterministically_and_writes_manifest (test_product_workflows.TempWorkspaceTest.test_prompt_pack_expands_deterministically_and_writes_manifest) ... ok
+test_prompt_pack_fails_closed_on_invalid_variables (test_product_workflows.TempWorkspaceTest.test_prompt_pack_fails_closed_on_invalid_variables) ... ok
+test_unit_economics_calculates_cost_per_accepted_asset (test_product_workflows.TempWorkspaceTest.test_unit_economics_calculates_cost_per_accepted_asset) ... ok
+test_unit_economics_rejects_invalid_acceptance_rate (test_product_workflows.TempWorkspaceTest.test_unit_economics_rejects_invalid_acceptance_rate) ... ok
+test_visual_qa_rejects_invalid_measurements_and_stop_thresholds (test_product_workflows.TempWorkspaceTest.test_visual_qa_rejects_invalid_measurements_and_stop_thresholds) ... ok
+test_visual_qa_scorecard_repeatability_and_thresholds (test_product_workflows.TempWorkspaceTest.test_visual_qa_scorecard_repeatability_and_thresholds) ... ok
+test_checked_in_service_is_loopback_only (test_repository_boundary.PixWeaveRepositoryTest.test_checked_in_service_is_loopback_only) ... ok
+test_product_config_keeps_runtime_data_outside_git (test_repository_boundary.PixWeaveRepositoryTest.test_product_config_keeps_runtime_data_outside_git) ... ok
+test_product_manifest_declares_repository_and_verification (test_repository_boundary.PixWeaveRepositoryTest.test_product_manifest_declares_repository_and_verification) ... ok
+test_product_repository_has_independent_cli_and_runtime (test_repository_boundary.PixWeaveRepositoryTest.test_product_repository_has_independent_cli_and_runtime) ... ok
+test_auditable_matrix_separates_product_and_demand_evidence (test_task_131_subscription_strategy.Task131SubscriptionStrategyTest.test_auditable_matrix_separates_product_and_demand_evidence) ... ok
+test_document_is_versioned_internal_and_non_commercial (test_task_131_subscription_strategy.Task131SubscriptionStrategyTest.test_document_is_versioned_internal_and_non_commercial) ... ok
+test_internal_validation_has_thresholds_missing_value_rules_and_audit_fields (test_task_131_subscription_strategy.Task131SubscriptionStrategyTest.test_internal_validation_has_thresholds_missing_value_rules_and_audit_fields) ... ok
+test_packages_and_billing_are_non_price_hypotheses (test_task_131_subscription_strategy.Task131SubscriptionStrategyTest.test_packages_and_billing_are_non_price_hypotheses) ... ok
+test_three_segments_have_scenarios_and_common_and_distinct_needs (test_task_131_subscription_strategy.Task131SubscriptionStrategyTest.test_three_segments_have_scenarios_and_common_and_distinct_needs) ... ok
+test_value_proposition_and_path_do_not_depend_on_sales_negotiation (test_task_131_subscription_strategy.Task131SubscriptionStrategyTest.test_value_proposition_and_path_do_not_depend_on_sales_negotiation) ... ok
+test_checked_in_synthetic_sample_is_reproducible_through_cli (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_checked_in_synthetic_sample_is_reproducible_through_cli) ... {
+  "coverage": {
+    "human_review_minutes": {
+      "collected": 2,
+      "not_collected": 1
+    },
+    "operation_duration_minutes": {
+      "collected": 3,
+      "not_collected": 0
+    },
+    "quality_score": {
+      "collected": 2,
+      "not_collected": 1
+    },
+    "token_usage": {
+      "collected": 2,
+      "not_collected": 1
+    }
+  },
+  "currency": "USD",
+  "dataset_kind": "synthetic",
+  "efficiency": {
+    "successful_sessions_per_operation_hour": 2.4
+  },
+  "external_action_authorized": false,
+  "limitations": "Synthetic local evidence only; not customer, pricing, billing, or production evidence.",
+  "outcomes": {
+    "success_rate": 0.333333,
+    "successful_sessions": 1
+  },
+  "pricing_authorized": false,
+  "quality": {
+    "average_score": 4.5,
+    "scale_max": 5
+  },
+  "schema_version": "pixweave-beta-session-economics-result/v1",
+  "session_count": 3,
+  "session_links": [
+    {
+      "session_id": "synthetic-session-001",
+      "session_sha256": "7d7fb49ce1ac1a05d872d0e809f202db7d7e1ec9e2107443387f8d91b5fefb0f"
+    },
+    {
+      "session_id": "synthetic-session-002",
+      "session_sha256": "aa069094894f88aacefbfbe203d3bed3a9541d708c00312fc6ec23b1aef366fe"
+    },
+    {
+      "session_id": "synthetic-session-003",
+      "session_sha256": "f9504452588f527b5b141683dbdfb1d1e5be9d50c825f041ffaa58dbc1cc6dbb"
+    }
+  ],
+  "totals": {
+    "human_review_minutes": 9.0,
+    "operation_duration_minutes": 25.0,
+    "total_tokens": 310
+  },
+  "unit_economics": {
+    "estimated_cost": 4.7,
+    "estimated_cost_per_success": 4.7,
+    "excluded_session_ids": [
+      "synthetic-session-003"
+    ],
+    "fully_costed_session_count": 2,
+    "human_review_hourly_cost": 30.0
+  }
+}
+ok
+test_missing_observations_remain_not_collected_not_zero (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_missing_observations_remain_not_collected_not_zero) ... ok
+test_rejects_untraceable_or_inconsistent_metric_observations (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_rejects_untraceable_or_inconsistent_metric_observations) ... ok
+test_session_record_audits_metrics_and_links_each_observation (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_session_record_audits_metrics_and_links_each_observation) ... ok
+test_summary_keeps_unobserved_aggregates_not_collected_and_rejects_non_synthetic_data (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_summary_keeps_unobserved_aggregates_not_collected_and_rejects_non_synthetic_data) ... ok
+test_summary_rejects_incomparable_quality_scales (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_summary_rejects_incomparable_quality_scales) ... ok
+test_synthetic_summary_reports_cost_efficiency_quality_and_missingness (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_synthetic_summary_reports_cost_efficiency_quality_and_missingness) ... ok
+
+----------------------------------------------------------------------
+Ran 58 tests in 0.374s
+
+OK

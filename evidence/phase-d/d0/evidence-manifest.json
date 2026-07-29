@@ -1,0 +1,142 @@
+{
+  "artifacts": [
+    {
+      "path": "agent-company-regression.txt",
+      "sha256": "1ed38e68265feba386ef908f6f880d687ccb01284d8ce5b2b9198a14624bdcf9"
+    },
+    {
+      "path": "baseline-report.md",
+      "sha256": "9550c07ed976e250bde8c8718e7187079479dcc7909d4d5f978392c795b1fcbc"
+    },
+    {
+      "path": "case-results.json",
+      "sha256": "8030dea3619c4443966472e25f5f0af85a9c37a54299f58306d56c6c3f9ff389"
+    },
+    {
+      "path": "logs/os-d0-001-stale-artifact.txt",
+      "sha256": "991318d90fbfcd9eedcad15add1c3108617d64a1debe3fa9596580d13b5895bf"
+    },
+    {
+      "path": "logs/os-d0-002-threshold-drift.txt",
+      "sha256": "2b566bcac896bb694d094077270e9f65f6a68e564ecfb7223ea455b2beaedab2"
+    },
+    {
+      "path": "logs/os-d0-003-profile-drift.txt",
+      "sha256": "afb2a195102f5e35312cae2942eda172e06a0b062ab953aa5353bca65304682d"
+    },
+    {
+      "path": "logs/os-d0-004-authority-drift.txt",
+      "sha256": "58e5e8f28d7628b83dc0459804544cbc2ebbe084f6d93427ca545adcef996a39"
+    },
+    {
+      "path": "logs/os-d0-005-credential-drift.txt",
+      "sha256": "6adfe1ad26f9304771a9bc123cd1186ee6df1b01c492fb11b2fc9dcc08e0462d"
+    },
+    {
+      "path": "logs/os-d0-006-generation-drift.txt",
+      "sha256": "33c7052c73e9eee27196795a7804798c44e7d33492afb1e4f0a2639684f56409"
+    },
+    {
+      "path": "logs/os-d0-007-direct-completion-bypass.txt",
+      "sha256": "de4b5915b284a5b08faef07b17cdd20d1c56e510c00d7b5c22b267fd41baef88"
+    },
+    {
+      "path": "logs/os-d0-008-forged-binding-trigger.txt",
+      "sha256": "b10af94d09e55c209317b22269eff55c31f7c3fe6659bbb8b8ce478af9a23297"
+    },
+    {
+      "path": "logs/os-d0-009-quarantined-eval.txt",
+      "sha256": "f9e0b38ef25ca9145d2701bf02410cda60ddbffe47bb0b52fb49535721a113a0"
+    },
+    {
+      "path": "logs/os-d0-010-nonindependent-review.txt",
+      "sha256": "e5ec5d8ba4e9f9ebd838b401c97ce89a335031385b18d05f45bf583b0e8cfc65"
+    },
+    {
+      "path": "logs/os-d0-011-dashboard-context-leak.txt",
+      "sha256": "a4dd6733b099f7e1ec1caf88926e1781c186902eeb5669592f2839378e7da599"
+    },
+    {
+      "path": "logs/os-d0-012-lifecycle-rollback.txt",
+      "sha256": "a3a2b4aa929d4139cc814567e0dbe240cbeaf7f2a450f7fbe01297960b92b1e0"
+    },
+    {
+      "path": "logs/os-d0-013-claim-history-asymmetry.txt",
+      "sha256": "929eb5157663608795e27c0e3b314a3e620e73a9ff7a347e13302719995e487f"
+    },
+    {
+      "path": "logs/os-d0-014-never-bound-control.txt",
+      "sha256": "3c111eecd64016ae65c954d8335c06a0f2a0e1a32503e7a175a6a476543bcd07"
+    },
+    {
+      "path": "logs/os-d0-015-approved-completion-control.txt",
+      "sha256": "77ba394e1aa357cd38bca360818491de62051550b9dd2597a3e27214fc101698"
+    },
+    {
+      "path": "logs/os-d0-016-unbound-dispatch-control.txt",
+      "sha256": "88fbf94c5641a214236385d5552402d48bbf20100e63d7c40f51d3d9c7f90213"
+    },
+    {
+      "path": "logs/pw-d0-001-source-edit-lineage.txt",
+      "sha256": "6c38969570cc84dd0a4f5560e6f722d4bd20588a8f2ecf7418c24ee5c34d2e6e"
+    },
+    {
+      "path": "logs/pw-d0-002-unsafe-source-rejection.txt",
+      "sha256": "0ced851bebcd04c6438a24289d770b29abf38629c201943c101dbfdbb70b5063"
+    },
+    {
+      "path": "logs/pw-d0-003-brand-manifest.txt",
+      "sha256": "f5b8d7cdc54a953bc46a0495166c947fcee1cbf9b14fcd1af98b06adc18a460e"
+    },
+    {
+      "path": "logs/pw-d0-004-provenance-faults.txt",
+      "sha256": "fdc0f53ad199c73a8131572c499c94e0de9e2599a78a8a7389c61fd33cd63774"
+    },
+    {
+      "path": "logs/pw-d0-005-reviewable-render.txt",
+      "sha256": "ed04b2a3cf7f405413bf3208a10e49f9e8e35edb8c2931c5d074cc0b0ed61baf"
+    },
+    {
+      "path": "logs/pw-d0-006-hard-gate-thresholds.txt",
+      "sha256": "cbe1a7a10e00927bbcdc4e679b1c6975c90b7fd74dc24088bffaefddb8d69f05"
+    },
+    {
+      "path": "metrics-summary.json",
+      "sha256": "98f6d1cb67bf1207e25d9ff7bf74145d3c4072cec27638f83db378f0a3a8f465"
+    },
+    {
+      "path": "pixweave-regression.txt",
+      "sha256": "c4f79370ec35dea7d61992669c81edd245494301ff36655913990bc6b27067ed"
+    },
+    {
+      "path": "strict-tdd-evidence.md",
+      "sha256": "290efb1961f2f665516d0b50f544c2a442d426c7f03b5060c0ed4ad59415ee18"
+    },
+    {
+      "path": "verification-report.md",
+      "sha256": "d04aa75e4658662ffbac359aa52289418aba97c49d3a1c29d68cbdc0e34bcdd9"
+    }
+  ],
+  "external_actions": [
+    "git push only"
+  ],
+  "frozen_inputs": {
+    "docs/assurance/phase-d/d0/comparator-v1.json": "d4f15d9227075914b5887074744f2095c6132a63a0808dcc89dadba551e7c9ca",
+    "docs/assurance/phase-d/d0/comparison-plan-v1.json": "a571f713732a4990d7263319ca649c498d4acc2b3ec6c6bccfdc50e8bb8fb59d",
+    "docs/assurance/phase-d/d0/control-fault-bank-v1.json": "5aaf562970ef003dd7a4ac1b74b165268917b51f3d932157f2b09ee9f8373adb",
+    "docs/assurance/phase-d/d0/product-scenario-bank-v1.json": "e5aff8ee500cf50f7d780db6960431b5512bf706d8a2f0ec73520cabaa35df31",
+    "docs/assurance/phase-d/d0/rubric-v1.json": "96be314abdefb8b733f8f16d13cf0132a80270d9d6d6d466088e8172bd1ea915"
+  },
+  "repositories": {
+    "agent-company": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+    "pixweave": "d78094f26eb697c810899a40771a8af6dec7ce19"
+  },
+  "run_id": "phase-d-d0-baseline-v1",
+  "schema_version": "phase-d-d0-evidence-manifest/v1",
+  "scope": "Phase D Stage D0 only",
+  "stage_gates": {
+    "d0": "baseline_produced",
+    "d1": "blocked",
+    "d2": "blocked"
+  }
+}

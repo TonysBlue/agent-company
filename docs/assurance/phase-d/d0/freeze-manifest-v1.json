@@ -1,0 +1,38 @@
+{
+  "schema_version": "phase-d-d0-freeze/v1",
+  "id": "phase-d-d0-frozen-inputs-v1",
+  "frozen_at": "2026-07-29T16:00:00+08:00",
+  "charter": "docs/assurance/charters/development-assurance-phase-d-2026-07-29-v1.md",
+  "artifacts": [
+    {
+      "kind": "scenario_bank",
+      "path": "docs/assurance/phase-d/d0/product-scenario-bank-v1.json",
+      "sha256": "e5aff8ee500cf50f7d780db6960431b5512bf706d8a2f0ec73520cabaa35df31"
+    },
+    {
+      "kind": "fault_bank",
+      "path": "docs/assurance/phase-d/d0/control-fault-bank-v1.json",
+      "sha256": "5aaf562970ef003dd7a4ac1b74b165268917b51f3d932157f2b09ee9f8373adb"
+    },
+    {
+      "kind": "comparator",
+      "path": "docs/assurance/phase-d/d0/comparator-v1.json",
+      "sha256": "d4f15d9227075914b5887074744f2095c6132a63a0808dcc89dadba551e7c9ca"
+    },
+    {
+      "kind": "rubric",
+      "path": "docs/assurance/phase-d/d0/rubric-v1.json",
+      "sha256": "96be314abdefb8b733f8f16d13cf0132a80270d9d6d6d466088e8172bd1ea915"
+    },
+    {
+      "kind": "comparison_plan",
+      "path": "docs/assurance/phase-d/d0/comparison-plan-v1.json",
+      "sha256": "a571f713732a4990d7263319ca649c498d4acc2b3ec6c6bccfdc50e8bb8fb59d"
+    }
+  ],
+  "stage_gates": {
+    "d0": "authorized",
+    "d1": "blocked",
+    "d2": "blocked"
+  }
+}

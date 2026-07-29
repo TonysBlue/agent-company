@@ -1,0 +1,6 @@
+test_campaign_render_writes_deterministic_escaped_svg_bundle (tests.test_product_workflows.TempWorkspaceTest.test_campaign_render_writes_deterministic_escaped_svg_bundle) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.016s
+
+OK
