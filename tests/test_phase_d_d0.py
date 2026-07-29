@@ -10,10 +10,13 @@ from pathlib import Path
 from agent_company.phase_d_d0 import (
     D0Error,
     aggregate_results,
+    comparator_commits,
     render_report,
     run_case,
     load_json,
+    parse_regression_test_count,
     tooling_hashes,
+    validate_freeze_chronology,
     validate_case_banks,
     validate_replay_cases,
     verify_frozen_inputs,
@@ -26,13 +29,44 @@ class PhaseD0BaselineTest(unittest.TestCase):
         freeze_path = root / "docs" / "assurance" / "phase-d" / "d0" / "freeze-manifest-v1.json"
 
         verified = verify_frozen_inputs(root, freeze_path)
+        freeze = load_json(freeze_path)
         product = load_json(root / "docs" / "assurance" / "phase-d" / "d0" / "product-scenario-bank-v1.json")
         controls = load_json(root / "docs" / "assurance" / "phase-d" / "d0" / "control-fault-bank-v1.json")
+        comparator = load_json(root / "docs" / "assurance" / "phase-d" / "d0" / "comparator-v1.json")
         cases = validate_replay_cases(product, controls)
+        commits = comparator_commits(comparator)
 
-        self.assertEqual(len(verified), 5)
+        self.assertEqual(len(verified), 8)
+        self.assertEqual(freeze["charter_binding"], {
+            "path": "docs/assurance/charters/development-assurance-phase-d-2026-07-29-v1.md",
+            "sha256": "54ad4e4d4cc1fd18e30d7ac8f81e328ea1f4cfc08e3c58f8e76079265e5ff21f",
+        })
+        self.assertEqual(commits, {
+            "agent-company": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+            "pixweave": "d78094f26eb697c810899a40771a8af6dec7ce19",
+        })
+        self.assertEqual(comparator["repositories"]["agent-company"]["expected_regression_tests"], 220)
+        self.assertEqual(comparator["repositories"]["pixweave"]["expected_regression_tests"], 58)
         self.assertEqual(len([case for case in cases if case["domain"] == "product"]), 6)
         self.assertGreaterEqual(len([case for case in cases if case["domain"] == "control"]), 12)
+
+    def test_freeze_and_charter_binding_must_predate_run(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        freeze_path = root / "docs" / "assurance" / "phase-d" / "d0" / "freeze-manifest-v1.json"
+        freeze = load_json(freeze_path)
+
+        validate_freeze_chronology(
+            root,
+            freeze,
+            "2026-07-29T10:00:01.000000+00:00",
+        )
+
+        with self.assertRaisesRegex(D0Error, "must predate baseline run"):
+            validate_freeze_chronology(
+                root,
+                freeze,
+                "2026-07-29T08:00:00.000000+00:00",
+            )
 
     def test_tooling_hashes_pin_runner_and_library(self) -> None:
         root = Path(__file__).resolve().parents[1]
@@ -44,6 +78,11 @@ class PhaseD0BaselineTest(unittest.TestCase):
             "scripts/run_phase_d_d0.py",
         })
         self.assertTrue(all(len(digest) == 64 for digest in hashes.values()))
+
+    def test_regression_count_is_parsed_and_missing_summary_fails_closed(self) -> None:
+        self.assertEqual(parse_regression_test_count("Ran 220 tests in 18.081s\n\nOK\n"), 220)
+        with self.assertRaisesRegex(D0Error, "regression test count"):
+            parse_regression_test_count("OK without unittest summary")
 
     def test_frozen_input_verification_rejects_hash_drift(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -122,7 +161,7 @@ class PhaseD0BaselineTest(unittest.TestCase):
         })
         self.assertEqual(summary["control"]["false_blocks"], {"count": 0, "valid_controls": 1})
 
-    def test_report_keeps_treatment_stages_blocked_and_labels_missing_review(self) -> None:
+    def test_report_labels_host_local_timing_and_records_governance(self) -> None:
         results = [self.result("product-1", "product", 10, 30, seeded_fault=False)]
         report = render_report(
             run={
@@ -130,7 +169,13 @@ class PhaseD0BaselineTest(unittest.TestCase):
                 "started_at": "2026-07-29T08:00:00.000000+00:00",
                 "ended_at": "2026-07-29T08:00:01.000000+00:00",
                 "repositories": {"agent-company": "a" * 40, "pixweave": "b" * 40},
+                "regression_test_counts": {"agent-company": 220, "pixweave": 58},
                 "freeze_manifest_sha256": "c" * 64,
+                "timing_scope": "host_local",
+                "governance": {
+                    "independent_review": "approve",
+                    "chairman_confirmation": "confirmed_all_five_items",
+                },
                 "artifact_preparation": {
                     "started_at": "2026-07-29T08:00:00.000000+00:00",
                     "ended_at": "2026-07-29T08:00:00.010000+00:00",
@@ -141,10 +186,9 @@ class PhaseD0BaselineTest(unittest.TestCase):
             results=results,
         )
 
-        self.assertIn("D1: `blocked`", report)
-        self.assertIn("D2: `blocked`", report)
-        self.assertIn("independent baseline review: `not_collected`", report)
-        self.assertIn("Chairman confirmation: `not_collected`", report)
+        self.assertIn("host-local p50/p90 waits", report)
+        self.assertIn("Independent baseline review: `approve`", report)
+        self.assertIn("Chairman confirmation: `confirmed_all_five_items`", report)
 
     def test_replay_can_run_against_a_frozen_detached_repository_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

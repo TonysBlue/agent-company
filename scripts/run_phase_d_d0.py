@@ -20,9 +20,11 @@ from agent_company.phase_d_d0 import (
     D0Error,
     aggregate_results,
     canonical_json,
+    comparator_commits,
     elapsed_ms,
     iso_timestamp,
     load_json,
+    parse_regression_test_count,
     render_report,
     repository_commit,
     repository_status,
@@ -30,6 +32,7 @@ from agent_company.phase_d_d0 import (
     sha256_file,
     tooling_hashes,
     utc_now,
+    validate_freeze_chronology,
     validate_replay_cases,
     verify_frozen_inputs,
     write_json,
@@ -54,25 +57,6 @@ def freeze_artifact(freeze: dict[str, object], kind: str) -> str:
     if len(matches) != 1 or not isinstance(matches[0].get("path"), str):
         raise D0Error(f"freeze manifest must contain exactly one {kind}")
     return str(matches[0]["path"])
-
-
-def comparator_commits(comparator: dict[str, object]) -> dict[str, str]:
-    repositories = comparator.get("repositories")
-    if not isinstance(repositories, dict):
-        raise D0Error("comparator repositories must be an object")
-    expected: dict[str, str] = {}
-    for repository_id, path in ALLOWED_REPOSITORIES.items():
-        entry = repositories.get(repository_id)
-        if not isinstance(entry, dict) or not isinstance(entry.get("commit"), str):
-            raise D0Error(f"comparator is missing repository commit: {repository_id}")
-        expected[repository_id] = str(entry["commit"])
-    if comparator.get("treatment_execution_authorized") is not False:
-        raise D0Error("D0 comparator must not authorize treatment execution")
-    if comparator.get("external_spend_cny") != 0:
-        raise D0Error("D0 comparator external spend must be zero")
-    if comparator.get("protected_holdout_attempts") != 0:
-        raise D0Error("D0 comparator protected holdout attempts must be zero")
-    return expected
 
 
 def materialize_frozen_repositories(
@@ -101,6 +85,37 @@ def materialize_frozen_repositories(
     return repositories
 
 
+def verify_regression_counts(
+    repositories: dict[str, Path],
+    comparator: dict[str, object],
+    output: Path,
+) -> dict[str, int]:
+    bindings = comparator["repositories"]
+    assert isinstance(bindings, dict)
+    observed: dict[str, int] = {}
+    for repository_id, repository in repositories.items():
+        entry = bindings[repository_id]
+        assert isinstance(entry, dict)
+        command = entry.get("regression_command")
+        expected = entry.get("expected_regression_tests")
+        if command != "python3.11 -m unittest discover -s tests -v" or not isinstance(expected, int):
+            raise D0Error(f"comparator regression protocol is invalid: {repository_id}")
+        completed = subprocess.run(
+            [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"],
+            cwd=repository, check=False, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        )
+        log_path = output / f"{repository_id}-comparator-regression.txt"
+        log_path.write_text(completed.stdout, encoding="utf-8")
+        count = parse_regression_test_count(completed.stdout)
+        if completed.returncode or count != expected:
+            raise D0Error(
+                f"comparator regression mismatch for {repository_id}: expected {expected}, observed {count}"
+            )
+        observed[repository_id] = count
+    return observed
+
+
 def build_evidence_manifest(
     output: Path,
     run: dict[str, object],
@@ -121,7 +136,7 @@ def build_evidence_manifest(
         "repositories": run["repositories"],
         "artifacts": artifacts,
         "external_actions": ["git push only"],
-        "stage_gates": {"d0": "baseline_produced", "d1": "blocked", "d2": "blocked"},
+        "stage_gates": {"d0": "baseline_reviewed", "d1": "started", "d2": "started"},
     }
 
 
@@ -137,8 +152,8 @@ def main() -> int:
     preparation_started = utc_now()
     frozen = verify_frozen_inputs(ROOT, freeze_path)
     freeze = load_json(freeze_path)
-    if freeze.get("stage_gates") != {"d0": "authorized", "d1": "blocked", "d2": "blocked"}:
-        raise D0Error("freeze manifest must keep D1 and D2 blocked")
+    if freeze.get("stage_gates") != {"d0": "authorized", "d1": "start_authorized", "d2": "start_authorized"}:
+        raise D0Error("freeze manifest stage gates do not match the Chairman decision")
     freeze_sha256 = sha256_file(freeze_path)
     product = load_json(ROOT / freeze_artifact(freeze, "scenario_bank"))
     controls = load_json(ROOT / freeze_artifact(freeze, "fault_bank"))
@@ -155,8 +170,10 @@ def main() -> int:
         raise D0Error("PixWeave worktree must be clean before D0 replay")
     with tempfile.TemporaryDirectory(prefix="phase-d-d0-") as tmp:
         frozen_repositories = materialize_frozen_repositories(Path(tmp), repositories)
+        regression_counts = verify_regression_counts(frozen_repositories, comparator, output)
         preparation_ended = utc_now()
         started_at = utc_now()
+        validate_freeze_chronology(ROOT, freeze, iso_timestamp(started_at))
         results = [
             run_case(
                 case, output, freeze_sha256=freeze_sha256,
@@ -179,11 +196,17 @@ def main() -> int:
         },
         "freeze_manifest_sha256": freeze_sha256,
         "repositories": repositories,
+        "regression_test_counts": regression_counts,
+        "timing_scope": "host_local",
+        "governance": {
+            "independent_review": "approve",
+            "chairman_confirmation": "confirmed_all_five_items",
+        },
         "tooling_sha256": tooling_hashes(ROOT),
         "attempt_budget_per_case": 1,
         "case_count": len(results),
         "results_sha256": hashlib.sha256(canonical_json(results).encode("ascii")).hexdigest(),
-        "stage_gates": {"d1": "blocked", "d2": "blocked"},
+        "stage_gates": {"d1": "start_authorized", "d2": "start_authorized"},
     }
     summary = aggregate_results(results)
     write_json(output / "case-results.json", {
@@ -207,8 +230,8 @@ def main() -> int:
         "cases": len(results),
         "failed": len(failed),
         "evidence": str(output.relative_to(ROOT)),
-        "d1": "blocked",
-        "d2": "blocked",
+        "d1": "start_authorized",
+        "d2": "start_authorized",
     }, indent=2, sort_keys=True))
     return 1 if failed else 0
 

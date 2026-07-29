@@ -1,0 +1,42 @@
+{
+  "schema_version": "phase-d-chairman-confirmation/v1",
+  "id": "phase-d-chairman-confirmation-2026-07-29-v1",
+  "decision_authority": "Chairman",
+  "confirmed_at": "2026-07-29T09:35:01.520000+00:00",
+  "source_platform": "codex_user_instruction",
+  "source_message_sha256": "a8e8409fd9537b1324208880fb24d609ad4e70008201322be6942275c4ff9da0",
+  "confirmed_all_five_approval_items": true,
+  "authorized_actions": [
+    "correct_d0_chronology_and_regenerate_baseline",
+    "start_bounded_internal_d1",
+    "start_bounded_internal_d2"
+  ],
+  "ceilings": {
+    "calendar_days": 14,
+    "engineering_hours": 32,
+    "evaluator_hours": 10,
+    "independent_reviewer_hours": 12,
+    "human_calibration_person_hours": 8,
+    "model_tokens": 8000000,
+    "external_spend_cny": 0
+  },
+  "d1_decision_rule": {
+    "lower_confidence_bound_must_exceed": 0.05,
+    "hard_gates_and_protected_dimensions_noninferior": true,
+    "required_independent_human_raters": 2
+  },
+  "d2_decision_rule": {
+    "critical_high_detection_rate": 1.0,
+    "false_pass_count": 0,
+    "maximum_false_block_rate": 0.10
+  },
+  "restrictions": {
+    "customer_data": false,
+    "external_spend": false,
+    "outreach": false,
+    "publication": false,
+    "production_action": false,
+    "pixweave_source_modification": false,
+    "external_action_except_git_push": false
+  }
+}

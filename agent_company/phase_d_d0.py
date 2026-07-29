@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -83,7 +84,79 @@ def verify_frozen_inputs(root: Path, freeze_path: Path) -> dict[str, str]:
     if kinds - {None} and not required_kinds <= kinds:
         missing = ", ".join(sorted(required_kinds - kinds))
         raise D0Error(f"freeze manifest is missing required kinds: {missing}")
+    charter_binding = freeze.get("charter_binding")
+    if isinstance(charter_binding, dict):
+        charter_path = charter_binding.get("path")
+        charter_sha256 = charter_binding.get("sha256")
+        if (
+            not isinstance(charter_path, str)
+            or Path(charter_path).is_absolute()
+            or ".." in Path(charter_path).parts
+            or not isinstance(charter_sha256, str)
+            or len(charter_sha256) != 64
+        ):
+            raise D0Error("freeze charter binding is invalid")
+        if sha256_file(root / charter_path) != charter_sha256:
+            raise D0Error("frozen charter hash mismatch")
+        verified[charter_path] = charter_sha256
     return verified
+
+
+def parse_timestamp(value: object, label: str) -> datetime:
+    if not isinstance(value, str):
+        raise D0Error(f"{label} must be an ISO-8601 timestamp")
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise D0Error(f"{label} must be an ISO-8601 timestamp") from exc
+    if parsed.tzinfo is None:
+        raise D0Error(f"{label} must include a timezone")
+    return parsed
+
+
+def validate_freeze_chronology(
+    root: Path,
+    freeze: dict[str, object],
+    run_started_at: str,
+) -> None:
+    if "charter_binding" not in freeze:
+        raise D0Error("freeze manifest must bind the approved charter hash")
+    frozen_at = parse_timestamp(freeze.get("frozen_at"), "frozen_at")
+    started_at = parse_timestamp(run_started_at, "run_started_at")
+    if frozen_at >= started_at:
+        raise D0Error("freeze manifest and charter binding must predate baseline run")
+
+
+def comparator_commits(comparator: dict[str, object]) -> dict[str, str]:
+    repositories = comparator.get("repositories")
+    if not isinstance(repositories, dict):
+        raise D0Error("comparator repositories must be an object")
+    expected: dict[str, str] = {}
+    for repository_id in ALLOWED_REPOSITORIES:
+        entry = repositories.get(repository_id)
+        if not isinstance(entry, dict):
+            raise D0Error(f"comparator is missing repository binding: {repository_id}")
+        commit = entry.get("regression_commit")
+        count = entry.get("expected_regression_tests")
+        if not isinstance(commit, str) or len(commit) != 40:
+            raise D0Error(f"comparator regression commit is invalid: {repository_id}")
+        if not isinstance(count, int) or count <= 0:
+            raise D0Error(f"comparator expected regression test count is invalid: {repository_id}")
+        expected[repository_id] = commit
+    if comparator.get("treatment_execution_authorized") is not False:
+        raise D0Error("D0 comparator must not authorize treatment execution")
+    if comparator.get("external_spend_cny") != 0:
+        raise D0Error("D0 comparator external spend must be zero")
+    if comparator.get("protected_holdout_attempts") != 0:
+        raise D0Error("D0 comparator protected holdout attempts must be zero")
+    return expected
+
+
+def parse_regression_test_count(output: str) -> int:
+    matches = re.findall(r"^Ran (\d+) tests? in ", output, flags=re.MULTILINE)
+    if len(matches) != 1:
+        raise D0Error("cannot determine exact regression test count")
+    return int(matches[0])
 
 
 def validate_case_banks(product_bank: dict[str, object], control_bank: dict[str, object]) -> None:
@@ -417,9 +490,11 @@ def render_report(
         f"- Raw run end: `{run['ended_at']}`",
         f"- Agent Company commit: `{repositories['agent-company']}`",
         f"- PixWeave commit: `{repositories['pixweave']}`",
+        f"- Agent Company comparator regression: `{run['regression_test_counts']['agent-company']}` tests",
+        f"- PixWeave comparator regression: `{run['regression_test_counts']['pixweave']}` tests",
         f"- Frozen-input manifest SHA-256: `{run['freeze_manifest_sha256']}`",
-        "- Independent baseline review: `not_collected`",
-        "- Chairman confirmation: `not_collected`",
+        f"- Independent baseline review: `{run['governance']['independent_review']}`",
+        f"- Chairman confirmation: `{run['governance']['chairman_confirmation']}`",
         "",
         "## Outcome",
         "",
@@ -429,8 +504,9 @@ def render_report(
         "",
         "## Frozen Inputs And Procedure",
         "",
-        "The runner verified the pre-recorded SHA-256 of the scenario bank, fault bank, comparator, rubric, "
-        "and comparison plan before executing one exact allowlisted `unittest` probe per case. Each subprocess "
+        "The runner verified the pre-recorded SHA-256 of the charter, scenario bank, fault bank, comparator, "
+        "rubric, comparison plan, independent review, and Chairman confirmation before executing one exact "
+        "allowlisted `unittest` probe per case. Each subprocess "
         "ran locally against a pinned repository commit with a one-attempt budget and retained an immutable log.",
         "",
         "Exact command:",
@@ -446,7 +522,7 @@ def render_report(
         f"| Valid cases | {product_metrics['case_count']} | {control_metrics['case_count']} | {all_metrics['case_count']} |",
         f"| Hard gates | {_metric(product_metrics['hard_gates'])} | {_metric(control_metrics['hard_gates'])} | {_metric(all_metrics['hard_gates'])} |",
         f"| Defects | {_metric(product_metrics['defects'])} | {_metric(control_metrics['defects'])} | {_metric(all_metrics['defects'])} |",
-        f"| p50/p90 waits (ms) | {_metric(product_metrics['waits_ms'])} | {_metric(control_metrics['waits_ms'])} | {_metric(all_metrics['waits_ms'])} |",
+        f"| host-local p50/p90 waits (ms) | {_metric(product_metrics['waits_ms'])} | {_metric(control_metrics['waits_ms'])} | {_metric(all_metrics['waits_ms'])} |",
         f"| Model tokens | {_metric(product_metrics['model_tokens'])} | {_metric(control_metrics['model_tokens'])} | {_metric(all_metrics['model_tokens'])} |",
         f"| Human minutes | {_metric(product_metrics['human_minutes'])} | {_metric(control_metrics['human_minutes'])} | {_metric(all_metrics['human_minutes'])} |",
         f"| Rework | {_metric(product_metrics['rework'])} | {_metric(control_metrics['rework'])} | {_metric(all_metrics['rework'])} |",
@@ -455,7 +531,7 @@ def render_report(
         f"| Unauthorized transitions | {_metric(product_metrics['unauthorized_transitions'])} | {_metric(control_metrics['unauthorized_transitions'])} | {_metric(all_metrics['unauthorized_transitions'])} |",
         f"| Lineage completeness | {_metric(product_metrics['lineage_completeness'])} | {_metric(control_metrics['lineage_completeness'])} | {_metric(all_metrics['lineage_completeness'])} |",
         "",
-        "Artifact preparation retained raw start/end timestamps and measured "
+        "Artifact preparation retained raw start/end timestamps and measured host-locally "
         f"`{run['artifact_preparation']['elapsed_ms']}` ms. Human review wait is `not_collected`; no human "
         "baseline review occurred during tooling execution.",
         "",
@@ -485,17 +561,16 @@ def render_report(
         "The product cases replay deterministic PixWeave controls; they do not generate or human-rate new visual "
         "assets and cannot establish D1 preference or quality. Control cases replay existing unit-level fault/control "
         "evidence; they are not D2 treatment execution. Subprocess duration is a machine-gate observation on this "
-        "host, not an estimate of historical implementation or reviewer time.",
+        "host, not an estimate of historical implementation or reviewer time. All measured durations in this "
+        "report are host-local and are not portable performance claims.",
         "",
         "## Treatment Gates",
         "",
-        "- D1: `blocked` pending independent baseline review, Chairman confirmation of frozen comparison manifests "
-        "and numerical ceilings, and a CEO-recorded D1 start decision.",
-        "- D2: `blocked` pending independent baseline review, Chairman confirmation of frozen comparison manifests "
-        "and numerical ceilings, and a CEO-recorded D2 start decision.",
-        "- independent baseline review: `not_collected`",
-        "- Chairman confirmation: `not_collected`",
-        "- CEO D1/D2 start decision: `not_collected`",
+        "- D1: `start_authorized` under its immutable contract; adoption remains blocked pending two human ratings.",
+        "- D2: `start_authorized` under its immutable contract for isolated fault/control treatment only.",
+        f"- independent baseline review: `{run['governance']['independent_review']}`",
+        f"- Chairman confirmation: `{run['governance']['chairman_confirmation']}`",
+        "- CEO D1/D2 start decision: `start_bounded_internal_treatment`",
         "",
         "No treatment, holdout access, customer data, external spend, outreach, publication, production action, "
         "or PixWeave source modification occurred.",

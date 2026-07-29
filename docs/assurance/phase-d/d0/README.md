@@ -1,9 +1,10 @@
 # Phase D Stage D0 Frozen Baseline Inputs
 
-These files define the approved D0-only current-workflow replay. They use synthetic
-fixtures and historical internal test metadata, do not execute D1/D2 treatment, and do
-not access the protected holdout. `freeze-manifest-v1.json` records the byte-level
-SHA-256 of the scenario bank, fault bank, comparator, rubric, and comparison plan.
+These files define the approved current-workflow replay and D0-to-treatment gate. They
+use synthetic fixtures and historical internal test metadata and do not access the
+protected holdout. `freeze-manifest-v1.json` records the byte-level SHA-256 of the
+charter, scenario bank, fault bank, comparator, rubric, comparison plan, independent
+review, and Chairman confirmation before the regenerated run begins.
 
 Run from the Agent Company repository root:
 
@@ -13,6 +14,7 @@ python3.11 scripts/run_phase_d_d0.py \
   --output evidence/phase-d/d0
 ```
 
-The runner rejects hash drift, repository-commit drift, undersized banks, duplicate
-case identities, repository-boundary violations, and non-allowlisted test targets.
-D1/D2 remain blocked after a successful D0 run.
+The runner rejects chronology or hash drift, repository-commit drift, exact regression
+count drift, undersized banks, duplicate case identities, repository-boundary
+violations, and non-allowlisted test targets. After a successful reviewed D0 run, D1
+and D2 may start only under `../start-freeze-manifest-v1.json`.

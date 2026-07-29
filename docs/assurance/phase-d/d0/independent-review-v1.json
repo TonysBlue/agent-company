@@ -1,0 +1,36 @@
+{
+  "schema_version": "phase-d-d0-independent-review/v1",
+  "id": "phase-d-d0-independent-review-v1",
+  "reviewer_principal": "principal-control-reviewer",
+  "reviewer_role": "Control & Reliability Reviewer",
+  "reviewed_delivery_commit": "9c82381fba4377feb1f1bb7c7558ccc678fad564",
+  "reviewed_at": "2026-07-29T09:34:00+00:00",
+  "decision": "approve_with_required_chronology_correction",
+  "findings": [
+    {
+      "severity": "high",
+      "id": "D0-CHRONOLOGY-001",
+      "disposition": "required_before_treatment",
+      "finding": "The recorded freeze timestamp postdated the baseline run and the charter was not hash-bound."
+    },
+    {
+      "severity": "medium",
+      "id": "D0-COMPARATOR-002",
+      "disposition": "required_before_treatment",
+      "finding": "Comparator repository bindings omitted the expected canonical regression test counts."
+    },
+    {
+      "severity": "low",
+      "id": "D0-TIMING-003",
+      "disposition": "required_before_treatment",
+      "finding": "Measured subprocess timings needed an explicit host-local label."
+    }
+  ],
+  "required_correction": "Regenerate D0 after a corrected immutable freeze and preserve the review finding as evidence.",
+  "independence": {
+    "implemented_d0": false,
+    "modified_pixweave_source": false,
+    "accessed_protected_holdout": false
+  },
+  "source": "Chairman decision relayed in the originating Codex session and the independent D0 review result it directs the CEO to record."
+}

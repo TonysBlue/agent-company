@@ -1,8 +1,11 @@
 {
   "schema_version": "phase-d-d0-freeze/v1",
   "id": "phase-d-d0-frozen-inputs-v1",
-  "frozen_at": "2026-07-29T16:00:00+08:00",
-  "charter": "docs/assurance/charters/development-assurance-phase-d-2026-07-29-v1.md",
+  "frozen_at": "2026-07-29T10:00:00+00:00",
+  "charter_binding": {
+    "path": "docs/assurance/charters/development-assurance-phase-d-2026-07-29-v1.md",
+    "sha256": "54ad4e4d4cc1fd18e30d7ac8f81e328ea1f4cfc08e3c58f8e76079265e5ff21f"
+  },
   "artifacts": [
     {
       "kind": "scenario_bank",
@@ -17,7 +20,7 @@
     {
       "kind": "comparator",
       "path": "docs/assurance/phase-d/d0/comparator-v1.json",
-      "sha256": "d4f15d9227075914b5887074744f2095c6132a63a0808dcc89dadba551e7c9ca"
+      "sha256": "d31e0b0a661c80edf64df237d1ed4a060f839dd865647a5200809c9fa8638ac8"
     },
     {
       "kind": "rubric",
@@ -27,12 +30,22 @@
     {
       "kind": "comparison_plan",
       "path": "docs/assurance/phase-d/d0/comparison-plan-v1.json",
-      "sha256": "a571f713732a4990d7263319ca649c498d4acc2b3ec6c6bccfdc50e8bb8fb59d"
+      "sha256": "e39776b01a771fdb1359b7f19d6c675db184580c60f6bfe9b774a49abd4b6ca2"
+    },
+    {
+      "kind": "independent_review",
+      "path": "docs/assurance/phase-d/d0/independent-review-v1.json",
+      "sha256": "e5d5270dc5b082b5b076c380bb2621f6715ea594989940267bba33cff2c34f04"
+    },
+    {
+      "kind": "chairman_confirmation",
+      "path": "docs/assurance/phase-d/d0/chairman-confirmation-v1.json",
+      "sha256": "3f19a0f824514db4b5498b52bead0839bdf1fb5f6d6421697e530f53b9b0cbd7"
     }
   ],
   "stage_gates": {
     "d0": "authorized",
-    "d1": "blocked",
-    "d2": "blocked"
+    "d1": "start_authorized",
+    "d2": "start_authorized"
   }
 }

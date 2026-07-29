@@ -1,0 +1,41 @@
+{
+  "schema_version": "phase-d-d2-start-contract/v1",
+  "id": "phase-d-d2-company-os-start-v1",
+  "status": "started_isolated_treatment",
+  "authorized_scope": "frozen fault and control treatment in isolated repository copies",
+  "charter_ref": "docs/assurance/charters/development-assurance-phase-d-2026-07-29-v1.md",
+  "chairman_confirmation_ref": "docs/assurance/phase-d/d0/chairman-confirmation-v1.json",
+  "d0_baseline_ref": "evidence/phase-d/d0/evidence-manifest.json",
+  "inputs": {
+    "fault_bank": "docs/assurance/phase-d/d0/control-fault-bank-v1.json",
+    "agent_company_regression_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1"
+  },
+  "execution": {
+    "isolated_copies_only": true,
+    "one_attempt_per_case": true,
+    "equal_timeout_and_evidence_budget": true,
+    "nonpilot_controls_required": true,
+    "live_database_or_service_mutation": false
+  },
+  "success_thresholds": {
+    "critical_high_detection_rate": 1.0,
+    "false_pass_count": 0,
+    "maximum_false_block_rate": 0.10
+  },
+  "abort_conditions": [
+    "unauthorized_transition",
+    "false_completion",
+    "nonpilot_impact",
+    "integrity_conflict",
+    "budget_or_timing_ceiling_breach",
+    "charter_expiry"
+  ],
+  "forbidden_actions": [
+    "customer_data",
+    "external_spend",
+    "outreach",
+    "publication",
+    "production_action",
+    "pixweave_source_modification"
+  ]
+}

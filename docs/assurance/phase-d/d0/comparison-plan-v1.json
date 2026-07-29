@@ -25,19 +25,19 @@
   ],
   "missing_data": "not_collected",
   "d1": {
-    "status": "blocked",
+    "status": "start_authorized_awaiting_two_human_ratings",
     "future_primary_estimand": "source-scenario blind preference win rate",
     "future_positive_signal": "source-clustered-bootstrap lower confidence bound exceeds 0.05 with no hard-gate or protected-dimension regression",
     "holdout_attempts_in_d0": 0
   },
   "d2": {
-    "status": "blocked",
+    "status": "start_authorized_isolated_treatment",
     "future_success": "all seeded critical/high faults detected, zero false pass, zero unauthorized transition, complete lineage, false blocks <= 0.10"
   },
-  "start_conditions": [
-    "D0 baseline report produced",
-    "independent baseline review completed",
-    "Chairman confirms frozen comparison manifests and numerical ceilings",
-    "CEO records the relevant D1 or D2 start decision"
-  ]
+  "start_conditions": {
+    "D0 baseline report produced": true,
+    "independent baseline review completed": true,
+    "Chairman confirms frozen comparison manifests and numerical ceilings": true,
+    "CEO records the relevant D1 or D2 start decision": true
+  }
 }

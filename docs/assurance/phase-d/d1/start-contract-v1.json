@@ -1,0 +1,52 @@
+{
+  "schema_version": "phase-d-d1-start-contract/v1",
+  "id": "phase-d-d1-pixweave-start-v1",
+  "status": "started_awaiting_two_human_ratings",
+  "authorized_scope": "bounded internal synthetic treatment setup and execution only",
+  "charter_ref": "docs/assurance/charters/development-assurance-phase-d-2026-07-29-v1.md",
+  "chairman_confirmation_ref": "docs/assurance/phase-d/d0/chairman-confirmation-v1.json",
+  "d0_baseline_ref": "evidence/phase-d/d0/evidence-manifest.json",
+  "inputs": {
+    "scenario_bank": "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+    "product_profile": "docs/assurance/pixweave/product-profile-v1.json",
+    "eval_contract": "docs/assurance/pixweave/wedge-eval-contract-v1.md",
+    "pixweave_regression_commit": "d78094f26eb697c810899a40771a8af6dec7ce19"
+  },
+  "data_policy": {
+    "synthetic_only": true,
+    "customer_or_personal_data": false,
+    "protected_holdout_accessed_during_internal_setup": false
+  },
+  "budgets": {
+    "attempts_per_side": 1,
+    "maximum_attempts_per_side": 3,
+    "equal_attempt_model_timeout_evidence_budgets": true,
+    "external_spend_cny": 0
+  },
+  "blinding": {
+    "deterministic_randomized_left_right": true,
+    "system_identity_removed_from_rater_packages": true,
+    "mapping_custodied_separately": true
+  },
+  "human_rating": {
+    "required_independent_raters": 2,
+    "ratings_collected": 0,
+    "adoption_result_allowed": false,
+    "stop_when_human_ratings_required": true
+  },
+  "decision_rule": {
+    "primary_estimand": "source-scenario blind preference win rate",
+    "uncertainty": "source-clustered-bootstrap",
+    "lower_confidence_bound_must_exceed": 0.05,
+    "hard_gates_and_protected_dimensions_noninferior": true
+  },
+  "forbidden_actions": [
+    "pixweave_source_modification",
+    "customer_data",
+    "external_spend",
+    "outreach",
+    "publication",
+    "production_action",
+    "adoption_decision_before_two_human_ratings"
+  ]
+}

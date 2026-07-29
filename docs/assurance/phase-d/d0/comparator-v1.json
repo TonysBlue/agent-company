@@ -7,11 +7,15 @@
   "test_protocol": "one exact unittest method subprocess per frozen case",
   "repositories": {
     "agent-company": {
-      "commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "regression_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+      "expected_regression_tests": 220,
+      "regression_command": "python3.11 -m unittest discover -s tests -v",
       "path": "/home/tony/agent-company"
     },
     "pixweave": {
-      "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "regression_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+      "expected_regression_tests": 58,
+      "regression_command": "python3.11 -m unittest discover -s tests -v",
       "path": "/home/tony/products/pixweave"
     }
   },

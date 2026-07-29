@@ -1,0 +1,17 @@
+{
+  "schema_version": "phase-d-start-freeze/v1",
+  "id": "phase-d-d1-d2-start-freeze-v1",
+  "frozen_at": "2026-07-29T10:00:00+00:00",
+  "contracts": [
+    {
+      "pilot": "d1",
+      "path": "docs/assurance/phase-d/d1/start-contract-v1.json",
+      "sha256": "2456070dc2c8d987771990ad9f3feb5def90869c1f3af3e3841e489ba3f17b58"
+    },
+    {
+      "pilot": "d2",
+      "path": "docs/assurance/phase-d/d2/start-contract-v1.json",
+      "sha256": "0185e6bbdfad6dfb8166b31d01ae11edd1abec62d4ba574255227d859f076549"
+    }
+  ]
+}
