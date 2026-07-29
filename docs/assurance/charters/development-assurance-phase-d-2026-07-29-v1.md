@@ -1,10 +1,13 @@
-# Draft Charter: Development Assurance Phase D Baseline And Two Pilots
+# Approved Charter: Development Assurance Phase D Baseline And Two Pilots
 
 - ID: `development-assurance-phase-d-2026-07-29`
-- Version: `draft-v1`
-- Status: `draft-for-chairman-review`
-- Prepared at: `2026-07-29T14:41:04+08:00`
-- Proposed duration: 14 calendar days from approval
+- Version: `v1`
+- Status: `approved`
+- Approved by: `Chairman`
+- Approval source: `Weixin direct confirmation in originating session`
+- Approved at: `2026-07-29T14:51:07+08:00`
+- Expires at: `2026-08-12T14:51:07+08:00`
+- Duration: 14 calendar days
 - Accountable: `CEO`
 - Implementer: `Company Platform Engineer` / `Product Engineer`
 - Evaluator custodian: `principal-evaluator`
@@ -168,4 +171,6 @@ Chairman approval must explicitly confirm or amend:
 3. CNY 0 external spend;
 4. two-rater calibration/adjudication arrangement;
 5. Product 5-point lower-bound rule and Control-Plane zero-false-pass/10%-false-block rule;
-6. permission to run D0 baseline only after charter approval, followed by a baseline report before treatment execution.
+## 11. Execution Status
+
+The approved scope begins with D0 baseline measurement. D1 and D2 treatment execution remain blocked until the D0 baseline report is produced, the Chairman confirms the frozen comparison manifests and numerical ceilings, and the CEO records the D1/D2 start decision. No customer data or external spend is authorized.
