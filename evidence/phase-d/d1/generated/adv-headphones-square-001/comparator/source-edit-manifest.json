@@ -1,0 +1,93 @@
+{
+  "asset_count": 1,
+  "assets": [
+    {
+      "external_publish_authorized": false,
+      "file": "brand-message-branded-overlay.svg",
+      "height": 256,
+      "media_type": "image/svg+xml",
+      "operation": {
+        "id": "brand-message",
+        "placement": "bottom",
+        "text": "Focus without clutter",
+        "type": "branded_overlay"
+      },
+      "operation_id": "brand-message",
+      "operation_type": "branded_overlay",
+      "provenance": {
+        "data_classification": "synthetic",
+        "likeness_status": "no_real_person",
+        "origin": "pixweave_local_source_edit",
+        "output_sha256": "f6fb77d0c396c2d95ea523288b5112ece461063b9396ca8e89101f58faaa9c93",
+        "parent_lineage": [
+          "phase-d-adv-headphones-square-001-source",
+          "062e39437ce1e35cc9de44c4c0aef56c60e34491bc089c8eadb1e01fb36fdf84"
+        ],
+        "policy_flags": [
+          "synthetic_fixture",
+          "internal_only",
+          "local_source_image_upload",
+          "local_edit_branded_overlay"
+        ],
+        "retention_class": "phase_d_evidence",
+        "review_decision": "approved_internal",
+        "reviewer_ref": "phase-d-d1-contract",
+        "rights_basis": "company-created synthetic fixture",
+        "rights_evidence_ref": "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+        "schema_version": "provenance/v1",
+        "source_category": "derived_branded_overlay_draft",
+        "source_id": "brand-message",
+        "source_sha256": "062e39437ce1e35cc9de44c4c0aef56c60e34491bc089c8eadb1e01fb36fdf84",
+        "trademark_review_status": "no_third_party_mark"
+      },
+      "provider": "local-source-edit",
+      "provider_version": "1.0.0",
+      "review_state": "draft",
+      "sha256": "f6fb77d0c396c2d95ea523288b5112ece461063b9396ca8e89101f58faaa9c93",
+      "source_sha256": "062e39437ce1e35cc9de44c4c0aef56c60e34491bc089c8eadb1e01fb36fdf84",
+      "width": 256
+    }
+  ],
+  "brand_sha256": "ed77faac6fd798a7d29b72fb7e12ea0828544ab19808421c47c840c0d810c843",
+  "bundle_sha256": "74614d96a53a1fc3b15ccc5800a4378a3f1f272d0f521a8147aaff0644e41a77",
+  "capability_disclaimer": "Local source-image edits are internal draft SVG review artifacts, not published assets or evidence of visual quality.",
+  "external_action_authorized": false,
+  "external_publish_authorized": false,
+  "operations_sha256": "0e6e93ffb9156eb440a0e925191620e90285aa57b674b804e2eb29e210646b84",
+  "provider": "local-source-edit",
+  "provider_version": "1.0.0",
+  "review_gallery": {
+    "file": "source-edit-gallery.html",
+    "sha256": "2134cdab799b189f48a7063dfedb5df4d8657f419b1670b846084155448c7943"
+  },
+  "schema_version": "source-image-edit/v1",
+  "source": {
+    "bytes": 762,
+    "file": "source-062e39437ce1.png",
+    "height": 256,
+    "media_type": "image/png",
+    "original_file_name": "adv-headphones-square-001.png",
+    "provenance": {
+      "data_classification": "synthetic",
+      "likeness_status": "no_real_person",
+      "origin": "agent-company Phase D D1 runner",
+      "parent_lineage": [],
+      "policy_flags": [
+        "synthetic_fixture",
+        "internal_only"
+      ],
+      "retention_class": "phase_d_evidence",
+      "review_decision": "approved_internal",
+      "reviewer_ref": "phase-d-d1-contract",
+      "rights_basis": "company-created synthetic fixture",
+      "rights_evidence_ref": "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+      "schema_version": "provenance/v1",
+      "source_category": "phase_d_synthetic_fixture",
+      "source_id": "phase-d-adv-headphones-square-001-source",
+      "trademark_review_status": "no_third_party_mark"
+    },
+    "sha256": "062e39437ce1e35cc9de44c4c0aef56c60e34491bc089c8eadb1e01fb36fdf84",
+    "width": 256
+  },
+  "source_sha256": "062e39437ce1e35cc9de44c4c0aef56c60e34491bc089c8eadb1e01fb36fdf84"
+}

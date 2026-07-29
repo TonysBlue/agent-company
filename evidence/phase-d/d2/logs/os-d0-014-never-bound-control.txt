@@ -1,0 +1,6 @@
+test_validate_keeps_never_bound_and_nonpilot_completions_compatible (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.090s
+
+OK

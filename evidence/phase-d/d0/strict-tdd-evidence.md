@@ -43,6 +43,19 @@ Observed result before detached-path support: `TypeError: run_case() got an unex
 keyword argument 'repository_paths'`. The runner was then changed to execute from
 temporary detached copies at the comparator commits instead of the mutable worktrees.
 
+## RED 4: Corrected Freeze And Treatment Contracts
+
+Command:
+
+```text
+python3.11 -m unittest tests.test_phase_d_d0 tests.test_phase_d_treatments -v
+```
+
+Observed result before implementation: D0 failed to import `comparator_commits`, and
+D1/D2 failed with `ModuleNotFoundError: agent_company.phase_d_treatments`. A second RED
+cycle required exact regression-count parsing and distinct, equal-operation D1
+treatment recipes.
+
 ## GREEN
 
 Final focused command:
@@ -51,5 +64,6 @@ Final focused command:
 python3.11 -m unittest tests.test_phase_d_d0 -v
 ```
 
-Result: 7 tests passed. The final Agent Company and PixWeave canonical regression
-outputs are retained separately in this evidence directory.
+Result: 14 focused tests passed. The regenerated D0 runner also verifies and retains
+the exact 220-test Agent Company and 58-test PixWeave comparator regressions before
+case replay.

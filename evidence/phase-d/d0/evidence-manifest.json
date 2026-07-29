@@ -1,76 +1,80 @@
 {
   "artifacts": [
     {
+      "path": "agent-company-comparator-regression.txt",
+      "sha256": "ed4855bd30c6f228a5ea5ca3386132c33b487dd74ad79f0d5ffc8bb556f58739"
+    },
+    {
       "path": "agent-company-regression.txt",
       "sha256": "1ed38e68265feba386ef908f6f880d687ccb01284d8ce5b2b9198a14624bdcf9"
     },
     {
       "path": "baseline-report.md",
-      "sha256": "9550c07ed976e250bde8c8718e7187079479dcc7909d4d5f978392c795b1fcbc"
+      "sha256": "c5c45bcc4173fc5929ef1a58bee4235d528c44e436398a530ca9ca466f06235e"
     },
     {
       "path": "case-results.json",
-      "sha256": "8030dea3619c4443966472e25f5f0af85a9c37a54299f58306d56c6c3f9ff389"
+      "sha256": "071b930f27e58580f3bb6d24433f7545d42f31fee8767fec9e71a7bcbbde3790"
     },
     {
       "path": "logs/os-d0-001-stale-artifact.txt",
-      "sha256": "991318d90fbfcd9eedcad15add1c3108617d64a1debe3fa9596580d13b5895bf"
+      "sha256": "bdf9966cbf8030137d2f490e03cad6b0525bb99eae553990cb9750e9d8218600"
     },
     {
       "path": "logs/os-d0-002-threshold-drift.txt",
-      "sha256": "2b566bcac896bb694d094077270e9f65f6a68e564ecfb7223ea455b2beaedab2"
+      "sha256": "9d77e1e8c41208a6e1c91fd85cdf3f68db71bade7c82f9954b3a329d7e514025"
     },
     {
       "path": "logs/os-d0-003-profile-drift.txt",
-      "sha256": "afb2a195102f5e35312cae2942eda172e06a0b062ab953aa5353bca65304682d"
+      "sha256": "933ab9194227fc208925c799b0e2825e44bb8236349c299a5cac1c5adca32bca"
     },
     {
       "path": "logs/os-d0-004-authority-drift.txt",
-      "sha256": "58e5e8f28d7628b83dc0459804544cbc2ebbe084f6d93427ca545adcef996a39"
+      "sha256": "20161576b3830d1594228b53b96978c2222e8afd16a423712d2e9328b1ad50c1"
     },
     {
       "path": "logs/os-d0-005-credential-drift.txt",
-      "sha256": "6adfe1ad26f9304771a9bc123cd1186ee6df1b01c492fb11b2fc9dcc08e0462d"
+      "sha256": "5cd26929dafb1726cab5ff1992761b82bfbed20593e8b932a5d6a200508f266d"
     },
     {
       "path": "logs/os-d0-006-generation-drift.txt",
-      "sha256": "33c7052c73e9eee27196795a7804798c44e7d33492afb1e4f0a2639684f56409"
+      "sha256": "04b702ed1e1476d53202df5a182971c8f02da2c6f2cb135a0142ded8010b919e"
     },
     {
       "path": "logs/os-d0-007-direct-completion-bypass.txt",
-      "sha256": "de4b5915b284a5b08faef07b17cdd20d1c56e510c00d7b5c22b267fd41baef88"
+      "sha256": "5912ea4f64877d77b9c55a9e5030168c243be06564e01804f3e6acb9b46bcd2d"
     },
     {
       "path": "logs/os-d0-008-forged-binding-trigger.txt",
-      "sha256": "b10af94d09e55c209317b22269eff55c31f7c3fe6659bbb8b8ce478af9a23297"
+      "sha256": "659a408e219246d36984a91b0172d3af6fd6fd5cfb8ee0df9e5aaae2605216cd"
     },
     {
       "path": "logs/os-d0-009-quarantined-eval.txt",
-      "sha256": "f9e0b38ef25ca9145d2701bf02410cda60ddbffe47bb0b52fb49535721a113a0"
+      "sha256": "6f3c9c561913eea8362d71e8427b048e3c60f13e4e327c401a84ab5ceb40195d"
     },
     {
       "path": "logs/os-d0-010-nonindependent-review.txt",
-      "sha256": "e5ec5d8ba4e9f9ebd838b401c97ce89a335031385b18d05f45bf583b0e8cfc65"
+      "sha256": "a69b73c3a24b963aa8f5674d95b93dcaee8e8f43e2d1f57baa8912aa7a1e3372"
     },
     {
       "path": "logs/os-d0-011-dashboard-context-leak.txt",
-      "sha256": "a4dd6733b099f7e1ec1caf88926e1781c186902eeb5669592f2839378e7da599"
+      "sha256": "c2144538e6552206d97bed0047e98bfb71f09f455232b31ba0e8ee3013cdb01f"
     },
     {
       "path": "logs/os-d0-012-lifecycle-rollback.txt",
-      "sha256": "a3a2b4aa929d4139cc814567e0dbe240cbeaf7f2a450f7fbe01297960b92b1e0"
+      "sha256": "7a361f0f01d1d7219f75283374532fce19baffc1c09a86b3be4d1a9981cafe16"
     },
     {
       "path": "logs/os-d0-013-claim-history-asymmetry.txt",
-      "sha256": "929eb5157663608795e27c0e3b314a3e620e73a9ff7a347e13302719995e487f"
+      "sha256": "dafb7401060448738926cd28278e31f8e3efca90bd3b3074bcedb37cfb326b0c"
     },
     {
       "path": "logs/os-d0-014-never-bound-control.txt",
-      "sha256": "3c111eecd64016ae65c954d8335c06a0f2a0e1a32503e7a175a6a476543bcd07"
+      "sha256": "dcdd5ec949671583980b174f559d8e309d5ff2f70c9ee38de9573f2823d9b1a8"
     },
     {
       "path": "logs/os-d0-015-approved-completion-control.txt",
-      "sha256": "77ba394e1aa357cd38bca360818491de62051550b9dd2597a3e27214fc101698"
+      "sha256": "c57c8b1967398c6a4f5b61d5aac4ddd1a8e3ffe58ea59779b7f72a3f3aad3915"
     },
     {
       "path": "logs/os-d0-016-unbound-dispatch-control.txt",
@@ -94,15 +98,19 @@
     },
     {
       "path": "logs/pw-d0-005-reviewable-render.txt",
-      "sha256": "ed04b2a3cf7f405413bf3208a10e49f9e8e35edb8c2931c5d074cc0b0ed61baf"
+      "sha256": "36f6c354da00f538ec7d3463b41d839a28011a05c6309eb2c08d2e56075b99e9"
     },
     {
       "path": "logs/pw-d0-006-hard-gate-thresholds.txt",
-      "sha256": "cbe1a7a10e00927bbcdc4e679b1c6975c90b7fd74dc24088bffaefddb8d69f05"
+      "sha256": "3e97c1604d2297d2c143dbea7444dea9c987127dd1ca9c8f1ed10a64550cceb1"
     },
     {
       "path": "metrics-summary.json",
-      "sha256": "98f6d1cb67bf1207e25d9ff7bf74145d3c4072cec27638f83db378f0a3a8f465"
+      "sha256": "196e878ac2ba318c1f035fda576952618add47140247b9943cedd9ab74a3c113"
+    },
+    {
+      "path": "pixweave-comparator-regression.txt",
+      "sha256": "67f5d4be6b9d4e105a596f52d43f0314803596f79887e892f98e8d54ffd706f8"
     },
     {
       "path": "pixweave-regression.txt",
@@ -110,20 +118,23 @@
     },
     {
       "path": "strict-tdd-evidence.md",
-      "sha256": "290efb1961f2f665516d0b50f544c2a442d426c7f03b5060c0ed4ad59415ee18"
+      "sha256": "eab382a8ae8a1c202aa619a4252631a3ee041b81ac193a2bdb800b577fe6ca53"
     },
     {
       "path": "verification-report.md",
-      "sha256": "d04aa75e4658662ffbac359aa52289418aba97c49d3a1c29d68cbdc0e34bcdd9"
+      "sha256": "761b8ae2de40f90118d170488accf44633de8f1a9cf00b04c30ec67e53944833"
     }
   ],
   "external_actions": [
     "git push only"
   ],
   "frozen_inputs": {
-    "docs/assurance/phase-d/d0/comparator-v1.json": "d4f15d9227075914b5887074744f2095c6132a63a0808dcc89dadba551e7c9ca",
-    "docs/assurance/phase-d/d0/comparison-plan-v1.json": "a571f713732a4990d7263319ca649c498d4acc2b3ec6c6bccfdc50e8bb8fb59d",
+    "docs/assurance/charters/development-assurance-phase-d-2026-07-29-v1.md": "54ad4e4d4cc1fd18e30d7ac8f81e328ea1f4cfc08e3c58f8e76079265e5ff21f",
+    "docs/assurance/phase-d/d0/chairman-confirmation-v1.json": "3f19a0f824514db4b5498b52bead0839bdf1fb5f6d6421697e530f53b9b0cbd7",
+    "docs/assurance/phase-d/d0/comparator-v1.json": "d31e0b0a661c80edf64df237d1ed4a060f839dd865647a5200809c9fa8638ac8",
+    "docs/assurance/phase-d/d0/comparison-plan-v1.json": "e39776b01a771fdb1359b7f19d6c675db184580c60f6bfe9b774a49abd4b6ca2",
     "docs/assurance/phase-d/d0/control-fault-bank-v1.json": "5aaf562970ef003dd7a4ac1b74b165268917b51f3d932157f2b09ee9f8373adb",
+    "docs/assurance/phase-d/d0/independent-review-v1.json": "e5d5270dc5b082b5b076c380bb2621f6715ea594989940267bba33cff2c34f04",
     "docs/assurance/phase-d/d0/product-scenario-bank-v1.json": "e5aff8ee500cf50f7d780db6960431b5512bf706d8a2f0ec73520cabaa35df31",
     "docs/assurance/phase-d/d0/rubric-v1.json": "96be314abdefb8b733f8f16d13cf0132a80270d9d6d6d466088e8172bd1ea915"
   },
@@ -135,8 +146,8 @@
   "schema_version": "phase-d-d0-evidence-manifest/v1",
   "scope": "Phase D Stage D0 only",
   "stage_gates": {
-    "d0": "baseline_produced",
-    "d1": "blocked",
-    "d2": "blocked"
+    "d0": "baseline_reviewed",
+    "d1": "started",
+    "d2": "started"
   }
 }

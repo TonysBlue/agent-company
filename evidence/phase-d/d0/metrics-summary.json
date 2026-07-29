@@ -14,8 +14,8 @@
       },
       "elapsed_ms": {
         "evaluation": {
-          "p50": 216,
-          "p90": 305
+          "p50": 189,
+          "p90": 278
         },
         "implementation": "not_collected",
         "independent_review": "not_collected"
@@ -55,12 +55,12 @@
       },
       "waits_ms": {
         "automated_gate": {
-          "p50": 216,
-          "p90": 305
+          "p50": 189,
+          "p90": 278
         },
         "cycle": {
-          "p50": 216,
-          "p90": 305
+          "p50": 189,
+          "p90": 278
         },
         "queue": {
           "p50": 0,
@@ -82,8 +82,8 @@
       },
       "elapsed_ms": {
         "evaluation": {
-          "p50": 246,
-          "p90": 314
+          "p50": 243,
+          "p90": 288
         },
         "implementation": "not_collected",
         "independent_review": "not_collected"
@@ -123,12 +123,12 @@
       },
       "waits_ms": {
         "automated_gate": {
-          "p50": 246,
-          "p90": 314
+          "p50": 243,
+          "p90": 288
         },
         "cycle": {
-          "p50": 246,
-          "p90": 314
+          "p50": 243,
+          "p90": 288
         },
         "queue": {
           "p50": 0,
@@ -150,8 +150,8 @@
       },
       "elapsed_ms": {
         "evaluation": {
-          "p50": 108,
-          "p90": 136
+          "p50": 97,
+          "p90": 161
         },
         "implementation": "not_collected",
         "independent_review": "not_collected"
@@ -191,12 +191,12 @@
       },
       "waits_ms": {
         "automated_gate": {
-          "p50": 108,
-          "p90": 136
+          "p50": 97,
+          "p90": 161
         },
         "cycle": {
-          "p50": 108,
-          "p90": 136
+          "p50": 97,
+          "p90": 161
         },
         "queue": {
           "p50": 0,

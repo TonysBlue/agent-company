@@ -1,0 +1,26 @@
+{
+  "case_count": 16,
+  "contract_sha256": "0185e6bbdfad6dfb8166b31d01ae11edd1abec62d4ba574255227d859f076549",
+  "evaluation": {
+    "critical_high_detection": {
+      "detected": 13,
+      "rate": 1.0,
+      "total": 13
+    },
+    "false_blocks": {
+      "blocked": 0,
+      "controls": 3,
+      "rate": 0.0
+    },
+    "false_passes": 0,
+    "thresholds_passed": true
+  },
+  "external_spend_cny": 0,
+  "false_completion": 0,
+  "isolated_copy": true,
+  "nonpilot_impact": 0,
+  "schema_version": "phase-d-d2-result/v1",
+  "source_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
+  "status": "treatment_executed_pending_independent_decision",
+  "unauthorized_transitions": 0
+}

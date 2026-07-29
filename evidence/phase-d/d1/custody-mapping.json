@@ -1,0 +1,81 @@
+{
+  "access": "not_for_raters",
+  "mappings": [
+    {
+      "assignment": {
+        "A": "candidate",
+        "B": "comparator"
+      },
+      "generated": {
+        "candidate": {
+          "asset_count": 1,
+          "attempts_used": 1,
+          "bundle_path": "generated/dev-skincare-square-001/candidate",
+          "bundle_sha256": "e82fa61c5fec8f804be7ebb715d6d9a8cc691d2b0294cf5558029726026f3e8a",
+          "model_tokens": 0,
+          "timeout_seconds": 600
+        },
+        "comparator": {
+          "asset_count": 1,
+          "attempts_used": 1,
+          "bundle_path": "generated/dev-skincare-square-001/comparator",
+          "bundle_sha256": "8fa0430dd9e89c819d64742db15c02b1097f06efe7ebcab9e7b687b347bd887b",
+          "model_tokens": 0,
+          "timeout_seconds": 600
+        }
+      },
+      "scenario_id": "dev-skincare-square-001"
+    },
+    {
+      "assignment": {
+        "A": "comparator",
+        "B": "candidate"
+      },
+      "generated": {
+        "candidate": {
+          "asset_count": 1,
+          "attempts_used": 1,
+          "bundle_path": "generated/reg-coffee-story-001/candidate",
+          "bundle_sha256": "7e7f6b5b0c0b9a6507992ccfc3b976268855981abbd7762575abcca18ae567b9",
+          "model_tokens": 0,
+          "timeout_seconds": 600
+        },
+        "comparator": {
+          "asset_count": 1,
+          "attempts_used": 1,
+          "bundle_path": "generated/reg-coffee-story-001/comparator",
+          "bundle_sha256": "c718c630e005fee67d49868aa9a108a8836dc935c16057e0d886c8caca0666d2",
+          "model_tokens": 0,
+          "timeout_seconds": 600
+        }
+      },
+      "scenario_id": "reg-coffee-story-001"
+    },
+    {
+      "assignment": {
+        "A": "candidate",
+        "B": "comparator"
+      },
+      "generated": {
+        "candidate": {
+          "asset_count": 1,
+          "attempts_used": 1,
+          "bundle_path": "generated/adv-headphones-square-001/candidate",
+          "bundle_sha256": "ba2a5eb961004f5563a1b3627ec74b95c3b877aa776744b6ce3656cb7d404149",
+          "model_tokens": 0,
+          "timeout_seconds": 600
+        },
+        "comparator": {
+          "asset_count": 1,
+          "attempts_used": 1,
+          "bundle_path": "generated/adv-headphones-square-001/comparator",
+          "bundle_sha256": "74614d96a53a1fc3b15ccc5800a4378a3f1f272d0f521a8147aaff0644e41a77",
+          "model_tokens": 0,
+          "timeout_seconds": 600
+        }
+      },
+      "scenario_id": "adv-headphones-square-001"
+    }
+  ],
+  "schema_version": "phase-d-d1-custody-mapping/v1"
+}

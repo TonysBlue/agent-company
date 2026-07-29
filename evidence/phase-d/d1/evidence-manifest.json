@@ -1,0 +1,153 @@
+{
+  "artifacts": [
+    {
+      "path": "blinded/adv-headphones-square-001/option-A.svg",
+      "sha256": "5115f613d6830b296a98f6fd9618e36db4f7ccc122ec6c6ff0b27ba59ea42bde"
+    },
+    {
+      "path": "blinded/adv-headphones-square-001/option-B.svg",
+      "sha256": "f6fb77d0c396c2d95ea523288b5112ece461063b9396ca8e89101f58faaa9c93"
+    },
+    {
+      "path": "blinded/adv-headphones-square-001/rater-package.json",
+      "sha256": "b11aa88643bd3d45f50758ae498315234db43fc9cea0cf41137a5c11956c7036"
+    },
+    {
+      "path": "blinded/dev-skincare-square-001/option-A.svg",
+      "sha256": "54b45556c99db5d5dc1d8b982344637873d87786fcbd535262e1ed441244bc53"
+    },
+    {
+      "path": "blinded/dev-skincare-square-001/option-B.svg",
+      "sha256": "c8fa3a49cf264fb20024f89945071cd5984304ab9db42065e80da59b0d3c57c2"
+    },
+    {
+      "path": "blinded/dev-skincare-square-001/rater-package.json",
+      "sha256": "54ba9d315c0948c3e58bd56360ada7c4476703f55851d2daeb99cc0eecea0186"
+    },
+    {
+      "path": "blinded/reg-coffee-story-001/option-A.svg",
+      "sha256": "876798d96e1b41a1808c2b6371dc9b7b7dbaf3545beb156eff5a626fd2a62ba0"
+    },
+    {
+      "path": "blinded/reg-coffee-story-001/option-B.svg",
+      "sha256": "665a7e27ad9cec98dfb369caf8ff8e68dea78b9c2a31eb4fad710803e313370b"
+    },
+    {
+      "path": "blinded/reg-coffee-story-001/rater-package.json",
+      "sha256": "b07d6185ab0017afe94b5e6df2e376c070f2914a3ad027f6cc7831abb2af97fc"
+    },
+    {
+      "path": "custody-mapping.json",
+      "sha256": "c911694f7ae090966e1b33bfe5c30ab4dee55fada3df4b3bfad8f55e10342157"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/candidate/brand-message-branded-overlay.svg",
+      "sha256": "5115f613d6830b296a98f6fd9618e36db4f7ccc122ec6c6ff0b27ba59ea42bde"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/candidate/source-062e39437ce1.png",
+      "sha256": "062e39437ce1e35cc9de44c4c0aef56c60e34491bc089c8eadb1e01fb36fdf84"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/candidate/source-edit-gallery.html",
+      "sha256": "594e3076f290c8fb10296ba8fbb89a40d6e8635ef38c8cf33722782a22d935e2"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/candidate/source-edit-manifest.json",
+      "sha256": "7060cf850de5e32bbb52b0098bbba5ba17a9fb7887bda7ecc5d87cbaef5e3092"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/comparator/brand-message-branded-overlay.svg",
+      "sha256": "f6fb77d0c396c2d95ea523288b5112ece461063b9396ca8e89101f58faaa9c93"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/comparator/source-062e39437ce1.png",
+      "sha256": "062e39437ce1e35cc9de44c4c0aef56c60e34491bc089c8eadb1e01fb36fdf84"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/comparator/source-edit-gallery.html",
+      "sha256": "2134cdab799b189f48a7063dfedb5df4d8657f419b1670b846084155448c7943"
+    },
+    {
+      "path": "generated/adv-headphones-square-001/comparator/source-edit-manifest.json",
+      "sha256": "4a270ad2901651ac521f3427ab4da5ee8e682b614159e1dae40a646d26b28779"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/candidate/brand-message-branded-overlay.svg",
+      "sha256": "54b45556c99db5d5dc1d8b982344637873d87786fcbd535262e1ed441244bc53"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/candidate/source-597fdd62df84.png",
+      "sha256": "597fdd62df84ae36e71ad3292d6a3748318b4c6cdeb00c408e5bc47ed672ee2b"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/candidate/source-edit-gallery.html",
+      "sha256": "e39e487445d7898360757f9c6cdd2d2fa5f66e5b5790f5a91d907cf3e93a18e3"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/candidate/source-edit-manifest.json",
+      "sha256": "ecd24eba29a18589e1fd3b9f598034e93fdb9b648c0df1bf4aae8b2ead500af0"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/comparator/brand-message-branded-overlay.svg",
+      "sha256": "c8fa3a49cf264fb20024f89945071cd5984304ab9db42065e80da59b0d3c57c2"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/comparator/source-597fdd62df84.png",
+      "sha256": "597fdd62df84ae36e71ad3292d6a3748318b4c6cdeb00c408e5bc47ed672ee2b"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/comparator/source-edit-gallery.html",
+      "sha256": "30006068e5a4f7c75088ba439ebc37cb87371125480723f57f642c94911c3c00"
+    },
+    {
+      "path": "generated/dev-skincare-square-001/comparator/source-edit-manifest.json",
+      "sha256": "a9916e5ae221f5ce813a4bdc44975ee8c55f9af77e8443f13cdf840813e570c2"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/candidate/brand-message-branded-overlay.svg",
+      "sha256": "665a7e27ad9cec98dfb369caf8ff8e68dea78b9c2a31eb4fad710803e313370b"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/candidate/source-3f9fa061aea6.png",
+      "sha256": "3f9fa061aea6f37d4dab72068c796eebcfdc438248c33e6eaad4caf615be129a"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/candidate/source-edit-gallery.html",
+      "sha256": "3cf86f57b631a9e1780d5e5ec650e7e9052526b8e1937b09ebedfeddace24ab1"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/candidate/source-edit-manifest.json",
+      "sha256": "10d0906563552da08c32b3653c36e5d18c9e110bd39d0f007b0c9c1d1bf086d3"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/comparator/brand-message-branded-overlay.svg",
+      "sha256": "876798d96e1b41a1808c2b6371dc9b7b7dbaf3545beb156eff5a626fd2a62ba0"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/comparator/source-3f9fa061aea6.png",
+      "sha256": "3f9fa061aea6f37d4dab72068c796eebcfdc438248c33e6eaad4caf615be129a"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/comparator/source-edit-gallery.html",
+      "sha256": "2c7f17082222be483921a1a6c1adc73f0c0b68e2fafeffac63ab63be0f29930a"
+    },
+    {
+      "path": "generated/reg-coffee-story-001/comparator/source-edit-manifest.json",
+      "sha256": "75027e1cbff821955731039a164bea64dce4ac410ddfa6e4fb5273d9de28a6f2"
+    },
+    {
+      "path": "status.json",
+      "sha256": "1fe4a49aec0d0c8379fdb09ced9bb8503597eece0efc12f1552009fdf555981f"
+    },
+    {
+      "path": "verification-report.md",
+      "sha256": "3347567111bf33cc7260e8cbbc1ce1184d961a220fb3412ea29f0ae2ebbb37d6"
+    }
+  ],
+  "external_actions": [
+    "git push only"
+  ],
+  "schema_version": "phase-d-d1-evidence-manifest/v1",
+  "status": "awaiting_two_human_ratings"
+}

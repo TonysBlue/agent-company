@@ -1,0 +1,93 @@
+{
+  "asset_count": 1,
+  "assets": [
+    {
+      "external_publish_authorized": false,
+      "file": "brand-message-branded-overlay.svg",
+      "height": 256,
+      "media_type": "image/svg+xml",
+      "operation": {
+        "id": "brand-message",
+        "placement": "bottom",
+        "text": "Daily hydration - Plant-derived formula",
+        "type": "branded_overlay"
+      },
+      "operation_id": "brand-message",
+      "operation_type": "branded_overlay",
+      "provenance": {
+        "data_classification": "synthetic",
+        "likeness_status": "no_real_person",
+        "origin": "pixweave_local_source_edit",
+        "output_sha256": "54b45556c99db5d5dc1d8b982344637873d87786fcbd535262e1ed441244bc53",
+        "parent_lineage": [
+          "phase-d-dev-skincare-square-001-source",
+          "597fdd62df84ae36e71ad3292d6a3748318b4c6cdeb00c408e5bc47ed672ee2b"
+        ],
+        "policy_flags": [
+          "synthetic_fixture",
+          "internal_only",
+          "local_source_image_upload",
+          "local_edit_branded_overlay"
+        ],
+        "retention_class": "phase_d_evidence",
+        "review_decision": "approved_internal",
+        "reviewer_ref": "phase-d-d1-contract",
+        "rights_basis": "company-created synthetic fixture",
+        "rights_evidence_ref": "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+        "schema_version": "provenance/v1",
+        "source_category": "derived_branded_overlay_draft",
+        "source_id": "brand-message",
+        "source_sha256": "597fdd62df84ae36e71ad3292d6a3748318b4c6cdeb00c408e5bc47ed672ee2b",
+        "trademark_review_status": "no_third_party_mark"
+      },
+      "provider": "local-source-edit",
+      "provider_version": "1.0.0",
+      "review_state": "draft",
+      "sha256": "54b45556c99db5d5dc1d8b982344637873d87786fcbd535262e1ed441244bc53",
+      "source_sha256": "597fdd62df84ae36e71ad3292d6a3748318b4c6cdeb00c408e5bc47ed672ee2b",
+      "width": 256
+    }
+  ],
+  "brand_sha256": "63554882811ed4a66df84a4e25f253a9b455f47d52eb5b4e7b8e0c0bb2d26ca0",
+  "bundle_sha256": "e82fa61c5fec8f804be7ebb715d6d9a8cc691d2b0294cf5558029726026f3e8a",
+  "capability_disclaimer": "Local source-image edits are internal draft SVG review artifacts, not published assets or evidence of visual quality.",
+  "external_action_authorized": false,
+  "external_publish_authorized": false,
+  "operations_sha256": "ade7208aacbfeb6ba68ce050cbff1e63f1231421fdca570e6c4c4cb03d975176",
+  "provider": "local-source-edit",
+  "provider_version": "1.0.0",
+  "review_gallery": {
+    "file": "source-edit-gallery.html",
+    "sha256": "e39e487445d7898360757f9c6cdd2d2fa5f66e5b5790f5a91d907cf3e93a18e3"
+  },
+  "schema_version": "source-image-edit/v1",
+  "source": {
+    "bytes": 761,
+    "file": "source-597fdd62df84.png",
+    "height": 256,
+    "media_type": "image/png",
+    "original_file_name": "dev-skincare-square-001.png",
+    "provenance": {
+      "data_classification": "synthetic",
+      "likeness_status": "no_real_person",
+      "origin": "agent-company Phase D D1 runner",
+      "parent_lineage": [],
+      "policy_flags": [
+        "synthetic_fixture",
+        "internal_only"
+      ],
+      "retention_class": "phase_d_evidence",
+      "review_decision": "approved_internal",
+      "reviewer_ref": "phase-d-d1-contract",
+      "rights_basis": "company-created synthetic fixture",
+      "rights_evidence_ref": "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+      "schema_version": "provenance/v1",
+      "source_category": "phase_d_synthetic_fixture",
+      "source_id": "phase-d-dev-skincare-square-001-source",
+      "trademark_review_status": "no_third_party_mark"
+    },
+    "sha256": "597fdd62df84ae36e71ad3292d6a3748318b4c6cdeb00c408e5bc47ed672ee2b",
+    "width": 256
+  },
+  "source_sha256": "597fdd62df84ae36e71ad3292d6a3748318b4c6cdeb00c408e5bc47ed672ee2b"
+}

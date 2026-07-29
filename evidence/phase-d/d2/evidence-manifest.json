@@ -1,0 +1,85 @@
+{
+  "artifacts": [
+    {
+      "path": "case-results.json",
+      "sha256": "5c99edc7f5dc76f2c9bbd23641d0582944eb13dec9419147a0e9ef9eb15ec39a"
+    },
+    {
+      "path": "logs/os-d0-001-stale-artifact.txt",
+      "sha256": "d0ae2715a4f2f94a406c6ec233c31ccd52b1d8a56c669fa90bac6ab2f63b6ffa"
+    },
+    {
+      "path": "logs/os-d0-002-threshold-drift.txt",
+      "sha256": "72f113f730a51eebfd8e8aa3e359ac1ed288ea064bbb1279147f122b819c014d"
+    },
+    {
+      "path": "logs/os-d0-003-profile-drift.txt",
+      "sha256": "6a0030df29643047a718c5a39b098db0acc4d7e20482f9e9fef024724536d181"
+    },
+    {
+      "path": "logs/os-d0-004-authority-drift.txt",
+      "sha256": "20161576b3830d1594228b53b96978c2222e8afd16a423712d2e9328b1ad50c1"
+    },
+    {
+      "path": "logs/os-d0-005-credential-drift.txt",
+      "sha256": "0e81f4556e2bc19283793a92b7a46361ec8015ddce7af462ddf5b8cea4408418"
+    },
+    {
+      "path": "logs/os-d0-006-generation-drift.txt",
+      "sha256": "ea01a63606378627a3ef302e60c5a87b11c4e06554511b9a86ca51cfe2b7101e"
+    },
+    {
+      "path": "logs/os-d0-007-direct-completion-bypass.txt",
+      "sha256": "f29618eb6d0fd7bf5fd52dcf29632109a800fa267b0d763a9f90baab9a9f5dc9"
+    },
+    {
+      "path": "logs/os-d0-008-forged-binding-trigger.txt",
+      "sha256": "4177ca92e55eebd2c67e9e9b9dd23c2218c7ee77ae05fc04a3a972e541fb6952"
+    },
+    {
+      "path": "logs/os-d0-009-quarantined-eval.txt",
+      "sha256": "4515829c0bfc7fbb8d0aa01a9cdc75caf1cbebb2b890741cb8ade03181cf41dd"
+    },
+    {
+      "path": "logs/os-d0-010-nonindependent-review.txt",
+      "sha256": "5577c6549bb88fd57bf5a559ff70e98946b3004bf59e0a507b91ee2809fa24d3"
+    },
+    {
+      "path": "logs/os-d0-011-dashboard-context-leak.txt",
+      "sha256": "76974f06dad01c868de6d6b1bc0177980aa834cf9707142b10c9e6b0d0c4976b"
+    },
+    {
+      "path": "logs/os-d0-012-lifecycle-rollback.txt",
+      "sha256": "23fbacdf9f07b05dd9e9ff050ccd68c45d2eb3ccdd95ff503873747348c2be10"
+    },
+    {
+      "path": "logs/os-d0-013-claim-history-asymmetry.txt",
+      "sha256": "2811ac1d9b7a6a7a24fcc1ecc6f4ea3c8b1a76fbd19e7dd25cc20aad9581b11a"
+    },
+    {
+      "path": "logs/os-d0-014-never-bound-control.txt",
+      "sha256": "b2a7a515eda8b85a8ae68a4915e36f8c7376ee5cf44dbd297168db520b12ebd7"
+    },
+    {
+      "path": "logs/os-d0-015-approved-completion-control.txt",
+      "sha256": "d01f3e3e97d3bc962ca07fc87e3147c92c788798cbd69a2650cc8a4616d89a10"
+    },
+    {
+      "path": "logs/os-d0-016-unbound-dispatch-control.txt",
+      "sha256": "8a6ff714af5e0eb0af1d9cc4633aa59daed3136e84975e8891e3365cff3996d0"
+    },
+    {
+      "path": "result.json",
+      "sha256": "471b47a1030ede1dbd9eb76419412afcbb2273350b50a4c5fc39b26ad70aa31a"
+    },
+    {
+      "path": "verification-report.md",
+      "sha256": "195068a0075b833181930a96f7992cb2a157d36746a374f156901b910bb4b69a"
+    }
+  ],
+  "external_actions": [
+    "git push only"
+  ],
+  "schema_version": "phase-d-d2-evidence-manifest/v1",
+  "status": "treatment_executed_pending_independent_decision"
+}

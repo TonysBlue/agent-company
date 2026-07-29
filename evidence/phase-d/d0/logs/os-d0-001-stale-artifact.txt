@@ -1,6 +1,6 @@
 test_stale_artifact_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.170s
+Ran 1 test in 0.180s
 
 OK

@@ -1,0 +1,46 @@
+{
+  "brief": {
+    "aspect_ratio": "1:1",
+    "brand": {
+      "logo_clearance_percent": 8,
+      "palette": [
+        "#0D2A4A",
+        "#E7F1FA"
+      ],
+      "tone": "technical minimal"
+    },
+    "channel": "social-square",
+    "constraints": [
+      "do not alter earcup geometry",
+      "no unsupported noise-cancellation claim",
+      "avoid text over reflective surface"
+    ],
+    "message": {
+      "primary": "Focus without clutter",
+      "secondary": "Wireless over-ear"
+    }
+  },
+  "options": [
+    {
+      "file": "option-A.svg",
+      "label": "A",
+      "sha256": "5115f613d6830b296a98f6fd9618e36db4f7ccc122ec6c6ff0b27ba59ea42bde"
+    },
+    {
+      "file": "option-B.svg",
+      "label": "B",
+      "sha256": "f6fb77d0c396c2d95ea523288b5112ece461063b9396ca8e89101f58faaa9c93"
+    }
+  ],
+  "rating_scale": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "ratings_collected": 0,
+  "required_independent_raters": 2,
+  "scenario_id": "adv-headphones-square-001",
+  "schema_version": "phase-d-d1-rater-package/v1"
+}

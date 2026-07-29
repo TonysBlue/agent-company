@@ -1,6 +1,6 @@
 test_complete_snapshot_and_api_redact_raw_runtime_fields (tests.test_dashboard.DashboardTest.test_complete_snapshot_and_api_redact_raw_runtime_fields) ... ok
 
 ----------------------------------------------------------------------
-Ran 1 test in 0.079s
+Ran 1 test in 0.077s
 
 OK

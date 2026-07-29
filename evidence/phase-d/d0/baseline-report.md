@@ -2,13 +2,15 @@
 
 - Run ID: `phase-d-d0-baseline-v1`
 - Scope: approved Stage D0 baseline replay only
-- Raw run start: `2026-07-29T07:40:20.866158+00:00`
-- Raw run end: `2026-07-29T07:40:25.635779+00:00`
+- Raw run start: `2026-07-29T10:19:36.482112+00:00`
+- Raw run end: `2026-07-29T10:19:41.102786+00:00`
 - Agent Company commit: `8a50770b8ff5f954ceeff2680c2ab571605fabe1`
 - PixWeave commit: `d78094f26eb697c810899a40771a8af6dec7ce19`
-- Frozen-input manifest SHA-256: `05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34`
-- Independent baseline review: `not_collected`
-- Chairman confirmation: `not_collected`
+- Agent Company comparator regression: `220` tests
+- PixWeave comparator regression: `58` tests
+- Frozen-input manifest SHA-256: `25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3`
+- Independent baseline review: `approve`
+- Chairman confirmation: `confirmed_all_five_items`
 
 ## Outcome
 
@@ -16,7 +18,7 @@ D0 replayed 6 synthetic/replayed PixWeave product cases and 16 Company OS fault/
 
 ## Frozen Inputs And Procedure
 
-The runner verified the pre-recorded SHA-256 of the scenario bank, fault bank, comparator, rubric, and comparison plan before executing one exact allowlisted `unittest` probe per case. Each subprocess ran locally against a pinned repository commit with a one-attempt budget and retained an immutable log.
+The runner verified the pre-recorded SHA-256 of the charter, scenario bank, fault bank, comparator, rubric, comparison plan, independent review, and Chairman confirmation before executing one exact allowlisted `unittest` probe per case. Each subprocess ran locally against a pinned repository commit with a one-attempt budget and retained an immutable log.
 
 Exact command:
 
@@ -31,7 +33,7 @@ python3.11 scripts/run_phase_d_d0.py --freeze docs/assurance/phase-d/d0/freeze-m
 | Valid cases | 6 | 16 | 22 |
 | Hard gates | `{"failed":0,"passed":6}` | `{"failed":0,"passed":16}` | `{"failed":0,"passed":22}` |
 | Defects | `{"after_nominal_completion":"not_collected","before_review":{"count":3,"seeded_faults_detected":3,"severity_weighted":9,"unexpected_probe_failures":0},"during_independent_review":"not_collected"}` | `{"after_nominal_completion":"not_collected","before_review":{"count":13,"seeded_faults_detected":13,"severity_weighted":49,"unexpected_probe_failures":0},"during_independent_review":"not_collected"}` | `{"after_nominal_completion":"not_collected","before_review":{"count":16,"seeded_faults_detected":16,"severity_weighted":58,"unexpected_probe_failures":0},"during_independent_review":"not_collected"}` |
-| p50/p90 waits (ms) | `{"automated_gate":{"p50":108,"p90":136},"cycle":{"p50":108,"p90":136},"queue":{"p50":0,"p90":0}}` | `{"automated_gate":{"p50":246,"p90":314},"cycle":{"p50":246,"p90":314},"queue":{"p50":0,"p90":0}}` | `{"automated_gate":{"p50":216,"p90":305},"cycle":{"p50":216,"p90":305},"queue":{"p50":0,"p90":0}}` |
+| host-local p50/p90 waits (ms) | `{"automated_gate":{"p50":97,"p90":161},"cycle":{"p50":97,"p90":161},"queue":{"p50":0,"p90":0}}` | `{"automated_gate":{"p50":243,"p90":288},"cycle":{"p50":243,"p90":288},"queue":{"p50":0,"p90":0}}` | `{"automated_gate":{"p50":189,"p90":278},"cycle":{"p50":189,"p90":278},"queue":{"p50":0,"p90":0}}` |
 | Model tokens | `not_collected` | `not_collected` | `not_collected` |
 | Human minutes | `{"engineering":"not_collected","evaluation":"not_collected","review":"not_collected"}` | `{"engineering":"not_collected","evaluation":"not_collected","review":"not_collected"}` | `{"engineering":"not_collected","evaluation":"not_collected","review":"not_collected"}` |
 | Rework | `{"count":"not_collected","minutes":"not_collected"}` | `{"count":"not_collected","minutes":"not_collected"}` | `{"count":"not_collected","minutes":"not_collected"}` |
@@ -40,7 +42,7 @@ python3.11 scripts/run_phase_d_d0.py --freeze docs/assurance/phase-d/d0/freeze-m
 | Unauthorized transitions | `{"count":0,"observed":0}` | `{"count":0,"observed":12}` | `{"count":0,"observed":12}` |
 | Lineage completeness | `{"complete":6,"rate":1.0,"total":6}` | `{"complete":16,"rate":1.0,"total":16}` | `{"complete":22,"rate":1.0,"total":22}` |
 
-Artifact preparation retained raw start/end timestamps and measured `195` ms. Human review wait is `not_collected`; no human baseline review occurred during tooling execution.
+Artifact preparation retained raw start/end timestamps and measured host-locally `18224` ms. Human review wait is `not_collected`; no human baseline review occurred during tooling execution.
 
 ## Case Results
 
@@ -73,14 +75,14 @@ Artifact preparation retained raw start/end timestamps and measured `195` ms. Hu
 
 Model tokens, engineering/evaluator/reviewer minutes, rework, independent-review defects, post-completion defects, reviewer disagreement, and human gate waits are `not_collected` because the replay probes and historical records do not expose them. Zero is never substituted for missing data.
 
-The product cases replay deterministic PixWeave controls; they do not generate or human-rate new visual assets and cannot establish D1 preference or quality. Control cases replay existing unit-level fault/control evidence; they are not D2 treatment execution. Subprocess duration is a machine-gate observation on this host, not an estimate of historical implementation or reviewer time.
+The product cases replay deterministic PixWeave controls; they do not generate or human-rate new visual assets and cannot establish D1 preference or quality. Control cases replay existing unit-level fault/control evidence; they are not D2 treatment execution. Subprocess duration is a machine-gate observation on this host, not an estimate of historical implementation or reviewer time. All measured durations in this report are host-local and are not portable performance claims.
 
 ## Treatment Gates
 
-- D1: `blocked` pending independent baseline review, Chairman confirmation of frozen comparison manifests and numerical ceilings, and a CEO-recorded D1 start decision.
-- D2: `blocked` pending independent baseline review, Chairman confirmation of frozen comparison manifests and numerical ceilings, and a CEO-recorded D2 start decision.
-- independent baseline review: `not_collected`
-- Chairman confirmation: `not_collected`
-- CEO D1/D2 start decision: `not_collected`
+- D1: `start_authorized` under its immutable contract; adoption remains blocked pending two human ratings.
+- D2: `start_authorized` under its immutable contract for isolated fault/control treatment only.
+- independent baseline review: `approve`
+- Chairman confirmation: `confirmed_all_five_items`
+- CEO D1/D2 start decision: `start_bounded_internal_treatment`
 
 No treatment, holdout access, customer data, external spend, outreach, publication, production action, or PixWeave source modification occurred.

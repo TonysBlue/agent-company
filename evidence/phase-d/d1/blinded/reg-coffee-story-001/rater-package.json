@@ -1,0 +1,46 @@
+{
+  "brief": {
+    "aspect_ratio": "9:16",
+    "brand": {
+      "logo_clearance_percent": 5,
+      "palette": [
+        "#1B1B1B",
+        "#DFAE62"
+      ],
+      "tone": "confident craft"
+    },
+    "channel": "social-story",
+    "constraints": [
+      "preserve label wording",
+      "no fabricated awards",
+      "price omitted"
+    ],
+    "message": {
+      "primary": "Single origin",
+      "secondary": "Roasted this week"
+    }
+  },
+  "options": [
+    {
+      "file": "option-A.svg",
+      "label": "A",
+      "sha256": "876798d96e1b41a1808c2b6371dc9b7b7dbaf3545beb156eff5a626fd2a62ba0"
+    },
+    {
+      "file": "option-B.svg",
+      "label": "B",
+      "sha256": "665a7e27ad9cec98dfb369caf8ff8e68dea78b9c2a31eb4fad710803e313370b"
+    }
+  ],
+  "rating_scale": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "ratings_collected": 0,
+  "required_independent_raters": 2,
+  "scenario_id": "reg-coffee-story-001",
+  "schema_version": "phase-d-d1-rater-package/v1"
+}

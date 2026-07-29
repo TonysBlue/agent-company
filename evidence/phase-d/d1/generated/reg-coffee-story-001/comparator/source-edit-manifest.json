@@ -1,0 +1,93 @@
+{
+  "asset_count": 1,
+  "assets": [
+    {
+      "external_publish_authorized": false,
+      "file": "brand-message-branded-overlay.svg",
+      "height": 320,
+      "media_type": "image/svg+xml",
+      "operation": {
+        "id": "brand-message",
+        "placement": "bottom",
+        "text": "Single origin",
+        "type": "branded_overlay"
+      },
+      "operation_id": "brand-message",
+      "operation_type": "branded_overlay",
+      "provenance": {
+        "data_classification": "synthetic",
+        "likeness_status": "no_real_person",
+        "origin": "pixweave_local_source_edit",
+        "output_sha256": "876798d96e1b41a1808c2b6371dc9b7b7dbaf3545beb156eff5a626fd2a62ba0",
+        "parent_lineage": [
+          "phase-d-reg-coffee-story-001-source",
+          "3f9fa061aea6f37d4dab72068c796eebcfdc438248c33e6eaad4caf615be129a"
+        ],
+        "policy_flags": [
+          "synthetic_fixture",
+          "internal_only",
+          "local_source_image_upload",
+          "local_edit_branded_overlay"
+        ],
+        "retention_class": "phase_d_evidence",
+        "review_decision": "approved_internal",
+        "reviewer_ref": "phase-d-d1-contract",
+        "rights_basis": "company-created synthetic fixture",
+        "rights_evidence_ref": "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+        "schema_version": "provenance/v1",
+        "source_category": "derived_branded_overlay_draft",
+        "source_id": "brand-message",
+        "source_sha256": "3f9fa061aea6f37d4dab72068c796eebcfdc438248c33e6eaad4caf615be129a",
+        "trademark_review_status": "no_third_party_mark"
+      },
+      "provider": "local-source-edit",
+      "provider_version": "1.0.0",
+      "review_state": "draft",
+      "sha256": "876798d96e1b41a1808c2b6371dc9b7b7dbaf3545beb156eff5a626fd2a62ba0",
+      "source_sha256": "3f9fa061aea6f37d4dab72068c796eebcfdc438248c33e6eaad4caf615be129a",
+      "width": 180
+    }
+  ],
+  "brand_sha256": "a5b2ecd58b9a97eab91f3d76e90e1b1ff27b9875cf41bac6c8c14dd2f01e9c05",
+  "bundle_sha256": "c718c630e005fee67d49868aa9a108a8836dc935c16057e0d886c8caca0666d2",
+  "capability_disclaimer": "Local source-image edits are internal draft SVG review artifacts, not published assets or evidence of visual quality.",
+  "external_action_authorized": false,
+  "external_publish_authorized": false,
+  "operations_sha256": "7a8a49af4a0e72544ba0c6bd1b39558ac200303f66f52306de8c5ffd86a79ba6",
+  "provider": "local-source-edit",
+  "provider_version": "1.0.0",
+  "review_gallery": {
+    "file": "source-edit-gallery.html",
+    "sha256": "2c7f17082222be483921a1a6c1adc73f0c0b68e2fafeffac63ab63be0f29930a"
+  },
+  "schema_version": "source-image-edit/v1",
+  "source": {
+    "bytes": 810,
+    "file": "source-3f9fa061aea6.png",
+    "height": 320,
+    "media_type": "image/png",
+    "original_file_name": "reg-coffee-story-001.png",
+    "provenance": {
+      "data_classification": "synthetic",
+      "likeness_status": "no_real_person",
+      "origin": "agent-company Phase D D1 runner",
+      "parent_lineage": [],
+      "policy_flags": [
+        "synthetic_fixture",
+        "internal_only"
+      ],
+      "retention_class": "phase_d_evidence",
+      "review_decision": "approved_internal",
+      "reviewer_ref": "phase-d-d1-contract",
+      "rights_basis": "company-created synthetic fixture",
+      "rights_evidence_ref": "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+      "schema_version": "provenance/v1",
+      "source_category": "phase_d_synthetic_fixture",
+      "source_id": "phase-d-reg-coffee-story-001-source",
+      "trademark_review_status": "no_third_party_mark"
+    },
+    "sha256": "3f9fa061aea6f37d4dab72068c796eebcfdc438248c33e6eaad4caf615be129a",
+    "width": 180
+  },
+  "source_sha256": "3f9fa061aea6f37d4dab72068c796eebcfdc438248c33e6eaad4caf615be129a"
+}

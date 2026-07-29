@@ -23,7 +23,7 @@
       },
       "domain": "product",
       "elapsed_ms": {
-        "evaluation": 108,
+        "evaluation": 109,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
@@ -47,7 +47,7 @@
         "values": {
           "case_definition_sha256": "70ebe17282c59f6eb5186591730d1655c4f523cb354144fb8e26a5b247f54565",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
           "log_sha256": "6c38969570cc84dd0a4f5560e6f722d4bd20588a8f2ecf7418c24ee5c34d2e6e",
           "raw_timestamps": true,
           "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
@@ -67,15 +67,15 @@
       "severity": "high",
       "test_target": "tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_accepts_bounded_upload_and_writes_lineage",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:20.974484+00:00",
-        "queued_at": "2026-07-29T07:40:20.866326+00:00",
-        "started_at": "2026-07-29T07:40:20.866331+00:00"
+        "ended_at": "2026-07-29T10:19:36.591042+00:00",
+        "queued_at": "2026-07-29T10:19:36.482227+00:00",
+        "started_at": "2026-07-29T10:19:36.482230+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": true,
       "waits_ms": {
-        "automated_gate": 108,
-        "cycle": 108,
+        "automated_gate": 109,
+        "cycle": 109,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -103,7 +103,7 @@
       },
       "domain": "product",
       "elapsed_ms": {
-        "evaluation": 134,
+        "evaluation": 88,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
@@ -127,7 +127,7 @@
         "values": {
           "case_definition_sha256": "7bcdbbbf26c3002415e0f7932ac1c4da672b7a00fa4ef0786c8a48878c06b2ba",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
           "log_sha256": "0ced851bebcd04c6438a24289d770b29abf38629c201943c101dbfdbb70b5063",
           "raw_timestamps": true,
           "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
@@ -147,15 +147,15 @@
       "severity": "high",
       "test_target": "tests.test_beta_product.LocalBetaProductTest.test_source_image_edit_rejects_unsafe_and_polyglot_uploads_without_artifacts",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:21.118232+00:00",
-        "queued_at": "2026-07-29T07:40:20.984376+00:00",
-        "started_at": "2026-07-29T07:40:20.984385+00:00"
+        "ended_at": "2026-07-29T10:19:36.688430+00:00",
+        "queued_at": "2026-07-29T10:19:36.600436+00:00",
+        "started_at": "2026-07-29T10:19:36.600445+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 134,
-        "cycle": 134,
+        "automated_gate": 88,
+        "cycle": 88,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -183,7 +183,7 @@
       },
       "domain": "product",
       "elapsed_ms": {
-        "evaluation": 136,
+        "evaluation": 97,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
@@ -207,7 +207,7 @@
         "values": {
           "case_definition_sha256": "0056b52df4babf02f2952ad6bbf215da2486c226ceb6d4f75b52512b8b180204",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
           "log_sha256": "f5b8d7cdc54a953bc46a0495166c947fcee1cbf9b14fcd1af98b06adc18a460e",
           "raw_timestamps": true,
           "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
@@ -227,15 +227,15 @@
       "severity": "medium",
       "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_brand_kit_validation_and_deterministic_campaign_manifest",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:21.262777+00:00",
-        "queued_at": "2026-07-29T07:40:21.127205+00:00",
-        "started_at": "2026-07-29T07:40:21.127213+00:00"
+        "ended_at": "2026-07-29T10:19:36.794921+00:00",
+        "queued_at": "2026-07-29T10:19:36.698061+00:00",
+        "started_at": "2026-07-29T10:19:36.698069+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": true,
       "waits_ms": {
-        "automated_gate": 136,
-        "cycle": 136,
+        "automated_gate": 97,
+        "cycle": 97,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -263,7 +263,7 @@
       },
       "domain": "product",
       "elapsed_ms": {
-        "evaluation": 97,
+        "evaluation": 96,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
@@ -287,7 +287,7 @@
         "values": {
           "case_definition_sha256": "820e42697db55cd3963c4b051ee0785f0e775d2752a45d9f09d48702ee519585",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
           "log_sha256": "fdc0f53ad199c73a8131572c499c94e0de9e2599a78a8a7389c61fd33cd63774",
           "raw_timestamps": true,
           "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
@@ -307,15 +307,15 @@
       "severity": "high",
       "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_campaign_manifest_fails_closed_on_provenance",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:21.367988+00:00",
-        "queued_at": "2026-07-29T07:40:21.271219+00:00",
-        "started_at": "2026-07-29T07:40:21.271227+00:00"
+        "ended_at": "2026-07-29T10:19:36.900343+00:00",
+        "queued_at": "2026-07-29T10:19:36.804207+00:00",
+        "started_at": "2026-07-29T10:19:36.804215+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 97,
-        "cycle": 97,
+        "automated_gate": 96,
+        "cycle": 96,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -343,13 +343,13 @@
       },
       "domain": "product",
       "elapsed_ms": {
-        "evaluation": 113,
+        "evaluation": 161,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/pw-d0-005-reviewable-render.txt",
-        "log_sha256": "ed04b2a3cf7f405413bf3208a10e49f9e8e35edb8c2931c5d074cc0b0ed61baf"
+        "log_sha256": "36f6c354da00f538ec7d3463b41d839a28011a05c6309eb2c08d2e56075b99e9"
       },
       "exit_code": 0,
       "expected_signal": "complete deterministic local bundle remains internal and reviewable",
@@ -367,8 +367,8 @@
         "values": {
           "case_definition_sha256": "a588ced5fe57dafb652e2590458486b6b285650b70f59028f60f7f53f3d471ef",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "ed04b2a3cf7f405413bf3208a10e49f9e8e35edb8c2931c5d074cc0b0ed61baf",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "36f6c354da00f538ec7d3463b41d839a28011a05c6309eb2c08d2e56075b99e9",
           "raw_timestamps": true,
           "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
           "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_campaign_render_writes_deterministic_escaped_svg_bundle"
@@ -387,15 +387,15 @@
       "severity": "medium",
       "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_campaign_render_writes_deterministic_escaped_svg_bundle",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:21.485219+00:00",
-        "queued_at": "2026-07-29T07:40:21.372618+00:00",
-        "started_at": "2026-07-29T07:40:21.372627+00:00"
+        "ended_at": "2026-07-29T10:19:37.070866+00:00",
+        "queued_at": "2026-07-29T10:19:36.910050+00:00",
+        "started_at": "2026-07-29T10:19:36.910057+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": true,
       "waits_ms": {
-        "automated_gate": 113,
-        "cycle": 113,
+        "automated_gate": 161,
+        "cycle": 161,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -423,13 +423,13 @@
       },
       "domain": "product",
       "elapsed_ms": {
-        "evaluation": 99,
+        "evaluation": 140,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/pw-d0-006-hard-gate-thresholds.txt",
-        "log_sha256": "cbe1a7a10e00927bbcdc4e679b1c6975c90b7fd74dc24088bffaefddb8d69f05"
+        "log_sha256": "3e97c1604d2297d2c143dbea7444dea9c987127dd1ca9c8f1ed10a64550cceb1"
       },
       "exit_code": 0,
       "expected_signal": "invalid observations and stop-threshold failures fail closed",
@@ -447,8 +447,8 @@
         "values": {
           "case_definition_sha256": "96951a376286e9593ef90f34825f20c492a2e9a4efd8e104188ea96ea3fc657c",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "cbe1a7a10e00927bbcdc4e679b1c6975c90b7fd74dc24088bffaefddb8d69f05",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "3e97c1604d2297d2c143dbea7444dea9c987127dd1ca9c8f1ed10a64550cceb1",
           "raw_timestamps": true,
           "repository_commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
           "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_visual_qa_rejects_invalid_measurements_and_stop_thresholds"
@@ -467,15 +467,15 @@
       "severity": "high",
       "test_target": "tests.test_product_workflows.TempWorkspaceTest.test_visual_qa_rejects_invalid_measurements_and_stop_thresholds",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:21.592437+00:00",
-        "queued_at": "2026-07-29T07:40:21.493850+00:00",
-        "started_at": "2026-07-29T07:40:21.493858+00:00"
+        "ended_at": "2026-07-29T10:19:37.219590+00:00",
+        "queued_at": "2026-07-29T10:19:37.079275+00:00",
+        "started_at": "2026-07-29T10:19:37.079283+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 99,
-        "cycle": 99,
+        "automated_gate": 140,
+        "cycle": 140,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -503,13 +503,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 305,
+        "evaluation": 271,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-001-stale-artifact.txt",
-        "log_sha256": "991318d90fbfcd9eedcad15add1c3108617d64a1debe3fa9596580d13b5895bf"
+        "log_sha256": "bdf9966cbf8030137d2f490e03cad6b0525bb99eae553990cb9750e9d8218600"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -527,8 +527,8 @@
         "values": {
           "case_definition_sha256": "03fd3d9f74ed225345d1133c42d459df35a735a569e58bae5ccced3e9c8ac1e1",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "991318d90fbfcd9eedcad15add1c3108617d64a1debe3fa9596580d13b5895bf",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "bdf9966cbf8030137d2f490e03cad6b0525bb99eae553990cb9750e9d8218600",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion"
@@ -547,15 +547,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:21.901963+00:00",
-        "queued_at": "2026-07-29T07:40:21.597306+00:00",
-        "started_at": "2026-07-29T07:40:21.597313+00:00"
+        "ended_at": "2026-07-29T10:19:37.499057+00:00",
+        "queued_at": "2026-07-29T10:19:37.227851+00:00",
+        "started_at": "2026-07-29T10:19:37.227860+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 305,
-        "cycle": 305,
+        "automated_gate": 271,
+        "cycle": 271,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -583,13 +583,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 289,
+        "evaluation": 278,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-002-threshold-drift.txt",
-        "log_sha256": "2b566bcac896bb694d094077270e9f65f6a68e564ecfb7223ea455b2beaedab2"
+        "log_sha256": "9d77e1e8c41208a6e1c91fd85cdf3f68db71bade7c82f9954b3a329d7e514025"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -607,8 +607,8 @@
         "values": {
           "case_definition_sha256": "7459ed58c6605784693bfd0bdfde4f6e454033148f7e9844c6b7588d05f2f038",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "2b566bcac896bb694d094077270e9f65f6a68e564ecfb7223ea455b2beaedab2",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "9d77e1e8c41208a6e1c91fd85cdf3f68db71bade7c82f9954b3a329d7e514025",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion"
@@ -627,15 +627,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:22.199054+00:00",
-        "queued_at": "2026-07-29T07:40:21.910333+00:00",
-        "started_at": "2026-07-29T07:40:21.910341+00:00"
+        "ended_at": "2026-07-29T10:19:37.786642+00:00",
+        "queued_at": "2026-07-29T10:19:37.508432+00:00",
+        "started_at": "2026-07-29T10:19:37.508440+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 289,
-        "cycle": 289,
+        "automated_gate": 278,
+        "cycle": 278,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -663,13 +663,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 265,
+        "evaluation": 288,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-003-profile-drift.txt",
-        "log_sha256": "afb2a195102f5e35312cae2942eda172e06a0b062ab953aa5353bca65304682d"
+        "log_sha256": "933ab9194227fc208925c799b0e2825e44bb8236349c299a5cac1c5adca32bca"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -687,8 +687,8 @@
         "values": {
           "case_definition_sha256": "8de9f43c2b045e5c0561d2de235c2f085cdb930cf2caa699cd8daca783bd3f58",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "afb2a195102f5e35312cae2942eda172e06a0b062ab953aa5353bca65304682d",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "933ab9194227fc208925c799b0e2825e44bb8236349c299a5cac1c5adca32bca",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion"
@@ -707,15 +707,15 @@
       "severity": "high",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:22.472368+00:00",
-        "queued_at": "2026-07-29T07:40:22.207568+00:00",
-        "started_at": "2026-07-29T07:40:22.207576+00:00"
+        "ended_at": "2026-07-29T10:19:38.084363+00:00",
+        "queued_at": "2026-07-29T10:19:37.796171+00:00",
+        "started_at": "2026-07-29T10:19:37.796178+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 265,
-        "cycle": 265,
+        "automated_gate": 288,
+        "cycle": 288,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -743,13 +743,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 314,
+        "evaluation": 288,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-004-authority-drift.txt",
-        "log_sha256": "58e5e8f28d7628b83dc0459804544cbc2ebbe084f6d93427ca545adcef996a39"
+        "log_sha256": "20161576b3830d1594228b53b96978c2222e8afd16a423712d2e9328b1ad50c1"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -767,8 +767,8 @@
         "values": {
           "case_definition_sha256": "b2fd9b94250e57d40e2c179acb7c0e72f76245ad316d07d68beb08683a1fe4e9",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "58e5e8f28d7628b83dc0459804544cbc2ebbe084f6d93427ca545adcef996a39",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "20161576b3830d1594228b53b96978c2222e8afd16a423712d2e9328b1ad50c1",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion"
@@ -787,15 +787,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:22.795418+00:00",
-        "queued_at": "2026-07-29T07:40:22.481007+00:00",
-        "started_at": "2026-07-29T07:40:22.481014+00:00"
+        "ended_at": "2026-07-29T10:19:38.381152+00:00",
+        "queued_at": "2026-07-29T10:19:38.092747+00:00",
+        "started_at": "2026-07-29T10:19:38.092753+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 314,
-        "cycle": 314,
+        "automated_gate": 288,
+        "cycle": 288,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -823,13 +823,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 280,
+        "evaluation": 254,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-005-credential-drift.txt",
-        "log_sha256": "6adfe1ad26f9304771a9bc123cd1186ee6df1b01c492fb11b2fc9dcc08e0462d"
+        "log_sha256": "5cd26929dafb1726cab5ff1992761b82bfbed20593e8b932a5d6a200508f266d"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -847,8 +847,8 @@
         "values": {
           "case_definition_sha256": "096e60af14e56608994063222a7584e54c48e8e91187f9d54c8042a3dced2c49",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "6adfe1ad26f9304771a9bc123cd1186ee6df1b01c492fb11b2fc9dcc08e0462d",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "5cd26929dafb1726cab5ff1992761b82bfbed20593e8b932a5d6a200508f266d",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion"
@@ -867,15 +867,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:23.084410+00:00",
-        "queued_at": "2026-07-29T07:40:22.804855+00:00",
-        "started_at": "2026-07-29T07:40:22.804863+00:00"
+        "ended_at": "2026-07-29T10:19:38.643971+00:00",
+        "queued_at": "2026-07-29T10:19:38.390127+00:00",
+        "started_at": "2026-07-29T10:19:38.390133+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 280,
-        "cycle": 280,
+        "automated_gate": 254,
+        "cycle": 254,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -903,13 +903,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 317,
+        "evaluation": 258,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-006-generation-drift.txt",
-        "log_sha256": "33c7052c73e9eee27196795a7804798c44e7d33492afb1e4f0a2639684f56409"
+        "log_sha256": "04b702ed1e1476d53202df5a182971c8f02da2c6f2cb135a0142ded8010b919e"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -927,8 +927,8 @@
         "values": {
           "case_definition_sha256": "07d4653bcacf4ba378e281f23729bb065b48b7f00fb106b50fd3ef1d26d03018",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "33c7052c73e9eee27196795a7804798c44e7d33492afb1e4f0a2639684f56409",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "04b702ed1e1476d53202df5a182971c8f02da2c6f2cb135a0142ded8010b919e",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion"
@@ -947,15 +947,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:23.409377+00:00",
-        "queued_at": "2026-07-29T07:40:23.092724+00:00",
-        "started_at": "2026-07-29T07:40:23.092731+00:00"
+        "ended_at": "2026-07-29T10:19:38.910248+00:00",
+        "queued_at": "2026-07-29T10:19:38.652442+00:00",
+        "started_at": "2026-07-29T10:19:38.652448+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 317,
-        "cycle": 317,
+        "automated_gate": 258,
+        "cycle": 258,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -983,13 +983,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 160,
+        "evaluation": 164,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-007-direct-completion-bypass.txt",
-        "log_sha256": "de4b5915b284a5b08faef07b17cdd20d1c56e510c00d7b5c22b267fd41baef88"
+        "log_sha256": "5912ea4f64877d77b9c55a9e5030168c243be06564e01804f3e6acb9b46bcd2d"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -1007,8 +1007,8 @@
         "values": {
           "case_definition_sha256": "d9bbc65dfae820b0d19b6899ffe83df6d362b18d531b229fc1043f06d69025c0",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "de4b5915b284a5b08faef07b17cdd20d1c56e510c00d7b5c22b267fd41baef88",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "5912ea4f64877d77b9c55a9e5030168c243be06564e01804f3e6acb9b46bcd2d",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_direct_sql_cannot_complete_a_claimed_bound_pilot"
@@ -1027,15 +1027,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_direct_sql_cannot_complete_a_claimed_bound_pilot",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:23.577658+00:00",
-        "queued_at": "2026-07-29T07:40:23.418021+00:00",
-        "started_at": "2026-07-29T07:40:23.418028+00:00"
+        "ended_at": "2026-07-29T10:19:39.082892+00:00",
+        "queued_at": "2026-07-29T10:19:38.918931+00:00",
+        "started_at": "2026-07-29T10:19:38.918937+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 160,
-        "cycle": 160,
+        "automated_gate": 164,
+        "cycle": 164,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1063,13 +1063,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 262,
+        "evaluation": 272,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-008-forged-binding-trigger.txt",
-        "log_sha256": "b10af94d09e55c209317b22269eff55c31f7c3fe6659bbb8b8ce478af9a23297"
+        "log_sha256": "659a408e219246d36984a91b0172d3af6fd6fd5cfb8ee0df9e5aaae2605216cd"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -1087,8 +1087,8 @@
         "values": {
           "case_definition_sha256": "f54233ea66318cabbabea4417be25c4653130e46c5e0e84c6d4110407b7a2cb9",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "b10af94d09e55c209317b22269eff55c31f7c3fe6659bbb8b8ce478af9a23297",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "659a408e219246d36984a91b0172d3af6fd6fd5cfb8ee0df9e5aaae2605216cd",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_execution_binding_and_dropped_triggers_fail_closed"
@@ -1107,15 +1107,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_execution_binding_and_dropped_triggers_fail_closed",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:23.849215+00:00",
-        "queued_at": "2026-07-29T07:40:23.586951+00:00",
-        "started_at": "2026-07-29T07:40:23.586958+00:00"
+        "ended_at": "2026-07-29T10:19:39.362512+00:00",
+        "queued_at": "2026-07-29T10:19:39.090512+00:00",
+        "started_at": "2026-07-29T10:19:39.090520+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 262,
-        "cycle": 262,
+        "automated_gate": 272,
+        "cycle": 272,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1143,13 +1143,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 246,
+        "evaluation": 234,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-009-quarantined-eval.txt",
-        "log_sha256": "f9e0b38ef25ca9145d2701bf02410cda60ddbffe47bb0b52fb49535721a113a0"
+        "log_sha256": "6f3c9c561913eea8362d71e8427b048e3c60f13e4e327c401a84ab5ceb40195d"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -1167,8 +1167,8 @@
         "values": {
           "case_definition_sha256": "2ec471d87080dc01482b6f671547663b555c9505efc72c73495a40128a47f2e6",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "f9e0b38ef25ca9145d2701bf02410cda60ddbffe47bb0b52fb49535721a113a0",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "6f3c9c561913eea8362d71e8427b048e3c60f13e4e327c401a84ab5ceb40195d",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_quarantined_eval_fails_closed"
@@ -1187,15 +1187,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_quarantined_eval_fails_closed",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:24.105240+00:00",
-        "queued_at": "2026-07-29T07:40:23.859027+00:00",
-        "started_at": "2026-07-29T07:40:23.859033+00:00"
+        "ended_at": "2026-07-29T10:19:39.605012+00:00",
+        "queued_at": "2026-07-29T10:19:39.371426+00:00",
+        "started_at": "2026-07-29T10:19:39.371432+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 246,
-        "cycle": 246,
+        "automated_gate": 234,
+        "cycle": 234,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1223,13 +1223,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 216,
+        "evaluation": 218,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-010-nonindependent-review.txt",
-        "log_sha256": "e5ec5d8ba4e9f9ebd838b401c97ce89a335031385b18d05f45bf583b0e8cfc65"
+        "log_sha256": "a69b73c3a24b963aa8f5674d95b93dcaee8e8f43e2d1f57baa8912aa7a1e3372"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -1247,8 +1247,8 @@
         "values": {
           "case_definition_sha256": "a7066965268c9c8afc4209270f15b87ef48f589c79aeaa20929f5cd83c422e0d",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "e5ec5d8ba4e9f9ebd838b401c97ce89a335031385b18d05f45bf583b0e8cfc65",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "a69b73c3a24b963aa8f5674d95b93dcaee8e8f43e2d1f57baa8912aa7a1e3372",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_implementer_authored_review_is_not_independent"
@@ -1267,15 +1267,15 @@
       "severity": "high",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_implementer_authored_review_is_not_independent",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:24.329235+00:00",
-        "queued_at": "2026-07-29T07:40:24.113625+00:00",
-        "started_at": "2026-07-29T07:40:24.113631+00:00"
+        "ended_at": "2026-07-29T10:19:39.831482+00:00",
+        "queued_at": "2026-07-29T10:19:39.613193+00:00",
+        "started_at": "2026-07-29T10:19:39.613199+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 216,
-        "cycle": 216,
+        "automated_gate": 218,
+        "cycle": 218,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1303,13 +1303,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 217,
+        "evaluation": 189,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-011-dashboard-context-leak.txt",
-        "log_sha256": "a4dd6733b099f7e1ec1caf88926e1781c186902eeb5669592f2839378e7da599"
+        "log_sha256": "c2144538e6552206d97bed0047e98bfb71f09f455232b31ba0e8ee3013cdb01f"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -1327,8 +1327,8 @@
         "values": {
           "case_definition_sha256": "adafe6a32a788c0244a8b8fdb02a36f9eb1f12b14386c02a0c901efa5d79ad7c",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "a4dd6733b099f7e1ec1caf88926e1781c186902eeb5669592f2839378e7da599",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "c2144538e6552206d97bed0047e98bfb71f09f455232b31ba0e8ee3013cdb01f",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_dashboard.DashboardTest.test_complete_snapshot_and_api_redact_raw_runtime_fields"
@@ -1347,15 +1347,15 @@
       "severity": "high",
       "test_target": "tests.test_dashboard.DashboardTest.test_complete_snapshot_and_api_redact_raw_runtime_fields",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:24.550947+00:00",
-        "queued_at": "2026-07-29T07:40:24.333867+00:00",
-        "started_at": "2026-07-29T07:40:24.333874+00:00"
+        "ended_at": "2026-07-29T10:19:40.027995+00:00",
+        "queued_at": "2026-07-29T10:19:39.839197+00:00",
+        "started_at": "2026-07-29T10:19:39.839203+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 217,
-        "cycle": 217,
+        "automated_gate": 189,
+        "cycle": 189,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1383,13 +1383,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 257,
+        "evaluation": 271,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-012-lifecycle-rollback.txt",
-        "log_sha256": "a3a2b4aa929d4139cc814567e0dbe240cbeaf7f2a450f7fbe01297960b92b1e0"
+        "log_sha256": "7a361f0f01d1d7219f75283374532fce19baffc1c09a86b3be4d1a9981cafe16"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -1407,8 +1407,8 @@
         "values": {
           "case_definition_sha256": "0feccd65ec1153bd2edf3f04a78a8bffa68c3a5db6e2f0767ea42b2d035b5e20",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "a3a2b4aa929d4139cc814567e0dbe240cbeaf7f2a450f7fbe01297960b92b1e0",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "7a361f0f01d1d7219f75283374532fce19baffc1c09a86b3be4d1a9981cafe16",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_dropped_status_guard_cannot_hide_supersession_rollback"
@@ -1427,15 +1427,15 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_dropped_status_guard_cannot_hide_supersession_rollback",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:24.817276+00:00",
-        "queued_at": "2026-07-29T07:40:24.559983+00:00",
-        "started_at": "2026-07-29T07:40:24.559989+00:00"
+        "ended_at": "2026-07-29T10:19:40.303161+00:00",
+        "queued_at": "2026-07-29T10:19:40.032516+00:00",
+        "started_at": "2026-07-29T10:19:40.032521+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
       "waits_ms": {
-        "automated_gate": 257,
-        "cycle": 257,
+        "automated_gate": 271,
+        "cycle": 271,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1469,7 +1469,7 @@
       },
       "evidence": {
         "log_path": "logs/os-d0-013-claim-history-asymmetry.txt",
-        "log_sha256": "929eb5157663608795e27c0e3b314a3e620e73a9ff7a347e13302719995e487f"
+        "log_sha256": "dafb7401060448738926cd28278e31f8e3efca90bd3b3074bcedb37cfb326b0c"
       },
       "exit_code": 0,
       "expected_signal": "fault_detected_fail_closed",
@@ -1487,8 +1487,8 @@
         "values": {
           "case_definition_sha256": "b243bc3892b621c95c3e9a65acb42074199b8dec148cb1e661d58e95670dda9d",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "929eb5157663608795e27c0e3b314a3e620e73a9ff7a347e13302719995e487f",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "dafb7401060448738926cd28278e31f8e3efca90bd3b3074bcedb37cfb326b0c",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_reports_forged_completion_after_history_deletion"
@@ -1507,9 +1507,9 @@
       "severity": "critical",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_reports_forged_completion_after_history_deletion",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:25.008193+00:00",
-        "queued_at": "2026-07-29T07:40:24.825591+00:00",
-        "started_at": "2026-07-29T07:40:24.825597+00:00"
+        "ended_at": "2026-07-29T10:19:40.494822+00:00",
+        "queued_at": "2026-07-29T10:19:40.312120+00:00",
+        "started_at": "2026-07-29T10:19:40.312125+00:00"
       },
       "unauthorized_transition": false,
       "valid_control": false,
@@ -1543,13 +1543,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 195,
+        "evaluation": 185,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-014-never-bound-control.txt",
-        "log_sha256": "3c111eecd64016ae65c954d8335c06a0f2a0e1a32503e7a175a6a476543bcd07"
+        "log_sha256": "dcdd5ec949671583980b174f559d8e309d5ff2f70c9ee38de9573f2823d9b1a8"
       },
       "exit_code": 0,
       "expected_signal": "valid_control_allowed",
@@ -1567,8 +1567,8 @@
         "values": {
           "case_definition_sha256": "744796dc1c1b976e4b6d3329a1e8bd9b0cecfabb0fb850797a8999a4321fc6dd",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "3c111eecd64016ae65c954d8335c06a0f2a0e1a32503e7a175a6a476543bcd07",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "dcdd5ec949671583980b174f559d8e309d5ff2f70c9ee38de9573f2823d9b1a8",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible"
@@ -1587,15 +1587,15 @@
       "severity": "high",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:25.211885+00:00",
-        "queued_at": "2026-07-29T07:40:25.016786+00:00",
-        "started_at": "2026-07-29T07:40:25.016793+00:00"
+        "ended_at": "2026-07-29T10:19:40.687801+00:00",
+        "queued_at": "2026-07-29T10:19:40.503070+00:00",
+        "started_at": "2026-07-29T10:19:40.503076+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": true,
       "waits_ms": {
-        "automated_gate": 195,
-        "cycle": 195,
+        "automated_gate": 185,
+        "cycle": 185,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1623,13 +1623,13 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 230,
+        "evaluation": 243,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
       "evidence": {
         "log_path": "logs/os-d0-015-approved-completion-control.txt",
-        "log_sha256": "77ba394e1aa357cd38bca360818491de62051550b9dd2597a3e27214fc101698"
+        "log_sha256": "c57c8b1967398c6a4f5b61d5aac4ddd1a8e3ffe58ea59779b7f72a3f3aad3915"
       },
       "exit_code": 0,
       "expected_signal": "valid_control_allowed",
@@ -1647,8 +1647,8 @@
         "values": {
           "case_definition_sha256": "1e446ae973e84823f1b2f648b2b3c8ad8961508b801953c1e44c6451c181a4ed",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
-          "log_sha256": "77ba394e1aa357cd38bca360818491de62051550b9dd2597a3e27214fc101698",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+          "log_sha256": "c57c8b1967398c6a4f5b61d5aac4ddd1a8e3ffe58ea59779b7f72a3f3aad3915",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
           "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_accepts_legitimate_completed_pilot"
@@ -1667,15 +1667,15 @@
       "severity": "high",
       "test_target": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_accepts_legitimate_completed_pilot",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:25.446287+00:00",
-        "queued_at": "2026-07-29T07:40:25.216028+00:00",
-        "started_at": "2026-07-29T07:40:25.216034+00:00"
+        "ended_at": "2026-07-29T10:19:40.934873+00:00",
+        "queued_at": "2026-07-29T10:19:40.692304+00:00",
+        "started_at": "2026-07-29T10:19:40.692311+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": true,
       "waits_ms": {
-        "automated_gate": 230,
-        "cycle": 230,
+        "automated_gate": 243,
+        "cycle": 243,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1703,7 +1703,7 @@
       },
       "domain": "control",
       "elapsed_ms": {
-        "evaluation": 134,
+        "evaluation": 124,
         "implementation": "not_collected",
         "independent_review": "not_collected"
       },
@@ -1727,7 +1727,7 @@
         "values": {
           "case_definition_sha256": "03c8e97d0ef14d990623a916b126f1f84b70099cffc74ffca1652ff0dfa9bd5b",
           "exit_code": 0,
-          "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+          "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
           "log_sha256": "88fbf94c5641a214236385d5552402d48bbf20100e63d7c40f51d3d9c7f90213",
           "raw_timestamps": true,
           "repository_commit": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
@@ -1747,15 +1747,15 @@
       "severity": "medium",
       "test_target": "tests.test_pilot_gate.PilotGateTest.test_unbound_and_nonpilot_tasks_are_unchanged",
       "timestamps": {
-        "ended_at": "2026-07-29T07:40:25.586207+00:00",
-        "queued_at": "2026-07-29T07:40:25.452657+00:00",
-        "started_at": "2026-07-29T07:40:25.452663+00:00"
+        "ended_at": "2026-07-29T10:19:41.068239+00:00",
+        "queued_at": "2026-07-29T10:19:40.943862+00:00",
+        "started_at": "2026-07-29T10:19:40.943868+00:00"
       },
       "unauthorized_transition": "not_applicable",
       "valid_control": true,
       "waits_ms": {
-        "automated_gate": 134,
-        "cycle": 134,
+        "automated_gate": 124,
+        "cycle": 124,
         "human_review": "not_collected",
         "queue": 0
       }
@@ -1763,30 +1763,39 @@
   ],
   "run": {
     "artifact_preparation": {
-      "elapsed_ms": 195,
-      "ended_at": "2026-07-29T07:40:20.866150+00:00",
-      "started_at": "2026-07-29T07:40:20.671518+00:00"
+      "elapsed_ms": 18224,
+      "ended_at": "2026-07-29T10:19:36.482105+00:00",
+      "started_at": "2026-07-29T10:19:18.258293+00:00"
     },
     "attempt_budget_per_case": 1,
     "case_count": 22,
-    "ended_at": "2026-07-29T07:40:25.635779+00:00",
-    "freeze_manifest_sha256": "05fbb3170bde78e86590bb551a60c65233dc025d5966873175bdad3300deae34",
+    "ended_at": "2026-07-29T10:19:41.102786+00:00",
+    "freeze_manifest_sha256": "25a1de355bb3f1e2366fb2cf1f7b8ba56fee753d39a8c9b99a2f090d3c9f71b3",
+    "governance": {
+      "chairman_confirmation": "confirmed_all_five_items",
+      "independent_review": "approve"
+    },
+    "regression_test_counts": {
+      "agent-company": 220,
+      "pixweave": 58
+    },
     "repositories": {
       "agent-company": "8a50770b8ff5f954ceeff2680c2ab571605fabe1",
       "pixweave": "d78094f26eb697c810899a40771a8af6dec7ce19"
     },
-    "results_sha256": "b4f00211f5554e9abd33a409c566f9379127b3fae18301a8ae5f37a6abe27104",
+    "results_sha256": "240d6ca28c9c044bd44c7f312593ee40948676de525143e54a2e56d157216a2d",
     "run_id": "phase-d-d0-baseline-v1",
     "schema_version": "phase-d-d0-run/v1",
     "scope": "Phase D Stage D0 only",
     "stage_gates": {
-      "d1": "blocked",
-      "d2": "blocked"
+      "d1": "start_authorized",
+      "d2": "start_authorized"
     },
-    "started_at": "2026-07-29T07:40:20.866158+00:00",
+    "started_at": "2026-07-29T10:19:36.482112+00:00",
+    "timing_scope": "host_local",
     "tooling_sha256": {
-      "agent_company/phase_d_d0.py": "823e147ae27ca54ffe6e2edc3dbc22b70cd62a74c21d22ef6c5195f13b395119",
-      "scripts/run_phase_d_d0.py": "5096f17d0e2739b9400927394034dd0c03586e93654be35da706c9c69ac95bbb"
+      "agent_company/phase_d_d0.py": "1b7bdc2abdc7818ea0a3ac6ac11f140b1b9ab897450b987cc9d6529b3297d316",
+      "scripts/run_phase_d_d0.py": "a1707845da81a68ff35d581a5b07dadbd6946cb3c276a1765ca84f14ad835175"
     }
   },
   "schema_version": "phase-d-d0-case-results/v1"

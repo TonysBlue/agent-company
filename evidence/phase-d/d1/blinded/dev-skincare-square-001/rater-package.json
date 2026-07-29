@@ -1,0 +1,46 @@
+{
+  "brief": {
+    "aspect_ratio": "1:1",
+    "brand": {
+      "logo_clearance_percent": 6,
+      "palette": [
+        "#F5EFE6",
+        "#2F5132"
+      ],
+      "tone": "calm botanical"
+    },
+    "channel": "social-square",
+    "constraints": [
+      "preserve bottle silhouette",
+      "no medical claims",
+      "no people"
+    ],
+    "message": {
+      "primary": "Daily hydration",
+      "secondary": "Plant-derived formula"
+    }
+  },
+  "options": [
+    {
+      "file": "option-A.svg",
+      "label": "A",
+      "sha256": "54b45556c99db5d5dc1d8b982344637873d87786fcbd535262e1ed441244bc53"
+    },
+    {
+      "file": "option-B.svg",
+      "label": "B",
+      "sha256": "c8fa3a49cf264fb20024f89945071cd5984304ab9db42065e80da59b0d3c57c2"
+    }
+  ],
+  "rating_scale": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "ratings_collected": 0,
+  "required_independent_raters": 2,
+  "scenario_id": "dev-skincare-square-001",
+  "schema_version": "phase-d-d1-rater-package/v1"
+}

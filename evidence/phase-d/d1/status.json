@@ -1,0 +1,26 @@
+{
+  "adoption_result": "not_computed",
+  "contract_sha256": "2456070dc2c8d987771990ad9f3feb5def90869c1f3af3e3841e489ba3f17b58",
+  "external_spend_cny": 0,
+  "packages": [
+    {
+      "package": "blinded/dev-skincare-square-001",
+      "scenario_id": "dev-skincare-square-001"
+    },
+    {
+      "package": "blinded/reg-coffee-story-001",
+      "scenario_id": "reg-coffee-story-001"
+    },
+    {
+      "package": "blinded/adv-headphones-square-001",
+      "scenario_id": "adv-headphones-square-001"
+    }
+  ],
+  "pixweave_source_modified": false,
+  "protected_holdout_attempts": 0,
+  "ratings_collected": 0,
+  "ratings_required_per_scenario": 2,
+  "schema_version": "phase-d-d1-status/v1",
+  "status": "awaiting_two_human_ratings",
+  "synthetic_scenarios": 3
+}
