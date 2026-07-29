@@ -1,0 +1,10 @@
+Command:
+  python3.11 scripts/run_phase_d_treatments.py
+
+Exit status: 2
+
+Output:
+  {"error": "legacy Phase D treatment runner blocked by corrected freeze pending independent approval", "stage": "Phase D treatment"}
+
+This guard prevents the superseded treatment entrypoint from executing while the corrected
+freeze lacks independent approval.

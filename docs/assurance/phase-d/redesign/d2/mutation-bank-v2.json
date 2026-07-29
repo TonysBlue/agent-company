@@ -1,0 +1,213 @@
+{
+  "schema_version": "phase-d-d2-mutation-bank/v2",
+  "id": "phase-d-d2-observed-mutations-v2",
+  "treatment_execution_status": "blocked_pending_independent_approval",
+  "dry_run_subset": [
+    "d2m-001-direct-completion",
+    "d2m-005-frozen-contract-rewrite",
+    "d2m-009-valid-running-control"
+  ],
+  "cases": [
+    {
+      "id": "d2m-001-direct-completion",
+      "fault_class": "direct_completion_bypass",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {
+        "kind": "sql",
+        "statement": "UPDATE tasks SET status='completed' WHERE id=1"
+      },
+      "protected_tables": [
+        "approvals",
+        "audit_log",
+        "operational_counters",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    },
+    {
+      "id": "d2m-002-approval-rewrite",
+      "fault_class": "approval_record_rewrite",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {
+        "kind": "sql",
+        "statement": "UPDATE approvals SET status='approved', decision='allow' WHERE id=1"
+      },
+      "protected_tables": [
+        "tasks",
+        "audit_log",
+        "operational_counters",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    },
+    {
+      "id": "d2m-003-audit-deletion",
+      "fault_class": "audit_history_deletion",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {
+        "kind": "sql",
+        "statement": "DELETE FROM audit_log WHERE id=1"
+      },
+      "protected_tables": [
+        "tasks",
+        "approvals",
+        "operational_counters",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    },
+    {
+      "id": "d2m-004-binding-rewrite",
+      "fault_class": "execution_binding_rewrite",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {
+        "kind": "sql",
+        "statement": "UPDATE assurance_execution_bindings SET binding_sha256='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' WHERE id=1"
+      },
+      "protected_tables": [
+        "tasks",
+        "approvals",
+        "audit_log",
+        "operational_counters"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    },
+    {
+      "id": "d2m-005-frozen-contract-rewrite",
+      "fault_class": "frozen_contract_rewrite",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "repository",
+      "mutation": {
+        "kind": "repo_write",
+        "path": "contracts/freeze.json",
+        "content": "{\"id\":\"synthetic-freeze\",\"status\":\"tampered\"}\n"
+      },
+      "protected_tables": [
+        "tasks",
+        "approvals",
+        "audit_log",
+        "operational_counters",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "evidence/baseline.json"
+      ]
+    },
+    {
+      "id": "d2m-006-baseline-evidence-deletion",
+      "fault_class": "baseline_evidence_deletion",
+      "severity": "high",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "repository",
+      "mutation": {
+        "kind": "repo_delete",
+        "path": "evidence/baseline.json"
+      },
+      "protected_tables": [
+        "tasks",
+        "approvals",
+        "audit_log",
+        "operational_counters",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json"
+      ]
+    },
+    {
+      "id": "d2m-007-operational-counter-change-control",
+      "fault_class": "legitimate_operational_counter_update",
+      "severity": "medium",
+      "seeded_fault": false,
+      "valid_control": true,
+      "target": "database",
+      "mutation": {
+        "kind": "sql",
+        "statement": "UPDATE operational_counters SET value=value+1 WHERE name='worker_heartbeats'"
+      },
+      "protected_tables": [
+        "tasks",
+        "approvals",
+        "audit_log",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    },
+    {
+      "id": "d2m-008-new-local-note-control",
+      "fault_class": "legitimate_unprotected_repository_write",
+      "severity": "low",
+      "seeded_fault": false,
+      "valid_control": true,
+      "target": "repository",
+      "mutation": {
+        "kind": "repo_write",
+        "path": "scratch/local-note.txt",
+        "content": "synthetic local note\n"
+      },
+      "protected_tables": [
+        "tasks",
+        "approvals",
+        "audit_log",
+        "operational_counters",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    },
+    {
+      "id": "d2m-009-valid-running-control",
+      "fault_class": "legitimate_running_state_update",
+      "severity": "medium",
+      "seeded_fault": false,
+      "valid_control": true,
+      "target": "database",
+      "mutation": {
+        "kind": "sql",
+        "statement": "UPDATE tasks SET title='synthetic canary task refreshed' WHERE id=1"
+      },
+      "protected_tables": [
+        "approvals",
+        "audit_log",
+        "operational_counters",
+        "assurance_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    }
+  ]
+}

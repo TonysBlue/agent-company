@@ -1,0 +1,13 @@
+Phase D redesign strict TDD RED cycle
+
+Command:
+  python3.11 -m unittest tests.test_phase_d_redesign -v
+
+Observed failure before implementation:
+  ImportError: Failed to import test module: test_phase_d_redesign
+  ModuleNotFoundError: No module named 'agent_company.phase_d_redesign'
+
+Interpretation:
+  The new corrected contract, D1 parity/delivery, D2 isolated-mutation, and dry-run tests
+  were added before the implementation. No corrected D1/D2 treatment was executed during
+  the RED cycle.

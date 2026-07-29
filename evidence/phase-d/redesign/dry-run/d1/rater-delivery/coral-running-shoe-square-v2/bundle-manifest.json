@@ -1,0 +1,28 @@
+{
+  "bundle_sha256": "84c6647952e54477202fdd155eb1eeb77b56fbc0247cd76de6e9e3d705a27c69",
+  "files": [
+    {
+      "bytes": 755,
+      "path": "brief.json",
+      "sha256": "5f8d0c0bfb059a6b32f446635ecfd0b9c8b9c86fcaebff08aa373f274e8c9fb0"
+    },
+    {
+      "bytes": 1651,
+      "path": "option-A.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 1651,
+      "path": "option-B.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 4792,
+      "path": "rater-form.json",
+      "sha256": "ee3cc0276398e34c128a2a779a5a9abc2a7f85cf427f415e63da3930fe238d4f"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "coral-running-shoe-square-v2",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#fff3cf"/>
+  <ellipse cx="256" cy="445" rx="119" ry="18" fill="#dcc998"/>
+  <rect x="162" y="185" width="188" height="245" rx="22" fill="#f2d274" stroke="#9d7c2c" stroke-width="8"/>
+  <ellipse cx="256" cy="186" rx="94" ry="28" fill="#fff4bf" stroke="#9d7c2c" stroke-width="8"/>
+  <path d="M256 182c-24-28-19-57 2-83 20 25 23 54-2 83z" fill="#ec7b2f" stroke="#b34b21" stroke-width="5"/>
+  <path d="M258 105c9 18 8 34-2 51-8-14-7-31 2-51z" fill="#ffe46f"/>
+  <rect x="194" y="268" width="124" height="91" rx="5" fill="#fff8df"/>
+  <circle cx="256" cy="305" r="19" fill="#f2a632"/>
+  <path d="M256 287v36M238 305h36" stroke="#fff8df" stroke-width="4"/>
+  <text x="256" y="346" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="700" fill="#71521d">CITRUS GROVE</text>
+</svg>

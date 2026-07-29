@@ -1,0 +1,48 @@
+{
+  "schema_version": "phase-d-redesign-ceo-start-proposal/v2",
+  "id": "phase-d-redesign-ceo-start-proposal-v2",
+  "decision_owner": "CEO",
+  "current_decision": "do_not_start",
+  "effective_authorization": false,
+  "proposal": "start_corrected_bounded_internal_d1_d2_only_after_independent_approval",
+  "proposal_is_not_an_approval": true,
+  "rationale": [
+    "Independent findings at HEAD 6626411 invalidate the prior D1 and D2 treatment conclusions.",
+    "Corrected D1 and D2 contracts, fixtures, tooling, RED tests and dry-run evidence can be prepared without executing a treatment.",
+    "An independent reviewer must verify the corrected freeze and record an approval bound to every frozen hash before the CEO proposal can become an effective start decision."
+  ],
+  "conditions_precedent": [
+    "corrected_freeze_hashes_verified",
+    "strict_tdd_red_green_evidence_complete",
+    "dry_run_validation_complete",
+    "agent_company_regression_passed",
+    "pixweave_regression_passed_without_source_changes",
+    "independent_reviewer_is_not_an_author_or_implementer",
+    "independent_review_binds_corrected_freeze_and_all_contract_hashes",
+    "no_unresolved_critical_or_high_review_findings",
+    "ceo_records_effective_start_decision_after_independent_approval"
+  ],
+  "post_approval_scope_ceiling": {
+    "d1": "six frozen synthetic scenarios; two paired internal options per scenario; no rater outreach until separately authorized within the charter",
+    "d2": "frozen mutation bank applied only to isolated frozen database and repository copies",
+    "customer_data": false,
+    "external_spend_cny": 0,
+    "outreach": false,
+    "publication": false,
+    "production": false,
+    "pixweave_source_edits": false,
+    "external_actions": [
+      "git_push"
+    ]
+  },
+  "stop_conditions": [
+    "missing_or_invalid_independent_approval",
+    "freeze_or_source_hash_drift",
+    "paired_input_mismatch_other_than_assurance_workflow",
+    "artifact_overflow_or_budget_breach",
+    "custody_disclosure_in_rater_delivery",
+    "mutation_outside_isolated_copy",
+    "rollback_or_noninterference_failure",
+    "customer_data_or_external_action_attempt"
+  ]
+}

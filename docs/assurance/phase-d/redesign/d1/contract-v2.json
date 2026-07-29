@@ -1,0 +1,114 @@
+{
+  "schema_version": "phase-d-d1-corrected-contract/v2",
+  "id": "phase-d-d1-corrected-contract-v2",
+  "status": "blocked_pending_independent_approval",
+  "treatment_execution_authorized": false,
+  "scope": "bounded synthetic product-source comparison with identical paired inputs and assurance workflow as the sole treatment variable",
+  "scenario_bank": "docs/assurance/phase-d/redesign/d1/scenario-bank-v2.json",
+  "paired_input_parity": {
+    "byte_identical_fields": [
+      "source_bytes",
+      "brief",
+      "messages",
+      "attempt_budget",
+      "model",
+      "tool",
+      "timeout_seconds",
+      "evidence_budget_bytes"
+    ],
+    "only_permitted_difference": "assurance_workflow",
+    "attempts_per_option": 1,
+    "model": "deterministic-local-svg-renderer/v2",
+    "tool": "agent_company.phase_d_redesign.render_bounded_artifact",
+    "timeout_seconds": 60,
+    "evidence_budget_bytes_per_option": 1048576,
+    "abort_on_parity_mismatch": true
+  },
+  "workflows": {
+    "candidate": {
+      "id": "corrected_assurance_workflow",
+      "steps": [
+        "validate_frozen_source_and_brief",
+        "render_one_bounded_artifact",
+        "validate_hard_gates_and_bounds",
+        "hash_evidence"
+      ]
+    },
+    "comparator": {
+      "id": "current_workflow",
+      "steps": [
+        "render_one_bounded_artifact",
+        "hash_evidence"
+      ]
+    }
+  },
+  "artifact_bounds": {
+    "canvas_width_px": 512,
+    "canvas_height_px": 512,
+    "maximum_message_characters": 96,
+    "maximum_message_lines": 3,
+    "maximum_option_bytes": 1048576,
+    "overflow_allowed": false
+  },
+  "rater_protocol": {
+    "hard_gates_per_option": 4,
+    "anchored_dimensions": 5,
+    "dimension_scale": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "required_anchors": [
+      1,
+      3,
+      5
+    ],
+    "preference_choices": [
+      "A",
+      "B",
+      "tie",
+      "abstain"
+    ],
+    "required_fields": [
+      "confidence",
+      "rationale",
+      "elapsed_minutes",
+      "protocol_violations"
+    ],
+    "independent_raters_required_before_analysis": 2
+  },
+  "custody": {
+    "mapping_root": "evidence/phase-d/redesign/custody/d1",
+    "rater_delivery_root": "evidence/phase-d/redesign/dry-run/d1/rater-delivery",
+    "roots_must_be_disjoint": true,
+    "delivery_must_exclude": [
+      "candidate_or_comparator_identity",
+      "mapping_paths",
+      "custody_paths",
+      "generated_paths"
+    ],
+    "each_delivery_bundle_hashed": true
+  },
+  "execution_gate": {
+    "corrected_freeze": "docs/assurance/phase-d/redesign/corrected-freeze-v2.json",
+    "independent_approval": "docs/assurance/phase-d/redesign/independent-approval-v2.json",
+    "missing_approval_behavior": "deny"
+  },
+  "allowed_before_approval": [
+    "tooling_implementation",
+    "fixture_creation",
+    "red_tests",
+    "dry_run_validation"
+  ],
+  "forbidden_actions": [
+    "corrected_treatment_execution_before_independent_approval",
+    "customer_data",
+    "external_spend",
+    "outreach",
+    "publication",
+    "production",
+    "pixweave_source_edits"
+  ]
+}

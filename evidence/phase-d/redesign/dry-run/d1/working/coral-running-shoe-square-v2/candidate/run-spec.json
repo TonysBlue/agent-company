@@ -1,0 +1,43 @@
+{
+  "artifact_sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115",
+  "artifact_validation": {
+    "bounded": true,
+    "canvas": {
+      "height": 512,
+      "width": 512
+    },
+    "overflow": false,
+    "overflow_reasons": []
+  },
+  "assurance_workflow": {
+    "id": "corrected_assurance_workflow",
+    "steps": [
+      "validate_frozen_source_and_brief",
+      "render_one_bounded_artifact",
+      "validate_hard_gates_and_bounds",
+      "hash_evidence"
+    ]
+  },
+  "attempt_budget": 1,
+  "brief": {
+    "brand_tone": "bright active",
+    "goal": "Create an energetic launch tile while keeping the shoe construction accurate.",
+    "required_constraints": [
+      "preserve sole, laces, heel and toe",
+      "no speed or injury-prevention claims",
+      "do not crop the product"
+    ]
+  },
+  "dry_run_only": true,
+  "evidence_budget_bytes": 1048576,
+  "messages": {
+    "headline": "Move in color",
+    "support": "Everyday road comfort"
+  },
+  "model": "deterministic-local-svg-renderer/v2",
+  "scenario_id": "coral-running-shoe-square-v2",
+  "source_bytes_sha256": "d4b09ba56619ac27773c06e90843b47cf4ab122078834a94234127300f902d2e",
+  "source_sha256": "d4b09ba56619ac27773c06e90843b47cf4ab122078834a94234127300f902d2e",
+  "timeout_seconds": 60,
+  "tool": "agent_company.phase_d_redesign.render_bounded_artifact"
+}

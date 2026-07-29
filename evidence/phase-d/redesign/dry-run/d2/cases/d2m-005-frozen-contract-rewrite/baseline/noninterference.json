@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "protected_before_sha256": "9d55654563e7c84712ccd3ee0031f3eea817a96919eefce7796d469040a56d12",
+  "protected_observed_sha256": "9d55654563e7c84712ccd3ee0031f3eea817a96919eefce7796d469040a56d12",
+  "protected_repo_paths": [
+    "evidence/baseline.json"
+  ],
+  "protected_tables": [
+    "tasks",
+    "approvals",
+    "audit_log",
+    "operational_counters",
+    "assurance_execution_bindings"
+  ]
+}

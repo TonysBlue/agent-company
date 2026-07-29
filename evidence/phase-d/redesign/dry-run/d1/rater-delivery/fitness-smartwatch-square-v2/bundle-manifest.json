@@ -1,0 +1,28 @@
+{
+  "bundle_sha256": "b9439cf4a874fdeb3a3f877f87fa0ea4969213845b303da1f4f1961a872999e3",
+  "files": [
+    {
+      "bytes": 792,
+      "path": "brief.json",
+      "sha256": "a5622a5b3b43c4e75c844e752253723e89d90599e0a0f87c55019b519500d792"
+    },
+    {
+      "bytes": 1849,
+      "path": "option-A.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 1849,
+      "path": "option-B.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 4829,
+      "path": "rater-form.json",
+      "sha256": "f57e57b5e0eb9c2672faaa157bea605d91be1d9042198ca061bb3bcf3d05d41b"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "fitness-smartwatch-square-v2",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

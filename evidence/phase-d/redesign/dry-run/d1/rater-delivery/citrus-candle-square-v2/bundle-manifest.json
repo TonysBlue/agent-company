@@ -1,0 +1,28 @@
+{
+  "bundle_sha256": "550bf9c2deaf9a08e25af72f4ef7931a779c69110e6bc5d184a52e16c5d5b64a",
+  "files": [
+    {
+      "bytes": 756,
+      "path": "brief.json",
+      "sha256": "e12acae1dc891f60f9224a1a8df777b39ee5a65e99e36c0f5d7f1599f072a8cf"
+    },
+    {
+      "bytes": 1888,
+      "path": "option-A.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 1888,
+      "path": "option-B.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 4793,
+      "path": "rater-form.json",
+      "sha256": "049f50528c5ec1e27f9c847aa1c7c3b5fb5296c4262d84b038f0d3916956e5f0"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "citrus-candle-square-v2",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

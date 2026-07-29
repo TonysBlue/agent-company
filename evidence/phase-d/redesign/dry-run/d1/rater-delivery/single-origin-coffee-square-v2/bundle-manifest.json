@@ -1,0 +1,28 @@
+{
+  "bundle_sha256": "f59da4ea7fc2402a960b932b4afcb3810b934830fd9b1a197865bce9757c6b4d",
+  "files": [
+    {
+      "bytes": 743,
+      "path": "brief.json",
+      "sha256": "bbd4c5eaebfc26184008f2f95d511cb95f229b2fa7e76b5151a36b2736d53b17"
+    },
+    {
+      "bytes": 1777,
+      "path": "option-A.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 1777,
+      "path": "option-B.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 4780,
+      "path": "rater-form.json",
+      "sha256": "f1e7c894c6a4a1132b7adc5a661cee73da1085e76cca344a4808d3c1b45f4689"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "single-origin-coffee-square-v2",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

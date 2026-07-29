@@ -1,0 +1,27 @@
+{
+  "event": {
+    "case_id": "d2m-001-direct-completion",
+    "mutation": {
+      "applied": false,
+      "attempted": true,
+      "error": "direct completion denied",
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "direct completion denied",
+      "mechanism": "sqlite_control",
+      "outcome": "denied"
+    },
+    "side": "treatment",
+    "workflow_id": "corrected_assurance_workflow"
+  },
+  "event_sha256": "0ea2d425cc452adee75482136d3254d73a90e5d2885b9ff03dbdc4785bc052fe",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#e9eee8"/>
+  <ellipse cx="256" cy="458" rx="102" ry="14" fill="#cbd5ca"/>
+  <path d="M213 32h86l15 143H198zM198 337h116l-15 143h-86z" fill="#48634e"/>
+  <rect x="157" y="139" width="198" height="234" rx="58" fill="#303630" stroke="#111411" stroke-width="10"/>
+  <rect x="176" y="158" width="160" height="196" rx="43" fill="#101b1d"/>
+  <circle cx="355" cy="221" r="11" fill="#7c887e"/>
+  <circle cx="256" cy="256" r="62" fill="none" stroke="#79d8c7" stroke-width="15" stroke-dasharray="260 130" transform="rotate(-90 256 256)"/>
+  <text x="256" y="246" text-anchor="middle" font-family="sans-serif" font-size="26" fill="#ffffff">08:42</text>
+  <text x="256" y="282" text-anchor="middle" font-family="sans-serif" font-size="17" fill="#79d8c7">72 BPM</text>
+</svg>

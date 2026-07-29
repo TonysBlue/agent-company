@@ -1,0 +1,88 @@
+{
+  "database": {
+    "file_sha256": "18f9289c06fe0b437836e18056c4e8cd95034a8e98524d5773c7176ed7d6df1b",
+    "tables": {
+      "approvals": [
+        {
+          "decision": null,
+          "id": 1,
+          "status": "pending"
+        }
+      ],
+      "assurance_execution_bindings": [
+        {
+          "binding_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "id": 1
+        }
+      ],
+      "audit_log": [
+        {
+          "action": "fixture_created",
+          "details": "{}",
+          "id": 1
+        }
+      ],
+      "operational_counters": [
+        {
+          "name": "worker_heartbeats",
+          "value": 7
+        }
+      ],
+      "tasks": [
+        {
+          "id": 1,
+          "status": "running",
+          "title": "synthetic canary task"
+        }
+      ]
+    },
+    "triggers": [
+      {
+        "name": "phase_d_approvals_immutable_delete",
+        "sql": "CREATE TRIGGER phase_d_approvals_immutable_delete BEFORE DELETE ON approvals\n            BEGIN SELECT RAISE(ABORT, 'approval deletion denied'); END",
+        "table": "approvals"
+      },
+      {
+        "name": "phase_d_approvals_immutable_update",
+        "sql": "CREATE TRIGGER phase_d_approvals_immutable_update BEFORE UPDATE ON approvals\n            BEGIN SELECT RAISE(ABORT, 'approval mutation denied'); END",
+        "table": "approvals"
+      },
+      {
+        "name": "phase_d_audit_immutable_delete",
+        "sql": "CREATE TRIGGER phase_d_audit_immutable_delete BEFORE DELETE ON audit_log\n            BEGIN SELECT RAISE(ABORT, 'audit deletion denied'); END",
+        "table": "audit_log"
+      },
+      {
+        "name": "phase_d_audit_immutable_update",
+        "sql": "CREATE TRIGGER phase_d_audit_immutable_update BEFORE UPDATE ON audit_log\n            BEGIN SELECT RAISE(ABORT, 'audit mutation denied'); END",
+        "table": "audit_log"
+      },
+      {
+        "name": "phase_d_bindings_immutable_delete",
+        "sql": "CREATE TRIGGER phase_d_bindings_immutable_delete BEFORE DELETE ON assurance_execution_bindings\n            BEGIN SELECT RAISE(ABORT, 'binding deletion denied'); END",
+        "table": "assurance_execution_bindings"
+      },
+      {
+        "name": "phase_d_bindings_immutable_update",
+        "sql": "CREATE TRIGGER phase_d_bindings_immutable_update BEFORE UPDATE ON assurance_execution_bindings\n            BEGIN SELECT RAISE(ABORT, 'binding mutation denied'); END",
+        "table": "assurance_execution_bindings"
+      },
+      {
+        "name": "phase_d_deny_direct_completion",
+        "sql": "CREATE TRIGGER phase_d_deny_direct_completion\n            BEFORE UPDATE OF status ON tasks\n            WHEN NEW.status='completed' AND OLD.status!='completed'\n            BEGIN SELECT RAISE(ABORT, 'direct completion denied'); END",
+        "table": "tasks"
+      }
+    ]
+  },
+  "repository": {
+    "contracts/freeze.json": {
+      "bytes": 53,
+      "sha256": "d9f513190ee47caef6deb667f85bc26c2383231551e09948a445be77950bd7e7"
+    },
+    "evidence/baseline.json": {
+      "bytes": 53,
+      "sha256": "a3d9eb1940cb6ad37c838ac12fed12874f545d944492d00ac5c2738b0a1a708c"
+    }
+  },
+  "state_sha256": "eaeca0d6d4a5eccd18428c95888bbf5db2777de64bc88d14717be4e289f19f0c"
+}

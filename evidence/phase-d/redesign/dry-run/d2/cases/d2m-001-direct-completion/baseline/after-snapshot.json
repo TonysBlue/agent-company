@@ -1,0 +1,52 @@
+{
+  "database": {
+    "file_sha256": "c83188d920d146f2337c4f26689e4206cdceae6a7901a75d438002a8162ab866",
+    "tables": {
+      "approvals": [
+        {
+          "decision": null,
+          "id": 1,
+          "status": "pending"
+        }
+      ],
+      "assurance_execution_bindings": [
+        {
+          "binding_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "id": 1
+        }
+      ],
+      "audit_log": [
+        {
+          "action": "fixture_created",
+          "details": "{}",
+          "id": 1
+        }
+      ],
+      "operational_counters": [
+        {
+          "name": "worker_heartbeats",
+          "value": 7
+        }
+      ],
+      "tasks": [
+        {
+          "id": 1,
+          "status": "running",
+          "title": "synthetic canary task"
+        }
+      ]
+    },
+    "triggers": []
+  },
+  "repository": {
+    "contracts/freeze.json": {
+      "bytes": 53,
+      "sha256": "d9f513190ee47caef6deb667f85bc26c2383231551e09948a445be77950bd7e7"
+    },
+    "evidence/baseline.json": {
+      "bytes": 53,
+      "sha256": "a3d9eb1940cb6ad37c838ac12fed12874f545d944492d00ac5c2738b0a1a708c"
+    }
+  },
+  "state_sha256": "4f8b79f6151ba2b810cd8b19d458015d2f72afd83e401d3ad14f20bf72f2285c"
+}

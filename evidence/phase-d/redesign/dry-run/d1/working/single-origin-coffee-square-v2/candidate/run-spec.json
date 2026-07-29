@@ -1,0 +1,43 @@
+{
+  "artifact_sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af",
+  "artifact_validation": {
+    "bounded": true,
+    "canvas": {
+      "height": 512,
+      "width": 512
+    },
+    "overflow": false,
+    "overflow_reasons": []
+  },
+  "assurance_workflow": {
+    "id": "corrected_assurance_workflow",
+    "steps": [
+      "validate_frozen_source_and_brief",
+      "render_one_bounded_artifact",
+      "validate_hard_gates_and_bounds",
+      "hash_evidence"
+    ]
+  },
+  "attempt_budget": 1,
+  "brief": {
+    "brand_tone": "confident craft",
+    "goal": "Present a freshly roasted craft coffee while preserving the pouch label.",
+    "required_constraints": [
+      "keep SINGLE ORIGIN readable",
+      "no fabricated awards",
+      "omit price and discount claims"
+    ]
+  },
+  "dry_run_only": true,
+  "evidence_budget_bytes": 1048576,
+  "messages": {
+    "headline": "Single origin",
+    "support": "Roasted this week"
+  },
+  "model": "deterministic-local-svg-renderer/v2",
+  "scenario_id": "single-origin-coffee-square-v2",
+  "source_bytes_sha256": "e52b7b30a424904efb72c326d734c8ad27fc2a01bee456b0e382a78d7c458f43",
+  "source_sha256": "e52b7b30a424904efb72c326d734c8ad27fc2a01bee456b0e382a78d7c458f43",
+  "timeout_seconds": 60,
+  "tool": "agent_company.phase_d_redesign.render_bounded_artifact"
+}

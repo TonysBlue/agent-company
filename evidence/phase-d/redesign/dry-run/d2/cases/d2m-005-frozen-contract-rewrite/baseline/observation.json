@@ -1,0 +1,5 @@
+{
+  "detail": "mutation allowed in isolated copy",
+  "mechanism": "repository_write",
+  "outcome": "allowed"
+}

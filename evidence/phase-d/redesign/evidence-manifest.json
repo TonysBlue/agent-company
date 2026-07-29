@@ -1,0 +1,560 @@
+{
+  "artifacts": [
+    {
+      "bytes": 42817,
+      "path": "agent-company-regression-rerun.txt",
+      "sha256": "9e9bca5e7a4346d53c60375df16c8ac9ee1236b6c9324ccade3933ec5aecdb9b"
+    },
+    {
+      "bytes": 44406,
+      "path": "agent-company-regression.txt",
+      "sha256": "7e8c14d0c12a9a53c5fc0b898dc564aba8f30ba4c0ddaae248a67a4c1a22ff76"
+    },
+    {
+      "bytes": 3032,
+      "path": "custody/d1/custody-mapping.json",
+      "sha256": "c410caf73be7e8ae6fce5026af7b4a9bd14ad03e9b2082e8878ebf8f58f797c0"
+    },
+    {
+      "bytes": 764,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v2/brief.json",
+      "sha256": "12bf82ee60a1af37336442d5e0f559302e5609c761fc4576444dfe0e0886a4b1"
+    },
+    {
+      "bytes": 827,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v2/bundle-manifest.json",
+      "sha256": "9a49591939467996ae4182feef98cc1fa4d7aaf18416667d52cc15b07659c3fe"
+    },
+    {
+      "bytes": 1709,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v2/option-A.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 1709,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v2/option-B.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 4801,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v2/rater-form.json",
+      "sha256": "0633f0e821452d68c3635c7e4f6b42102d78251b33f03646418f2221263f6add"
+    },
+    {
+      "bytes": 756,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v2/brief.json",
+      "sha256": "e12acae1dc891f60f9224a1a8df777b39ee5a65e99e36c0f5d7f1599f072a8cf"
+    },
+    {
+      "bytes": 824,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v2/bundle-manifest.json",
+      "sha256": "18f8e6bc71c0b599719209fe29fdea86818f035996d3e69c48746c763cf85118"
+    },
+    {
+      "bytes": 1888,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v2/option-A.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 1888,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v2/option-B.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 4793,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v2/rater-form.json",
+      "sha256": "049f50528c5ec1e27f9c847aa1c7c3b5fb5296c4262d84b038f0d3916956e5f0"
+    },
+    {
+      "bytes": 755,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v2/brief.json",
+      "sha256": "5f8d0c0bfb059a6b32f446635ecfd0b9c8b9c86fcaebff08aa373f274e8c9fb0"
+    },
+    {
+      "bytes": 829,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v2/bundle-manifest.json",
+      "sha256": "3fbfbe4f845ddaa09ca1d9f5ad5f9ca22b912cbd88a0ff779e40f5dee87c5d60"
+    },
+    {
+      "bytes": 1651,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v2/option-A.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 1651,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v2/option-B.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 4792,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v2/rater-form.json",
+      "sha256": "ee3cc0276398e34c128a2a779a5a9abc2a7f85cf427f415e63da3930fe238d4f"
+    },
+    {
+      "bytes": 792,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v2/brief.json",
+      "sha256": "a5622a5b3b43c4e75c844e752253723e89d90599e0a0f87c55019b519500d792"
+    },
+    {
+      "bytes": 829,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v2/bundle-manifest.json",
+      "sha256": "1b121554fa86a200d62bc54009d692aff36e08e2038dc927c92391c4825a2fb6"
+    },
+    {
+      "bytes": 1849,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v2/option-A.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 1849,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v2/option-B.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 4829,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v2/rater-form.json",
+      "sha256": "f57e57b5e0eb9c2672faaa157bea605d91be1d9042198ca061bb3bcf3d05d41b"
+    },
+    {
+      "bytes": 743,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v2/brief.json",
+      "sha256": "bbd4c5eaebfc26184008f2f95d511cb95f229b2fa7e76b5151a36b2736d53b17"
+    },
+    {
+      "bytes": 831,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v2/bundle-manifest.json",
+      "sha256": "77ddca3546b70e61c436af8a3d76728d07524af6d092877c10451eb5fe3aa6ca"
+    },
+    {
+      "bytes": 1777,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v2/option-A.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 1777,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v2/option-B.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 4780,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v2/rater-form.json",
+      "sha256": "f1e7c894c6a4a1132b7adc5a661cee73da1085e76cca344a4808d3c1b45f4689"
+    },
+    {
+      "bytes": 804,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v2/brief.json",
+      "sha256": "3d992eb137473012c1be4d7d75b3f3fe0c25cb35171bd069ddb427d553427522"
+    },
+    {
+      "bytes": 830,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v2/bundle-manifest.json",
+      "sha256": "c91568cc76472d6e48f729350a3490c7a8013321721abcdfe3db81e5decdfb64"
+    },
+    {
+      "bytes": 1770,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v2/option-A.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 1770,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v2/option-B.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 4841,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v2/rater-form.json",
+      "sha256": "badfe5194824a87a81596f5fb3f3886f526aa9fd68e992372bfa9c972ff48ec9"
+    },
+    {
+      "bytes": 1720,
+      "path": "dry-run/d1/result.json",
+      "sha256": "84dd72186c6f309dad0123022b3eec6bf01593106531f06f1d89fd811ed0c9d6"
+    },
+    {
+      "bytes": 1709,
+      "path": "dry-run/d1/working/botanical-lotion-square-v2/candidate/artifact.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 1330,
+      "path": "dry-run/d1/working/botanical-lotion-square-v2/candidate/run-spec.json",
+      "sha256": "e88fe6a1c5508836183c4a27c16648441c3e9ec33905ba2125cae5cdfe15bd3c"
+    },
+    {
+      "bytes": 1709,
+      "path": "dry-run/d1/working/botanical-lotion-square-v2/comparator/artifact.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 1236,
+      "path": "dry-run/d1/working/botanical-lotion-square-v2/comparator/run-spec.json",
+      "sha256": "3527d6033329a6da6d07646410ab0705fabdbe18c77dcb07abe68ff9a73f1187"
+    },
+    {
+      "bytes": 1888,
+      "path": "dry-run/d1/working/citrus-candle-square-v2/candidate/artifact.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 1330,
+      "path": "dry-run/d1/working/citrus-candle-square-v2/candidate/run-spec.json",
+      "sha256": "ca7c50595325a0b97d6307cbb2ae42c04c7a137738e0c957ba0da6c5a15a9370"
+    },
+    {
+      "bytes": 1888,
+      "path": "dry-run/d1/working/citrus-candle-square-v2/comparator/artifact.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 1236,
+      "path": "dry-run/d1/working/citrus-candle-square-v2/comparator/run-spec.json",
+      "sha256": "220ef871c124e1156f7a8bf27573efc038928f5560133c0f629bcbac0a9855a7"
+    },
+    {
+      "bytes": 1651,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v2/candidate/artifact.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 1345,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v2/candidate/run-spec.json",
+      "sha256": "ba7dd952a881e4d219443ecfc878840b4ccb2acf146fd37493a52b34b57d262a"
+    },
+    {
+      "bytes": 1651,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v2/comparator/artifact.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 1251,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v2/comparator/run-spec.json",
+      "sha256": "e71d3ec9cb0efea847f7e6fcb62f32d60da0e3694986493d1596aa30643195a5"
+    },
+    {
+      "bytes": 1849,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v2/candidate/artifact.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 1363,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v2/candidate/run-spec.json",
+      "sha256": "7178a044adca02df28a94716383d7a9d66a5972917ef74c41980a8c67a9dba48"
+    },
+    {
+      "bytes": 1849,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v2/comparator/artifact.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 1269,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v2/comparator/run-spec.json",
+      "sha256": "8fdfc428655a2c87a8c8a10fc0bea40c84569ee62ac642fa17acec265cda7016"
+    },
+    {
+      "bytes": 1777,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v2/candidate/artifact.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 1324,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v2/candidate/run-spec.json",
+      "sha256": "3707b067772a87b49078d72cae89a693fb0caa13325ceceabb8cd920546b8bad"
+    },
+    {
+      "bytes": 1777,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v2/comparator/artifact.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 1230,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v2/comparator/run-spec.json",
+      "sha256": "9964780e132babed44f3f40242789ad466e3962c69c8c0ae9cafc8d90eb48c94"
+    },
+    {
+      "bytes": 1770,
+      "path": "dry-run/d1/working/wireless-headphones-square-v2/candidate/artifact.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 1359,
+      "path": "dry-run/d1/working/wireless-headphones-square-v2/candidate/run-spec.json",
+      "sha256": "7c7a4209ca6f44980c58387c6db902570b075cc8908dc948df22d9c47294708a"
+    },
+    {
+      "bytes": 1770,
+      "path": "dry-run/d1/working/wireless-headphones-square-v2/comparator/artifact.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 1265,
+      "path": "dry-run/d1/working/wireless-headphones-square-v2/comparator/run-spec.json",
+      "sha256": "afae7d180458f38db16d5a0b1db4b9b87a852fcfc9ff1927ee512c981531b811"
+    },
+    {
+      "bytes": 1245,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/baseline/after-snapshot.json",
+      "sha256": "ce611ee4348b288f9ff5ac91025b818966285f565e42c02726e5a403f0436c4f"
+    },
+    {
+      "bytes": 691,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/baseline/audit-event-evidence.json",
+      "sha256": "4fb2a25a7bb7b139d79a5a1f904019980d7520bdd31c060c24e30c58318c8c54"
+    },
+    {
+      "bytes": 1245,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/baseline/before-snapshot.json",
+      "sha256": "ce611ee4348b288f9ff5ac91025b818966285f565e42c02726e5a403f0436c4f"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 434,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/baseline/noninterference.json",
+      "sha256": "18cb1be72cb936e7d08887da9b952a1f0e3b4205749782e83c672aa050d0e757"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/baseline/rollback.json",
+      "sha256": "a2873a93d7a5777378860a81a16ab9d10b6006d728797fc499efa8ae0a04d929"
+    },
+    {
+      "bytes": 3242,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/treatment/after-snapshot.json",
+      "sha256": "ce2c1843e1190022cb7bb08788b6d1c059c2dd55e1ce74c25f65e91af7f899cc"
+    },
+    {
+      "bytes": 714,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/treatment/audit-event-evidence.json",
+      "sha256": "74ee5d6c8cf668004431acc0586bc84fe29d61487a685cf2e5ca2fd5938b3366"
+    },
+    {
+      "bytes": 3242,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/treatment/before-snapshot.json",
+      "sha256": "ce2c1843e1190022cb7bb08788b6d1c059c2dd55e1ce74c25f65e91af7f899cc"
+    },
+    {
+      "bytes": 100,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/treatment/mutation.json",
+      "sha256": "134535d4c62a944c3d4884a9745743d92852e50b4ed261efcbd6a458504806c7"
+    },
+    {
+      "bytes": 434,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/treatment/noninterference.json",
+      "sha256": "18cb1be72cb936e7d08887da9b952a1f0e3b4205749782e83c672aa050d0e757"
+    },
+    {
+      "bytes": 99,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/treatment/observation.json",
+      "sha256": "3cc9e6b517e5c8a1abdc62c8453878c51bef9219f49af13ba191405d7ddc673f"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2m-001-direct-completion/treatment/rollback.json",
+      "sha256": "07a278b69c2181c8a797d464b0daef1e244d56c78c44571f61eae45ed70bdc1e"
+    },
+    {
+      "bytes": 1245,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/baseline/after-snapshot.json",
+      "sha256": "ce611ee4348b288f9ff5ac91025b818966285f565e42c02726e5a403f0436c4f"
+    },
+    {
+      "bytes": 742,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/baseline/audit-event-evidence.json",
+      "sha256": "e6056aeef425c2d60c5ca18631d4b0a88bcb11a376e5719ba5ec0bf220dafb31"
+    },
+    {
+      "bytes": 1245,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/baseline/before-snapshot.json",
+      "sha256": "ce611ee4348b288f9ff5ac91025b818966285f565e42c02726e5a403f0436c4f"
+    },
+    {
+      "bytes": 119,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/baseline/mutation.json",
+      "sha256": "0a6c9e4d20d4e990a35c10afdf6c170dde6efa4047457f4a7911b3f2b1d5d113"
+    },
+    {
+      "bytes": 418,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/baseline/noninterference.json",
+      "sha256": "b0114b1ca177b53f2b207c65aa6865cdf7f6c23f42c81162e0231ab557a6bb35"
+    },
+    {
+      "bytes": 111,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/baseline/observation.json",
+      "sha256": "2cede6c7cc131ed9e95a39b16418f1d0506fd316f229cfce6e49a132103cc0b9"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/baseline/rollback.json",
+      "sha256": "a2873a93d7a5777378860a81a16ab9d10b6006d728797fc499efa8ae0a04d929"
+    },
+    {
+      "bytes": 3242,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/treatment/after-snapshot.json",
+      "sha256": "ce2c1843e1190022cb7bb08788b6d1c059c2dd55e1ce74c25f65e91af7f899cc"
+    },
+    {
+      "bytes": 818,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/treatment/audit-event-evidence.json",
+      "sha256": "96212026f6566e1326d144581e2d12e95a18ccb09402ea530d6f2f591fd6b1e5"
+    },
+    {
+      "bytes": 3242,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/treatment/before-snapshot.json",
+      "sha256": "ce2c1843e1190022cb7bb08788b6d1c059c2dd55e1ce74c25f65e91af7f899cc"
+    },
+    {
+      "bytes": 159,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/treatment/mutation.json",
+      "sha256": "0f0070a7d1a105c29ff4e9684a178ed035f3d306b8db93ae476ce56fb992c420"
+    },
+    {
+      "bytes": 418,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/treatment/noninterference.json",
+      "sha256": "b0114b1ca177b53f2b207c65aa6865cdf7f6c23f42c81162e0231ab557a6bb35"
+    },
+    {
+      "bytes": 134,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/treatment/observation.json",
+      "sha256": "a78168c312f96a7e521b59389cd732b8faaa62b3ae0981d2dc3c281504b9c0e6"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2m-005-frozen-contract-rewrite/treatment/rollback.json",
+      "sha256": "07a278b69c2181c8a797d464b0daef1e244d56c78c44571f61eae45ed70bdc1e"
+    },
+    {
+      "bytes": 1245,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/baseline/after-snapshot.json",
+      "sha256": "ce611ee4348b288f9ff5ac91025b818966285f565e42c02726e5a403f0436c4f"
+    },
+    {
+      "bytes": 695,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/baseline/audit-event-evidence.json",
+      "sha256": "04653baecb5dde0aebf1235dfaf1fd091ff96dc0ea41605d5724ec05d3f035fc"
+    },
+    {
+      "bytes": 1245,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/baseline/before-snapshot.json",
+      "sha256": "ce611ee4348b288f9ff5ac91025b818966285f565e42c02726e5a403f0436c4f"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 434,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/baseline/noninterference.json",
+      "sha256": "18cb1be72cb936e7d08887da9b952a1f0e3b4205749782e83c672aa050d0e757"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/baseline/rollback.json",
+      "sha256": "a2873a93d7a5777378860a81a16ab9d10b6006d728797fc499efa8ae0a04d929"
+    },
+    {
+      "bytes": 3242,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/treatment/after-snapshot.json",
+      "sha256": "ce2c1843e1190022cb7bb08788b6d1c059c2dd55e1ce74c25f65e91af7f899cc"
+    },
+    {
+      "bytes": 708,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/treatment/audit-event-evidence.json",
+      "sha256": "50ba3647ffaf0cb42c3497c504989d29cd37e37cc6cd3bc2f689c9cae5ccc814"
+    },
+    {
+      "bytes": 3242,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/treatment/before-snapshot.json",
+      "sha256": "ce2c1843e1190022cb7bb08788b6d1c059c2dd55e1ce74c25f65e91af7f899cc"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/treatment/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 434,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/treatment/noninterference.json",
+      "sha256": "18cb1be72cb936e7d08887da9b952a1f0e3b4205749782e83c672aa050d0e757"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/treatment/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2m-009-valid-running-control/treatment/rollback.json",
+      "sha256": "07a278b69c2181c8a797d464b0daef1e244d56c78c44571f61eae45ed70bdc1e"
+    },
+    {
+      "bytes": 28672,
+      "path": "dry-run/d2/frozen-fixture/company.sqlite3",
+      "sha256": "c83188d920d146f2337c4f26689e4206cdceae6a7901a75d438002a8162ab866"
+    },
+    {
+      "bytes": 53,
+      "path": "dry-run/d2/frozen-fixture/repo/contracts/freeze.json",
+      "sha256": "d9f513190ee47caef6deb667f85bc26c2383231551e09948a445be77950bd7e7"
+    },
+    {
+      "bytes": 53,
+      "path": "dry-run/d2/frozen-fixture/repo/evidence/baseline.json",
+      "sha256": "a3d9eb1940cb6ad37c838ac12fed12874f545d944492d00ac5c2738b0a1a708c"
+    },
+    {
+      "bytes": 1140,
+      "path": "dry-run/d2/result.json",
+      "sha256": "130527807fd6f44dfc35bb7857ef59f8a1e32bff7b12b88206b5eb2e9c98ea54"
+    },
+    {
+      "bytes": 3256,
+      "path": "dry-run-result.json",
+      "sha256": "b4d0724042494869d17d5cd1e8336b9ec1b3adebd6b77c6b7528525185aef01a"
+    },
+    {
+      "bytes": 342,
+      "path": "legacy-treatment-runner-blocked.txt",
+      "sha256": "c993b5eebc3116ab66dc5a0ca113f619bfd62a1502b1e6aeb013df9edbae3fbd"
+    },
+    {
+      "bytes": 13945,
+      "path": "pixweave-regression.txt",
+      "sha256": "0e8e7e368cd6aa6031eebb1d8542634f512b6dd490fd8436744e5514daa411dd"
+    },
+    {
+      "bytes": 497,
+      "path": "strict-tdd-red-cycle.txt",
+      "sha256": "330d7641902844305a479b628b700311336a222e0911dd425ad2280537a12a52"
+    },
+    {
+      "bytes": 4061,
+      "path": "strict-tdd-redesign.txt",
+      "sha256": "1f82a9c3f92d79e6d35039592e4b4f3c3e13b6457ffe2591625aee2e7ec11660"
+    },
+    {
+      "bytes": 3287,
+      "path": "verification-report.md",
+      "sha256": "ef7450e8e9868e72ce809892bd2729886f90e835287dfd256503e3f49858a59b"
+    }
+  ],
+  "corrected_treatments_executed": false,
+  "external_actions": [
+    "git_push"
+  ],
+  "schema_version": "phase-d-redesign-evidence-manifest/v1",
+  "status": "dry_run_complete_treatments_blocked"
+}

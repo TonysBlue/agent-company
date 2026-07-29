@@ -1,0 +1,27 @@
+{
+  "event": {
+    "case_id": "d2m-009-valid-running-control",
+    "mutation": {
+      "applied": true,
+      "attempted": true,
+      "error": null,
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "mutation committed in isolated copy",
+      "mechanism": "database_commit",
+      "outcome": "allowed"
+    },
+    "side": "treatment",
+    "workflow_id": "corrected_assurance_workflow"
+  },
+  "event_sha256": "0cf492976aa7397339d35c018407c68068682b370b446cce28a4dfadff10a212",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

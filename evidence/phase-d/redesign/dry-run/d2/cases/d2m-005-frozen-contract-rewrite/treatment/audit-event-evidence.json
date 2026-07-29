@@ -1,0 +1,28 @@
+{
+  "event": {
+    "case_id": "d2m-005-frozen-contract-rewrite",
+    "mutation": {
+      "applied": false,
+      "attempted": true,
+      "error": "protected repository path mutation denied",
+      "kind": "repo_write",
+      "path": "contracts/freeze.json"
+    },
+    "observation": {
+      "detail": "protected path mutation denied in isolated copy",
+      "mechanism": "repository_integrity_guard",
+      "outcome": "denied"
+    },
+    "side": "treatment",
+    "workflow_id": "corrected_assurance_workflow"
+  },
+  "event_sha256": "cc1b3bbcc5faacdb151a42e5b6f9434908e2638961190e87ad8053171ff639a2",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

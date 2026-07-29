@@ -1,0 +1,75 @@
+{
+  "schema_version": "phase-d-d2-corrected-contract/v2",
+  "id": "phase-d-d2-corrected-contract-v2",
+  "status": "blocked_pending_independent_approval",
+  "treatment_execution_authorized": false,
+  "scope": "paired observed mutations on isolated frozen Company OS database and repository copies",
+  "mutation_bank": "docs/assurance/phase-d/redesign/d2/mutation-bank-v2.json",
+  "source_policy": {
+    "synthetic_fixture_for_dry_run": "agent_company.phase_d_redesign.create_harness_fixture",
+    "treatment_source_when_approved": "separately frozen sanitized Company OS database and repository copies",
+    "live_database_or_worktree_mutation": false,
+    "customer_data": false
+  },
+  "workflows": {
+    "baseline": {
+      "id": "current_workflow",
+      "database_controls": [],
+      "protected_repo_paths": []
+    },
+    "treatment": {
+      "id": "corrected_assurance_workflow",
+      "database_controls": [
+        "deny_direct_completion",
+        "protect_approval_records",
+        "protect_audit_records",
+        "protect_execution_bindings"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    }
+  },
+  "workflow_distinction_required": true,
+  "per_case_evidence_required_for_each_workflow": [
+    "before_snapshot",
+    "mutation",
+    "observed_denial_or_allow",
+    "rollback",
+    "after_snapshot",
+    "audit_event_evidence",
+    "noninterference"
+  ],
+  "rollback_rule": "after_snapshot_must_equal_before_snapshot_after_restoration",
+  "noninterference_rule": "every protected table and protected repository path must remain equal during the mutation observation",
+  "comparison_rule": {
+    "threshold_source": "paired_baseline_observations_only",
+    "fault_requirement": "each seeded fault actually allowed by baseline becomes a required treatment denial",
+    "control_requirement": "each valid control actually allowed by baseline becomes a required treatment allow",
+    "asserted_numerical_success_constants_allowed": false,
+    "minimum_evaluable_condition": "at least one observed baseline escape and all frozen valid controls observed"
+  },
+  "execution_gate": {
+    "corrected_freeze": "docs/assurance/phase-d/redesign/corrected-freeze-v2.json",
+    "independent_approval": "docs/assurance/phase-d/redesign/independent-approval-v2.json",
+    "missing_approval_behavior": "deny"
+  },
+  "allowed_before_approval": [
+    "tooling_implementation",
+    "synthetic_fixture_creation",
+    "red_tests",
+    "dry_run_canary_validation"
+  ],
+  "forbidden_actions": [
+    "corrected_treatment_execution_before_independent_approval",
+    "live_database_mutation",
+    "current_worktree_mutation",
+    "customer_data",
+    "external_spend",
+    "outreach",
+    "publication",
+    "production",
+    "pixweave_source_edits"
+  ]
+}

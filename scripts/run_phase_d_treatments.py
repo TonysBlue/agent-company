@@ -23,6 +23,7 @@ from agent_company.phase_d_treatments import (
     run_unittest_case,
     verify_start_contracts,
 )
+from agent_company.phase_d_redesign import verify_corrected_freeze
 
 
 START_FREEZE = ROOT / "docs" / "assurance" / "phase-d" / "start-freeze-manifest-v1.json"
@@ -30,6 +31,7 @@ D1_OUTPUT = ROOT / "evidence" / "phase-d" / "d1"
 D2_OUTPUT = ROOT / "evidence" / "phase-d" / "d2"
 PIXWEAVE = Path("/home/tony/products/pixweave")
 AGENT_COMPANY = Path("/home/tony/agent-company")
+CORRECTED_FREEZE = ROOT / "docs" / "assurance" / "phase-d" / "redesign" / "corrected-freeze-v2.json"
 
 
 def git_commit(repository: Path) -> str:
@@ -271,6 +273,17 @@ def run_d2(repository: Path, contract: dict[str, object]) -> dict[str, object]:
 
 
 def main() -> int:
+    # Historical D1/D2 treatment conclusions are superseded; corrected execution needs a
+    # separately authored approval bound to the corrected freeze before this legacy entrypoint
+    # can do anything.
+    corrected = verify_corrected_freeze(ROOT, CORRECTED_FREEZE)
+    if not corrected["execution_authorized"]:
+        raise PhaseDTreatmentError(
+            "legacy Phase D treatment runner blocked by corrected freeze pending independent approval"
+        )
+    raise PhaseDTreatmentError(
+        "legacy Phase D treatment runner is permanently superseded; use a separately reviewed corrected runner"
+    )
     contracts = verify_start_contracts(ROOT, START_FREEZE)
     if git_status(PIXWEAVE):
         raise PhaseDTreatmentError("PixWeave worktree must be clean")

@@ -1,0 +1,77 @@
+{
+  "schema_version": "phase-d-redesign-freeze/v2",
+  "id": "phase-d-corrected-d1-d2-freeze-v2",
+  "status": "blocked_pending_independent_approval",
+  "prepared_from_head": "6626411",
+  "author_principals": [
+    "principal-ceo",
+    "codex-implementer"
+  ],
+  "documents": [
+    {
+      "kind": "independent_findings",
+      "path": "docs/assurance/phase-d/redesign/independent-findings-at-6626411-v1.json",
+      "sha256": "81de047d052469b0c935a9efb3fae29c739f96040b1e8effa7d4d7c17c064d86"
+    },
+    {
+      "kind": "ceo_start_proposal",
+      "path": "docs/assurance/phase-d/redesign/ceo-start-decision-proposal-v2.json",
+      "sha256": "00f27c3458bb7e831040329552875bfe8e068f86efe717214cf390d3998a04a5"
+    },
+    {
+      "kind": "supersession_record",
+      "path": "docs/assurance/phase-d/redesign/supersession-record-v1.json",
+      "sha256": "5856f1439dd5f46e215d6136ceb03b00368c90b309edb66fc71eae570cf6cff9"
+    },
+    {
+      "kind": "d1_contract",
+      "path": "docs/assurance/phase-d/redesign/d1/contract-v2.json",
+      "sha256": "0b3a5ecb17d7af24fdd184eb97f787c0df2d7f59b81c764d272af57f5dcf9b92"
+    },
+    {
+      "kind": "d1_scenario_bank",
+      "path": "docs/assurance/phase-d/redesign/d1/scenario-bank-v2.json",
+      "sha256": "fd4457bef4d3988b125ca3ee2f5ecf1cf4fae65c87b0d232d26478c035206858"
+    },
+    {
+      "kind": "d2_contract",
+      "path": "docs/assurance/phase-d/redesign/d2/contract-v2.json",
+      "sha256": "7957ee4b2a01b4bdb61066ccab1eb1c40773804290b9644fc63f6c43088ca3c8"
+    },
+    {
+      "kind": "d2_mutation_bank",
+      "path": "docs/assurance/phase-d/redesign/d2/mutation-bank-v2.json",
+      "sha256": "2112fa088946b7105f92f9f4ad37b6a056ea88a72c9007948ac26a0f2b9214ca"
+    }
+  ],
+  "execution_gate": {
+    "independent_approval_path": "docs/assurance/phase-d/redesign/independent-approval-v2.json",
+    "approval_file_present_at_freeze": false,
+    "required_schema_version": "phase-d-redesign-independent-approval/v2",
+    "required_decision": "approve",
+    "reviewer_must_not_be_an_author_principal": true,
+    "approval_must_bind_freeze_sha256": true,
+    "approval_must_bind_all_document_sha256": true,
+    "unresolved_critical_or_high_findings_allowed": false,
+    "missing_or_invalid_approval_behavior": "deny_corrected_d1_and_d2_treatment_execution"
+  },
+  "allowed_before_independent_approval": [
+    "tooling_implementation",
+    "fixture_creation",
+    "strict_tdd_red_green_testing",
+    "synthetic_dry_run_validation",
+    "agent_company_regression",
+    "pixweave_regression_without_source_edits",
+    "git_push"
+  ],
+  "not_authorized": [
+    "corrected_d1_treatment_execution",
+    "corrected_d2_treatment_execution",
+    "human_rater_delivery_or_outreach",
+    "customer_data",
+    "external_spend",
+    "publication",
+    "production",
+    "pixweave_source_edits"
+  ]
+}

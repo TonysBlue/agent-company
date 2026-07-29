@@ -1,0 +1,176 @@
+{
+  "schema_version": "phase-d-d1-scenario-bank/v2",
+  "id": "phase-d-d1-recognizable-product-sources-v2",
+  "synthetic_only": true,
+  "maximum_source_bytes": 65536,
+  "scenarios": [
+    {
+      "id": "botanical-lotion-square-v2",
+      "product_category": "amber pump-bottle botanical lotion",
+      "source_path": "docs/assurance/phase-d/redesign/d1/sources/amber-pump-bottle.svg",
+      "source_media_type": "image/svg+xml",
+      "source_sha256": "0d2150d7e79735ec817706b9c077447372d17f837359aab936121522bd659a81",
+      "recognizable_features": [
+        "amber cylindrical bottle",
+        "black right-facing pump",
+        "cream label with green leaf mark",
+        "BOTANICAL LOTION label"
+      ],
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brief": {
+        "goal": "Create a calm launch visual that keeps the complete bottle recognizable.",
+        "brand_tone": "calm botanical",
+        "required_constraints": [
+          "preserve bottle silhouette and pump",
+          "no medical claims",
+          "no people or third-party marks"
+        ]
+      },
+      "messages": {
+        "headline": "Daily hydration",
+        "support": "Plant-derived formula"
+      }
+    },
+    {
+      "id": "single-origin-coffee-square-v2",
+      "product_category": "matte single-origin coffee pouch",
+      "source_path": "docs/assurance/phase-d/redesign/d1/sources/matte-coffee-pouch.svg",
+      "source_media_type": "image/svg+xml",
+      "source_sha256": "e52b7b30a424904efb72c326d734c8ad27fc2a01bee456b0e382a78d7c458f43",
+      "recognizable_features": [
+        "black gusseted pouch",
+        "cream rectangular label",
+        "brown coffee-bean emblem",
+        "SINGLE ORIGIN wording"
+      ],
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brief": {
+        "goal": "Present a freshly roasted craft coffee while preserving the pouch label.",
+        "brand_tone": "confident craft",
+        "required_constraints": [
+          "keep SINGLE ORIGIN readable",
+          "no fabricated awards",
+          "omit price and discount claims"
+        ]
+      },
+      "messages": {
+        "headline": "Single origin",
+        "support": "Roasted this week"
+      }
+    },
+    {
+      "id": "wireless-headphones-square-v2",
+      "product_category": "blue wireless over-ear headphones",
+      "source_path": "docs/assurance/phase-d/redesign/d1/sources/blue-headphones.svg",
+      "source_media_type": "image/svg+xml",
+      "source_sha256": "67c8a55ba46e43c0b738ea45d0aa26ac785706b11d1ad99e1a10fa92381fb0bd",
+      "recognizable_features": [
+        "navy padded headband",
+        "two rounded rectangular earcups",
+        "light-blue outer earcup trim",
+        "small status light on right earcup"
+      ],
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brief": {
+        "goal": "Communicate focused listening with a clean technical composition.",
+        "brand_tone": "technical minimal",
+        "required_constraints": [
+          "do not alter headband or earcup geometry",
+          "no unsupported noise-cancellation claim",
+          "keep both earcups fully visible"
+        ]
+      },
+      "messages": {
+        "headline": "Focus without clutter",
+        "support": "Wireless over-ear"
+      }
+    },
+    {
+      "id": "coral-running-shoe-square-v2",
+      "product_category": "coral low-top running shoe",
+      "source_path": "docs/assurance/phase-d/redesign/d1/sources/coral-running-shoe.svg",
+      "source_media_type": "image/svg+xml",
+      "source_sha256": "d4b09ba56619ac27773c06e90843b47cf4ab122078834a94234127300f902d2e",
+      "recognizable_features": [
+        "coral low-top upper",
+        "white segmented sole",
+        "three pale lace rows",
+        "raised heel and curved toe"
+      ],
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brief": {
+        "goal": "Create an energetic launch tile while keeping the shoe construction accurate.",
+        "brand_tone": "bright active",
+        "required_constraints": [
+          "preserve sole, laces, heel and toe",
+          "no speed or injury-prevention claims",
+          "do not crop the product"
+        ]
+      },
+      "messages": {
+        "headline": "Move in color",
+        "support": "Everyday road comfort"
+      }
+    },
+    {
+      "id": "fitness-smartwatch-square-v2",
+      "product_category": "green fitness smartwatch",
+      "source_path": "docs/assurance/phase-d/redesign/d1/sources/smartwatch.svg",
+      "source_media_type": "image/svg+xml",
+      "source_sha256": "7cef087a40cb77d2885318df5d9b0ea361b777615264288f5f39703224583341",
+      "recognizable_features": [
+        "green upper and lower straps",
+        "rounded dark watch case",
+        "08:42 digital time",
+        "teal activity ring and 72 BPM reading"
+      ],
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brief": {
+        "goal": "Show the watch as a clear daily-activity companion without health promises.",
+        "brand_tone": "quiet capable",
+        "required_constraints": [
+          "preserve screen readings and case shape",
+          "no diagnostic or health-outcome claims",
+          "keep both straps visible"
+        ]
+      },
+      "messages": {
+        "headline": "Your day at a glance",
+        "support": "Activity and time together"
+      }
+    },
+    {
+      "id": "citrus-candle-square-v2",
+      "product_category": "yellow glass citrus candle",
+      "source_path": "docs/assurance/phase-d/redesign/d1/sources/citrus-candle.svg",
+      "source_media_type": "image/svg+xml",
+      "source_sha256": "cf6fc56071f38cbbde9eba8cd03e889cb75641ef7a9a0635302d5ed0d9aaee94",
+      "recognizable_features": [
+        "yellow cylindrical glass jar",
+        "single orange flame",
+        "cream label with orange-slice mark",
+        "CITRUS GROVE wording"
+      ],
+      "channel": "social-square",
+      "aspect_ratio": "1:1",
+      "brief": {
+        "goal": "Create a warm home-fragrance visual that keeps the lit candle legible.",
+        "brand_tone": "sunny relaxed",
+        "required_constraints": [
+          "preserve jar, label, wick and flame",
+          "no therapeutic claims",
+          "no unsafe placement or people"
+        ]
+      },
+      "messages": {
+        "headline": "Light the bright side",
+        "support": "Fresh citrus notes"
+      }
+    }
+  ]
+}

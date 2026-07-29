@@ -1,0 +1,41 @@
+{
+  "bounded_nonoverflow_artifacts_verified": true,
+  "delivery_bundles": [
+    {
+      "bundle_sha256": "ad821276e53e97b54c852b90849a1fd7bbdd3631b564fad7790b42f3ea3069f3",
+      "delivery_path": "dry-run/d1/rater-delivery/botanical-lotion-square-v2",
+      "scenario_id": "botanical-lotion-square-v2"
+    },
+    {
+      "bundle_sha256": "f59da4ea7fc2402a960b932b4afcb3810b934830fd9b1a197865bce9757c6b4d",
+      "delivery_path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v2",
+      "scenario_id": "single-origin-coffee-square-v2"
+    },
+    {
+      "bundle_sha256": "6c3fdd0ac3990ebe1730910b0fd04e970a5da9d6df126b8dc92466154722bffb",
+      "delivery_path": "dry-run/d1/rater-delivery/wireless-headphones-square-v2",
+      "scenario_id": "wireless-headphones-square-v2"
+    },
+    {
+      "bundle_sha256": "84c6647952e54477202fdd155eb1eeb77b56fbc0247cd76de6e9e3d705a27c69",
+      "delivery_path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v2",
+      "scenario_id": "coral-running-shoe-square-v2"
+    },
+    {
+      "bundle_sha256": "b9439cf4a874fdeb3a3f877f87fa0ea4969213845b303da1f4f1961a872999e3",
+      "delivery_path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v2",
+      "scenario_id": "fitness-smartwatch-square-v2"
+    },
+    {
+      "bundle_sha256": "550bf9c2deaf9a08e25af72f4ef7931a779c69110e6bc5d184a52e16c5d5b64a",
+      "delivery_path": "dry-run/d1/rater-delivery/citrus-candle-square-v2",
+      "scenario_id": "citrus-candle-square-v2"
+    }
+  ],
+  "paired_input_parity_verified": true,
+  "ratings_collected": 0,
+  "scenario_count": 6,
+  "schema_version": "phase-d-d1-redesign-dry-run/v1",
+  "status": "dry_run_complete_treatment_blocked",
+  "treatment_execution": false
+}

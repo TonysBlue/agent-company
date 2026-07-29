@@ -1,0 +1,28 @@
+{
+  "bundle_sha256": "ad821276e53e97b54c852b90849a1fd7bbdd3631b564fad7790b42f3ea3069f3",
+  "files": [
+    {
+      "bytes": 764,
+      "path": "brief.json",
+      "sha256": "12bf82ee60a1af37336442d5e0f559302e5609c761fc4576444dfe0e0886a4b1"
+    },
+    {
+      "bytes": 1709,
+      "path": "option-A.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 1709,
+      "path": "option-B.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 4801,
+      "path": "rater-form.json",
+      "sha256": "0633f0e821452d68c3635c7e4f6b42102d78251b33f03646418f2221263f6add"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "botanical-lotion-square-v2",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

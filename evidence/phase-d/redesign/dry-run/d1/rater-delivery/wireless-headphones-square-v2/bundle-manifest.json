@@ -1,0 +1,28 @@
+{
+  "bundle_sha256": "6c3fdd0ac3990ebe1730910b0fd04e970a5da9d6df126b8dc92466154722bffb",
+  "files": [
+    {
+      "bytes": 804,
+      "path": "brief.json",
+      "sha256": "3d992eb137473012c1be4d7d75b3f3fe0c25cb35171bd069ddb427d553427522"
+    },
+    {
+      "bytes": 1770,
+      "path": "option-A.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 1770,
+      "path": "option-B.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 4841,
+      "path": "rater-form.json",
+      "sha256": "badfe5194824a87a81596f5fb3f3886f526aa9fd68e992372bfa9c972ff48ec9"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "wireless-headphones-square-v2",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

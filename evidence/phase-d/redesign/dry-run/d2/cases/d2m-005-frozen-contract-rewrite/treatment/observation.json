@@ -1,0 +1,5 @@
+{
+  "detail": "protected path mutation denied in isolated copy",
+  "mechanism": "repository_integrity_guard",
+  "outcome": "denied"
+}

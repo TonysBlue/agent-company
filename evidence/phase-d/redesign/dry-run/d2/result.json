@@ -1,0 +1,38 @@
+{
+  "canary_count": 3,
+  "canary_ids": [
+    "d2m-001-direct-completion",
+    "d2m-005-frozen-contract-rewrite",
+    "d2m-009-valid-running-control"
+  ],
+  "comparison": {
+    "observation_derived_comparison_passed": true,
+    "observed_baseline_allowed_control_ids": [
+      "d2m-009-valid-running-control"
+    ],
+    "observed_baseline_escape_ids": [
+      "d2m-001-direct-completion",
+      "d2m-005-frozen-contract-rewrite"
+    ],
+    "required_treatment_allow_ids": [
+      "d2m-009-valid-running-control"
+    ],
+    "required_treatment_denial_ids": [
+      "d2m-001-direct-completion",
+      "d2m-005-frozen-contract-rewrite"
+    ],
+    "threshold_source": "paired_baseline_observations",
+    "treatment_allowed_required_control_ids": [
+      "d2m-009-valid-running-control"
+    ],
+    "treatment_denied_required_ids": [
+      "d2m-001-direct-completion",
+      "d2m-005-frozen-contract-rewrite"
+    ]
+  },
+  "frozen_fixture_unchanged": true,
+  "schema_version": "phase-d-d2-redesign-dry-run/v1",
+  "status": "dry_run_complete_treatment_blocked",
+  "threshold_source": "paired_baseline_observations",
+  "treatment_execution": false
+}

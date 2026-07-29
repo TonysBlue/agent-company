@@ -1,0 +1,32 @@
+{
+  "schema_version": "phase-d-redesign-supersession/v1",
+  "id": "phase-d-d1-d2-supersession-at-6626411",
+  "effective_at_head": "6626411",
+  "superseded_evidence_roots": [
+    {
+      "path": "evidence/phase-d/d1",
+      "manifest_path": "evidence/phase-d/d1/evidence-manifest.json",
+      "manifest_sha256": "21d756bee6e88b981087ea0bfe3b3461e5e626da5c2e364130f437302f7c05d2",
+      "preservation": "unchanged_historical_evidence",
+      "conclusion_status": "invalid_and_superseded"
+    },
+    {
+      "path": "evidence/phase-d/d2",
+      "manifest_path": "evidence/phase-d/d2/evidence-manifest.json",
+      "manifest_sha256": "f912772484e91e17c355938d392777c2cd9b7be2ea76b35f4b35ff08e6593aa3",
+      "preservation": "unchanged_historical_evidence",
+      "conclusion_status": "invalid_and_superseded"
+    }
+  ],
+  "invalidated_claim_classes": [
+    "d1_treatment_quality_or_preference",
+    "d1_candidate_or_comparator_effect",
+    "d2_treatment_detection_rate",
+    "d2_false_pass_or_false_block_rate",
+    "d2_threshold_attainment",
+    "d1_or_d2_adoption_or_phase_progression"
+  ],
+  "historical_files_must_not_be_deleted_or_rewritten": true,
+  "corrected_evidence_root": "evidence/phase-d/redesign",
+  "corrected_treatment_execution_status": "blocked_pending_independent_approval"
+}

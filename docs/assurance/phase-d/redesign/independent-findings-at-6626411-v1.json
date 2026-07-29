@@ -1,0 +1,118 @@
+{
+  "schema_version": "phase-d-redesign-independent-findings/v1",
+  "id": "phase-d-redesign-findings-at-6626411",
+  "reviewed_head": "6626411",
+  "review_scope": [
+    "docs/assurance/phase-d/d1/start-contract-v1.json",
+    "docs/assurance/phase-d/d2/start-contract-v1.json",
+    "agent_company/phase_d_treatments.py",
+    "scripts/run_phase_d_treatments.py",
+    "evidence/phase-d/d1",
+    "evidence/phase-d/d2"
+  ],
+  "review_origin": "independent findings supplied in the Chairman redesign directive",
+  "prior_treatment_conclusions_invalid": true,
+  "findings": [
+    {
+      "id": "phase-d-review-001",
+      "pilot": "d1",
+      "severity": "critical",
+      "finding": "Candidate and comparator did not receive identical messages: the candidate payload concatenated the primary and secondary message while the comparator payload received only the primary message. The observed output difference therefore cannot be attributed only to assurance workflow.",
+      "evidence_refs": [
+        "agent_company/phase_d_treatments.py",
+        "tests/test_phase_d_treatments.py",
+        "evidence/phase-d/d1/generated"
+      ],
+      "required_correction": "Hash-bind byte-identical source, brief, messages, attempts, model/tool, timeout and evidence budgets for each pair, with assurance workflow as the sole differing field."
+    },
+    {
+      "id": "phase-d-review-002",
+      "pilot": "d1",
+      "severity": "high",
+      "finding": "Only three simple synthetic scenarios were used, and their flat generated shapes did not establish genuinely recognizable product-source editing across a credible scenario bank.",
+      "evidence_refs": [
+        "docs/assurance/pixweave/synthetic-scenarios-v1.json",
+        "evidence/phase-d/d1/blinded"
+      ],
+      "required_correction": "Freeze at least six visually and semantically recognizable synthetic product sources with explicit recognition features and source hashes."
+    },
+    {
+      "id": "phase-d-review-003",
+      "pilot": "d1",
+      "severity": "high",
+      "finding": "Rater packages contained no self-contained scoring form for per-option hard gates, anchored quality dimensions, comparative choices, confidence, rationale, elapsed time or protocol-violation reporting.",
+      "evidence_refs": [
+        "evidence/phase-d/d1/blinded/dev-skincare-square-001/rater-package.json"
+      ],
+      "required_correction": "Deliver a complete rater form with four hard gates per option, five dimensions anchored at 1/3/5, A/B/tie/abstain, confidence, rationale, elapsed minutes and protocol violations."
+    },
+    {
+      "id": "phase-d-review-004",
+      "pilot": "d1",
+      "severity": "high",
+      "finding": "The evidence tree co-located generated candidate/comparator paths, blinded packages and the custody mapping, and the prior manifest exposed those paths. This was not an independently deliverable blinded bundle boundary.",
+      "evidence_refs": [
+        "evidence/phase-d/d1/custody-mapping.json",
+        "evidence/phase-d/d1/evidence-manifest.json"
+      ],
+      "required_correction": "Keep custody outside the rater-delivery tree and hash bundles that contain neither identity mapping nor generated-tree paths."
+    },
+    {
+      "id": "phase-d-review-005",
+      "pilot": "d1",
+      "severity": "high",
+      "finding": "Prior rendered message text was emitted as a single unbounded SVG text element and visibly exceeded the 256-pixel canvas for long scenario text.",
+      "evidence_refs": [
+        "evidence/phase-d/d1/blinded/adv-headphones-square-001/option-A.svg"
+      ],
+      "required_correction": "Enforce fixed canvas, safe-area, text-length and line-fit ceilings, and fail the render on any overflow."
+    },
+    {
+      "id": "phase-d-review-006",
+      "pilot": "d2",
+      "severity": "critical",
+      "finding": "D2 reran existing unit tests and translated a passing test into a treatment signal. It did not mutate a frozen database or repository copy and therefore did not observe a baseline escape or treatment denial.",
+      "evidence_refs": [
+        "scripts/run_phase_d_treatments.py",
+        "evidence/phase-d/d2/case-results.json",
+        "evidence/phase-d/d2/logs"
+      ],
+      "required_correction": "Execute each frozen mutation independently against distinct baseline and treatment copies and record the actual allow or denial mechanism."
+    },
+    {
+      "id": "phase-d-review-007",
+      "pilot": "d2",
+      "severity": "critical",
+      "finding": "No per-fault before snapshot, concrete mutation, rollback, after snapshot, audit/event evidence or noninterference proof was retained.",
+      "evidence_refs": [
+        "evidence/phase-d/d2/evidence-manifest.json"
+      ],
+      "required_correction": "Retain all seven evidence components for baseline and treatment for every fault, and fail if rollback or noninterference does not verify."
+    },
+    {
+      "id": "phase-d-review-008",
+      "pilot": "d2",
+      "severity": "high",
+      "finding": "The pass decision applied asserted numerical constants to inferred signals instead of deriving treatment requirements from paired baseline observations.",
+      "evidence_refs": [
+        "docs/assurance/phase-d/d2/start-contract-v1.json",
+        "agent_company/phase_d_treatments.py",
+        "evidence/phase-d/d2/result.json"
+      ],
+      "required_correction": "Observe baseline escapes and allowed controls first; derive the exact treatment denial and allow sets from those observations without asserted success constants."
+    },
+    {
+      "id": "phase-d-review-009",
+      "pilot": "governance",
+      "severity": "critical",
+      "finding": "The prior D1/D2 execution records and their treatment conclusions depend on invalid comparison designs and cannot support adoption, success, quality, effectiveness or threshold claims.",
+      "evidence_refs": [
+        "evidence/phase-d/d1/verification-report.md",
+        "evidence/phase-d/d2/verification-report.md"
+      ],
+      "required_correction": "Preserve all prior files unchanged as superseded evidence, explicitly invalidate their treatment conclusions, and require a new independent approval before corrected treatment execution."
+    }
+  ],
+  "disposition": "redesign_required_and_corrected_treatments_blocked",
+  "external_actions": []
+}
