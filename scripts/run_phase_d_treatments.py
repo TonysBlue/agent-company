@@ -91,6 +91,13 @@ def artifact_manifest(output: Path, schema_version: str, status: str) -> dict[st
     }
 
 
+def refresh_evidence_manifest(output: Path) -> None:
+    manifest_path = output / "evidence-manifest.json"
+    manifest = load_json(manifest_path)
+    refreshed = artifact_manifest(output, str(manifest["schema_version"]), str(manifest["status"]))
+    write_json(manifest_path, refreshed)
+
+
 def run_d1(repository: Path, contract: dict[str, object]) -> dict[str, object]:
     if D1_OUTPUT.exists():
         shutil.rmtree(D1_OUTPUT)

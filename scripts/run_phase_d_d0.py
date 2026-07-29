@@ -140,6 +140,20 @@ def build_evidence_manifest(
     }
 
 
+def refresh_evidence_manifest(output: Path) -> None:
+    manifest_path = output / "evidence-manifest.json"
+    manifest = load_json(manifest_path)
+    artifacts = []
+    for path in sorted(output.rglob("*")):
+        if path.is_file() and path.name != manifest_path.name:
+            artifacts.append({
+                "path": str(path.relative_to(output)),
+                "sha256": sha256_file(path),
+            })
+    manifest["artifacts"] = artifacts
+    write_json(manifest_path, manifest)
+
+
 def main() -> int:
     args = parse_args()
     freeze_path = args.freeze.resolve()
