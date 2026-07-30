@@ -1,0 +1,26 @@
+{
+  "aspect_ratio": "1:1",
+  "brief": {
+    "brand_tone": "bright active",
+    "goal": "Create an energetic launch tile while keeping the shoe construction accurate.",
+    "required_constraints": [
+      "preserve sole, laces, heel and toe",
+      "no speed or injury-prevention claims",
+      "do not crop the product"
+    ]
+  },
+  "channel": "social-square",
+  "messages": {
+    "headline": "Move in color",
+    "support": "Everyday road comfort"
+  },
+  "product_category": "coral low-top running shoe",
+  "recognizable_features": [
+    "coral low-top upper",
+    "white segmented sole",
+    "three pale lace rows",
+    "raised heel and curved toe"
+  ],
+  "scenario_id": "coral-running-shoe-square-v3",
+  "schema_version": "phase-d-d1-rater-brief/v2"
+}

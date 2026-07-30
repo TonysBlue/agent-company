@@ -1,0 +1,38 @@
+{
+  "bundle_sha256": "5af6be4b12bb4576a786597b2747cdb63045977e32fb30ca7b66cb77e17b361f",
+  "files": [
+    {
+      "bytes": 804,
+      "path": "brief.json",
+      "role": "scenario_brief",
+      "sha256": "5c2d56de43ab31a4e4ceda63538bbc2542bb560fc4eecf8a91644f4a456e1acc"
+    },
+    {
+      "bytes": 1830,
+      "path": "option-A.svg",
+      "role": "blind_option",
+      "sha256": "fad0cb3be5ccb522c52e8148f5ecf95aa239f2ca501c415ea6ba88ede216ad72"
+    },
+    {
+      "bytes": 1770,
+      "path": "option-B.svg",
+      "role": "blind_option",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 830,
+      "path": "original-source.svg",
+      "role": "original_source",
+      "sha256": "67c8a55ba46e43c0b738ea45d0aa26ac785706b11d1ad99e1a10fa92381fb0bd"
+    },
+    {
+      "bytes": 4841,
+      "path": "rater-form.json",
+      "role": "rater_form",
+      "sha256": "00256942281800e60dd8d0f56081189dfd7c67983586f0dfdda15ffde67485c0"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "wireless-headphones-square-v3",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

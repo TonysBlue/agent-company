@@ -1,0 +1,27 @@
+{
+  "event": {
+    "case_id": "d2v3-008-binding-trigger",
+    "mutation": {
+      "applied": false,
+      "attempted": true,
+      "error": "binding mutation denied",
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "binding mutation denied",
+      "mechanism": "sqlite_control",
+      "outcome": "denied"
+    },
+    "side": "treatment",
+    "workflow_id": "corrected_assurance_workflow_v3"
+  },
+  "event_sha256": "de9969a29b6ec8ae3bd61fb15be9f6cf6ef24794846eea57b809b3e0dc389364",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

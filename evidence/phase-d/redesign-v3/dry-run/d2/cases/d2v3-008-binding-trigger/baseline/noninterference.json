@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "protected_before_sha256": "4c6c3a7f4aff53bb1402ba3d2a717aa02fd5deb9d6e5bdf27fb2f87cd2474a1e",
+  "protected_observed_sha256": "4c6c3a7f4aff53bb1402ba3d2a717aa02fd5deb9d6e5bdf27fb2f87cd2474a1e",
+  "protected_repo_paths": [
+    "contracts/freeze.json",
+    "evidence/baseline.json"
+  ],
+  "protected_tables": [
+    "tasks",
+    "approvals",
+    "audit_log",
+    "operational_counters",
+    "assurance_state"
+  ]
+}

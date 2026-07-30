@@ -1,0 +1,73 @@
+{
+  "access": "not_for_raters",
+  "mappings": [
+    {
+      "assignment": {
+        "A": "comparator",
+        "B": "candidate"
+      },
+      "candidate_artifact_sha256": "7b89142a9cf3297ae94053b5b6e757f899b55e423853ed949a8c6d2c3d288220",
+      "comparator_artifact_sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1",
+      "delivery_bundle_sha256": "9537d92f4477511ae7167b31025b61d181b2f3be3652d7e3b480e5400f89e956",
+      "dry_run_only": true,
+      "scenario_id": "botanical-lotion-square-v3"
+    },
+    {
+      "assignment": {
+        "A": "candidate",
+        "B": "comparator"
+      },
+      "candidate_artifact_sha256": "b6e6f27348ba9200c145bada63425ea5393eab212f213906266134dfaa9e3235",
+      "comparator_artifact_sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af",
+      "delivery_bundle_sha256": "017d192f7facf47b3147d7d1d3583e0bea97ed66dde043d35d0cea2cefbe7c93",
+      "dry_run_only": true,
+      "scenario_id": "single-origin-coffee-square-v3"
+    },
+    {
+      "assignment": {
+        "A": "candidate",
+        "B": "comparator"
+      },
+      "candidate_artifact_sha256": "fad0cb3be5ccb522c52e8148f5ecf95aa239f2ca501c415ea6ba88ede216ad72",
+      "comparator_artifact_sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e",
+      "delivery_bundle_sha256": "5af6be4b12bb4576a786597b2747cdb63045977e32fb30ca7b66cb77e17b361f",
+      "dry_run_only": true,
+      "scenario_id": "wireless-headphones-square-v3"
+    },
+    {
+      "assignment": {
+        "A": "comparator",
+        "B": "candidate"
+      },
+      "candidate_artifact_sha256": "3f1c9238942a2039b24ae5ac702d38bb9beaa4ae14d4ac255068e7683a87065d",
+      "comparator_artifact_sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115",
+      "delivery_bundle_sha256": "44494b4e10247754631aa22fb0db634ab871868012aac2a82bb27bc3065927e9",
+      "dry_run_only": true,
+      "scenario_id": "coral-running-shoe-square-v3"
+    },
+    {
+      "assignment": {
+        "A": "candidate",
+        "B": "comparator"
+      },
+      "candidate_artifact_sha256": "d5fd22a5bc036032f9cadb572c7583db042d83a16ffb678528356cdc68264211",
+      "comparator_artifact_sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f",
+      "delivery_bundle_sha256": "3191476d83340f417ea981b2eec20e7cd99091d9d03f0f387f9c12e9dedb2cf1",
+      "dry_run_only": true,
+      "scenario_id": "fitness-smartwatch-square-v3"
+    },
+    {
+      "assignment": {
+        "A": "comparator",
+        "B": "candidate"
+      },
+      "candidate_artifact_sha256": "a8e6025f9258c0206915c82ac84013441ae3d168e683a68aa5b037efec736647",
+      "comparator_artifact_sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d",
+      "delivery_bundle_sha256": "9541906a49f20a6605a83cfa2d6a55874b6f91fb3becdb9203f4686ab8bc2b1d",
+      "dry_run_only": true,
+      "scenario_id": "citrus-candle-square-v3"
+    }
+  ],
+  "schema_version": "phase-d-d1-dry-run-custody/v2",
+  "treatment_execution": false
+}

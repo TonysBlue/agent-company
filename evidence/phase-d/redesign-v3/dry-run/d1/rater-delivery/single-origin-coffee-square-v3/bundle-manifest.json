@@ -1,0 +1,38 @@
+{
+  "bundle_sha256": "017d192f7facf47b3147d7d1d3583e0bea97ed66dde043d35d0cea2cefbe7c93",
+  "files": [
+    {
+      "bytes": 743,
+      "path": "brief.json",
+      "role": "scenario_brief",
+      "sha256": "0f84794f1f15180a779f36b1121ba2e58f1e08338ec472862758d716c033c948"
+    },
+    {
+      "bytes": 1837,
+      "path": "option-A.svg",
+      "role": "blind_option",
+      "sha256": "b6e6f27348ba9200c145bada63425ea5393eab212f213906266134dfaa9e3235"
+    },
+    {
+      "bytes": 1777,
+      "path": "option-B.svg",
+      "role": "blind_option",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 843,
+      "path": "original-source.svg",
+      "role": "original_source",
+      "sha256": "e52b7b30a424904efb72c326d734c8ad27fc2a01bee456b0e382a78d7c458f43"
+    },
+    {
+      "bytes": 4780,
+      "path": "rater-form.json",
+      "role": "rater_form",
+      "sha256": "5a9309ae6c8036fa2331bcf5d93b488ef4bca7582887de0f4794800ee62787c8"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "single-origin-coffee-square-v3",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": "phase-d-redesign-independent-findings/v3",
+  "id": "phase-d-redesign-v3-preserved-findings-and-hardening-requirements",
+  "source_findings": {
+    "path": "docs/assurance/phase-d/redesign/independent-findings-at-6626411-v1.json",
+    "sha256": "81de047d052469b0c935a9efb3fae29c739f96040b1e8effa7d4d7c17c064d86",
+    "prior_treatment_conclusions_invalid": true
+  },
+  "required_v3_controls": [
+    "authenticated_independent_approval",
+    "separate_authenticated_post_approval_effective_ceo_start_decision",
+    "fail_closed_unresolved_critical_or_high_in_any_representation",
+    "exact_source_commit_tree_document_executable_test_and_evidence_hash_bindings",
+    "workflow_distinct_d1_with_identical_inputs_messages_and_budgets",
+    "randomized_exactly_balanced_blind_assignment",
+    "original_source_artifact_and_hash_in_rater_bundle",
+    "complete_fail_closed_svg_geometry_bounds",
+    "d2_bank_of_at_least_sixteen_covering_every_charter_fault_and_control_class",
+    "every_seeded_material_fault_denied_independently_of_baseline",
+    "all_frozen_valid_controls_evaluated"
+  ],
+  "implementation_review_status": "pending_independent_authenticated_review",
+  "unresolved_findings": [],
+  "record_is_not_independent_approval": true,
+  "treatment_execution_status": "blocked_pending_authenticated_approval_and_ceo_start"
+}

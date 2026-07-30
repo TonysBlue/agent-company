@@ -1,0 +1,130 @@
+{
+  "allowed_while_blocked": [
+    "tooling_implementation",
+    "fixture_creation",
+    "strict_tdd_red_green_testing",
+    "synthetic_dry_run_validation",
+    "agent_company_regression",
+    "pixweave_regression_if_shared_behavior_changes",
+    "validation"
+  ],
+  "author_principals": [
+    "principal-ceo",
+    "codex-implementer"
+  ],
+  "bindings": [
+    {
+      "kind": "implementation",
+      "path": "agent_company/phase_d_redesign.py",
+      "sha256": "1cbb5cbcfafac92157a36f0b959e76fd4499a8a45cb5eac1251b3cc02d81b9ff"
+    },
+    {
+      "kind": "runner",
+      "path": "scripts/run_phase_d_redesign_v3_dry_run.py",
+      "sha256": "415181c7517035a7636a9600af0d54a2cf6240a653fb20e3312c2086e402168a"
+    },
+    {
+      "kind": "test",
+      "path": "tests/test_phase_d_redesign_v3.py",
+      "sha256": "42378266e2c87da67f6eb576df09985bc5cd8e86ebff54d6fdcc01da8e54c8b7"
+    },
+    {
+      "kind": "dry_run_evidence",
+      "path": "evidence/phase-d/redesign-v3/dry-run-result.json",
+      "sha256": "a3ec676e109d9ff8018215764ba35938267b66c772837bb12ca1a4cc55b89617"
+    },
+    {
+      "kind": "regression_evidence",
+      "path": "evidence/phase-d/redesign-v3/regression-results.txt",
+      "sha256": "ceef999a62b40bb54cb8da2b0d4c0c6d55b031ab91a8ad8cb114f1f095f66d3c"
+    },
+    {
+      "kind": "red_evidence",
+      "path": "evidence/phase-d/redesign-v3/red-probes.txt",
+      "sha256": "1fc24d919e8408991a217f5170b03b6ad7209e81bae642a6949cd8d072209cc3"
+    },
+    {
+      "kind": "evidence_manifest",
+      "path": "evidence/phase-d/redesign-v3/evidence-manifest.json",
+      "sha256": "122628c7269a8918d3783572bf555fe0c5efcbef68113f31de0c297e41d4f137"
+    }
+  ],
+  "documents": [
+    {
+      "kind": "independent_findings",
+      "path": "docs/assurance/phase-d/redesign/independent-findings-v3.json",
+      "sha256": "913fa6cfabe74cadd81d98da1ae0f4edb72b2eef1847925b98db52b2f186678c"
+    },
+    {
+      "kind": "ceo_start_proposal",
+      "path": "docs/assurance/phase-d/redesign/ceo-start-decision-proposal-v3.json",
+      "sha256": "9ca9ca7c04ef94aab25b41b25b493db19b9b5ec2ad76e2714c83b892136d13c3"
+    },
+    {
+      "kind": "supersession_record",
+      "path": "docs/assurance/phase-d/redesign/supersession-record-v3.json",
+      "sha256": "ab6884f6571c29d0edf8da7a27a6309690dbd132a9a47886e2612f2c2b8263ba"
+    },
+    {
+      "kind": "d1_contract",
+      "path": "docs/assurance/phase-d/redesign/d1/contract-v3.json",
+      "sha256": "dc7287b91bbd976f05cab72befc605871346987aa3266a1bbbc8a062ebf952d4"
+    },
+    {
+      "kind": "d1_scenario_bank",
+      "path": "docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json",
+      "sha256": "5062381a7c37efb8119bc600c978042d7e5f0616befcceffbcdaa037e1bffcc5"
+    },
+    {
+      "kind": "d2_contract",
+      "path": "docs/assurance/phase-d/redesign/d2/contract-v3.json",
+      "sha256": "1dece6ed6aeffc2e497c17a37e7caae7dac6ef0ff1a8d5587f694a91ce7cdf22"
+    },
+    {
+      "kind": "d2_mutation_bank",
+      "path": "docs/assurance/phase-d/redesign/d2/mutation-bank-v3.json",
+      "sha256": "23c4d51274d3b5d41ad417274d2590cb29106f74408a9125f030093a09859479"
+    }
+  ],
+  "execution_gate": {
+    "approval_must_be_authenticated": true,
+    "ceo_identity": {
+      "key_id": "phase-d-ceo-v3",
+      "principal_id": "principal-ceo",
+      "role": "CEO"
+    },
+    "ceo_start_decision_path": "docs/assurance/phase-d/redesign/ceo-start-decision-v3.json",
+    "ceo_start_decision_present_at_freeze": false,
+    "ceo_start_must_be_separately_authenticated_after_approval": true,
+    "independent_approval_path": "docs/assurance/phase-d/redesign/independent-approval-v3.json",
+    "independent_approval_present_at_freeze": false,
+    "missing_invalid_forged_unbound_or_misordered_decision_behavior": "deny_corrected_d1_and_d2_treatment_execution",
+    "reviewer_identity": {
+      "key_id": "phase-d-reviewer-v3",
+      "principal_id": "principal-control-review",
+      "role": "Control & Reliability Reviewer"
+    },
+    "unresolved_critical_or_high_findings_allowed": false
+  },
+  "id": "phase-d-corrected-d1-d2-freeze-v3",
+  "not_authorized": [
+    "corrected_d1_treatment_execution",
+    "corrected_d2_treatment_execution",
+    "human_rater_delivery_or_outreach",
+    "live_or_customer_data",
+    "external_spend",
+    "publication_or_public_action",
+    "production",
+    "service_restart",
+    "git_commit",
+    "git_push",
+    "pixweave_source_edits"
+  ],
+  "schema_version": "phase-d-redesign-freeze/v3",
+  "source_revision": {
+    "commit": "fc81f2bb550720d0574dde6e21a001d4ba55181c",
+    "tree": "7707608fd132e5a374f3f45c3f81409a1d7ad577"
+  },
+  "source_revision_meaning": "exact committed source reviewed before the preserved dirty V3 implementation; all V3 implementation and evidence files are bound separately below",
+  "status": "blocked_pending_authenticated_approval_and_ceo_start"
+}

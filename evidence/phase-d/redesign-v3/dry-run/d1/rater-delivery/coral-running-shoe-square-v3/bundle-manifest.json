@@ -1,0 +1,38 @@
+{
+  "bundle_sha256": "44494b4e10247754631aa22fb0db634ab871868012aac2a82bb27bc3065927e9",
+  "files": [
+    {
+      "bytes": 755,
+      "path": "brief.json",
+      "role": "scenario_brief",
+      "sha256": "7591ac6f38a7c34842a0d756e33f1e8f7210b58d5803a3c15e5bb408538928ff"
+    },
+    {
+      "bytes": 1651,
+      "path": "option-A.svg",
+      "role": "blind_option",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 1711,
+      "path": "option-B.svg",
+      "role": "blind_option",
+      "sha256": "3f1c9238942a2039b24ae5ac702d38bb9beaa4ae14d4ac255068e7683a87065d"
+    },
+    {
+      "bytes": 750,
+      "path": "original-source.svg",
+      "role": "original_source",
+      "sha256": "d4b09ba56619ac27773c06e90843b47cf4ab122078834a94234127300f902d2e"
+    },
+    {
+      "bytes": 4792,
+      "path": "rater-form.json",
+      "role": "rater_form",
+      "sha256": "e6a1376bba5bc3867de851945cd7be3c9f0f5b60a54ddd9b3c84e91c2bc74d82"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "coral-running-shoe-square-v3",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

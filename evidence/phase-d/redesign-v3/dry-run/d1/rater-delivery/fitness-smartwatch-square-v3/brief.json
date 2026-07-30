@@ -1,0 +1,26 @@
+{
+  "aspect_ratio": "1:1",
+  "brief": {
+    "brand_tone": "quiet capable",
+    "goal": "Show the watch as a clear daily-activity companion without health promises.",
+    "required_constraints": [
+      "preserve screen readings and case shape",
+      "no diagnostic or health-outcome claims",
+      "keep both straps visible"
+    ]
+  },
+  "channel": "social-square",
+  "messages": {
+    "headline": "Your day at a glance",
+    "support": "Activity and time together"
+  },
+  "product_category": "green fitness smartwatch",
+  "recognizable_features": [
+    "green upper and lower straps",
+    "rounded dark watch case",
+    "08:42 digital time",
+    "teal activity ring and 72 BPM reading"
+  ],
+  "scenario_id": "fitness-smartwatch-square-v3",
+  "schema_version": "phase-d-d1-rater-brief/v2"
+}

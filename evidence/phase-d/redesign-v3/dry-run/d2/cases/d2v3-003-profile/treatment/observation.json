@@ -1,0 +1,5 @@
+{
+  "detail": "assurance state mutation denied",
+  "mechanism": "sqlite_control",
+  "outcome": "denied"
+}

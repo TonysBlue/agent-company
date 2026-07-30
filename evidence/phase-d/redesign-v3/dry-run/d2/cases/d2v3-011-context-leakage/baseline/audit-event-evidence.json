@@ -1,0 +1,27 @@
+{
+  "event": {
+    "case_id": "d2v3-011-context-leakage",
+    "mutation": {
+      "applied": true,
+      "attempted": true,
+      "error": null,
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "mutation committed in isolated copy",
+      "mechanism": "database_commit",
+      "outcome": "allowed"
+    },
+    "side": "baseline",
+    "workflow_id": "frozen_current_workflow_v3"
+  },
+  "event_sha256": "9a28b039503b046eb94bcb7bfe5e08ac36407d7f2dcdb7e7d19eb9e65468de5a",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

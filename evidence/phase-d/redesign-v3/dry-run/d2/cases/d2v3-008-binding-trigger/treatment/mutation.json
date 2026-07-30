@@ -1,0 +1,6 @@
+{
+  "applied": false,
+  "attempted": true,
+  "error": "binding mutation denied",
+  "kind": "sql"
+}

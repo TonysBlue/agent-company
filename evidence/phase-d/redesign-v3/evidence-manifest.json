@@ -1,0 +1,1473 @@
+{
+  "artifacts": [
+    {
+      "bytes": 3032,
+      "path": "custody/d1/custody-mapping.json",
+      "sha256": "8f68ee89ebfdc16b8c4459de56a304fb9913a89a00982a05489b9eeecc5dee92"
+    },
+    {
+      "bytes": 764,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v3/brief.json",
+      "sha256": "6455d4a3fe6d2b15f6a3f023f78d2b14658a6c8b7a1f6471d683dc6702445f10"
+    },
+    {
+      "bytes": 1133,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v3/bundle-manifest.json",
+      "sha256": "2284b1de61140806ce7bd81262cb77782b13bba80322d124d3a761d8266fcff7"
+    },
+    {
+      "bytes": 1709,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v3/option-A.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 1769,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v3/option-B.svg",
+      "sha256": "7b89142a9cf3297ae94053b5b6e757f899b55e423853ed949a8c6d2c3d288220"
+    },
+    {
+      "bytes": 786,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v3/original-source.svg",
+      "sha256": "0d2150d7e79735ec817706b9c077447372d17f837359aab936121522bd659a81"
+    },
+    {
+      "bytes": 4801,
+      "path": "dry-run/d1/rater-delivery/botanical-lotion-square-v3/rater-form.json",
+      "sha256": "33035dd1920c63be9975ce41bd76d4794feb9de692c60ffb8f4246627e758b45"
+    },
+    {
+      "bytes": 756,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v3/brief.json",
+      "sha256": "53b5e330a23aab15d7bd5720f58c5c1607daf988726f79da0cbadbb74c809750"
+    },
+    {
+      "bytes": 1130,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v3/bundle-manifest.json",
+      "sha256": "55b76ba88ef0ae741c0aa34b7ad108b704e109fe58a41699c5515dd3eb94443a"
+    },
+    {
+      "bytes": 1888,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v3/option-A.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 1948,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v3/option-B.svg",
+      "sha256": "a8e6025f9258c0206915c82ac84013441ae3d168e683a68aa5b037efec736647"
+    },
+    {
+      "bytes": 922,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v3/original-source.svg",
+      "sha256": "cf6fc56071f38cbbde9eba8cd03e889cb75641ef7a9a0635302d5ed0d9aaee94"
+    },
+    {
+      "bytes": 4793,
+      "path": "dry-run/d1/rater-delivery/citrus-candle-square-v3/rater-form.json",
+      "sha256": "1356a2df7aa891efe5fb8e2dcdb063ca15bb88b17c5117da35ae73357025aeea"
+    },
+    {
+      "bytes": 755,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v3/brief.json",
+      "sha256": "7591ac6f38a7c34842a0d756e33f1e8f7210b58d5803a3c15e5bb408538928ff"
+    },
+    {
+      "bytes": 1135,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v3/bundle-manifest.json",
+      "sha256": "890a0aa1c7263c52a4f329ebc92c7fd360f3c32f475424d2889064a1d7ba5094"
+    },
+    {
+      "bytes": 1651,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v3/option-A.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 1711,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v3/option-B.svg",
+      "sha256": "3f1c9238942a2039b24ae5ac702d38bb9beaa4ae14d4ac255068e7683a87065d"
+    },
+    {
+      "bytes": 750,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v3/original-source.svg",
+      "sha256": "d4b09ba56619ac27773c06e90843b47cf4ab122078834a94234127300f902d2e"
+    },
+    {
+      "bytes": 4792,
+      "path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v3/rater-form.json",
+      "sha256": "e6a1376bba5bc3867de851945cd7be3c9f0f5b60a54ddd9b3c84e91c2bc74d82"
+    },
+    {
+      "bytes": 792,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v3/brief.json",
+      "sha256": "25572f5b725f34d581d1064d12cc5b8a854cc875053d75c50f6be89701fc4bbd"
+    },
+    {
+      "bytes": 1135,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v3/bundle-manifest.json",
+      "sha256": "104a0ecacdaf7ed4bb9387df0f883f139af1d6e32c90ef4ddd647b5238a75ca5"
+    },
+    {
+      "bytes": 1909,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v3/option-A.svg",
+      "sha256": "d5fd22a5bc036032f9cadb572c7583db042d83a16ffb678528356cdc68264211"
+    },
+    {
+      "bytes": 1849,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v3/option-B.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 890,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v3/original-source.svg",
+      "sha256": "7cef087a40cb77d2885318df5d9b0ea361b777615264288f5f39703224583341"
+    },
+    {
+      "bytes": 4829,
+      "path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v3/rater-form.json",
+      "sha256": "217128ca5448a07db300400095d5efe1c8a1587b53b84f25631bd4a5debe2a52"
+    },
+    {
+      "bytes": 743,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v3/brief.json",
+      "sha256": "0f84794f1f15180a779f36b1121ba2e58f1e08338ec472862758d716c033c948"
+    },
+    {
+      "bytes": 1137,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v3/bundle-manifest.json",
+      "sha256": "f43a45e34e2afbbd46a7e257b8aff1df51336ba896edecc46e148432820efb51"
+    },
+    {
+      "bytes": 1837,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v3/option-A.svg",
+      "sha256": "b6e6f27348ba9200c145bada63425ea5393eab212f213906266134dfaa9e3235"
+    },
+    {
+      "bytes": 1777,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v3/option-B.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 843,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v3/original-source.svg",
+      "sha256": "e52b7b30a424904efb72c326d734c8ad27fc2a01bee456b0e382a78d7c458f43"
+    },
+    {
+      "bytes": 4780,
+      "path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v3/rater-form.json",
+      "sha256": "5a9309ae6c8036fa2331bcf5d93b488ef4bca7582887de0f4794800ee62787c8"
+    },
+    {
+      "bytes": 804,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v3/brief.json",
+      "sha256": "5c2d56de43ab31a4e4ceda63538bbc2542bb560fc4eecf8a91644f4a456e1acc"
+    },
+    {
+      "bytes": 1136,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v3/bundle-manifest.json",
+      "sha256": "9dbb6648322e6827d507c001c106f8fecd8a5c8f2b6761139430c8e8a1608e12"
+    },
+    {
+      "bytes": 1830,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v3/option-A.svg",
+      "sha256": "fad0cb3be5ccb522c52e8148f5ecf95aa239f2ca501c415ea6ba88ede216ad72"
+    },
+    {
+      "bytes": 1770,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v3/option-B.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 830,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v3/original-source.svg",
+      "sha256": "67c8a55ba46e43c0b738ea45d0aa26ac785706b11d1ad99e1a10fa92381fb0bd"
+    },
+    {
+      "bytes": 4841,
+      "path": "dry-run/d1/rater-delivery/wireless-headphones-square-v3/rater-form.json",
+      "sha256": "00256942281800e60dd8d0f56081189dfd7c67983586f0dfdda15ffde67485c0"
+    },
+    {
+      "bytes": 1806,
+      "path": "dry-run/d1/result.json",
+      "sha256": "2599ea403b22cb48ae9fdd126dee56a93f5cf166721cc694252bc693c11aaa7a"
+    },
+    {
+      "bytes": 1769,
+      "path": "dry-run/d1/working/botanical-lotion-square-v3/candidate/artifact.svg",
+      "sha256": "7b89142a9cf3297ae94053b5b6e757f899b55e423853ed949a8c6d2c3d288220"
+    },
+    {
+      "bytes": 1462,
+      "path": "dry-run/d1/working/botanical-lotion-square-v3/candidate/run-spec.json",
+      "sha256": "6395eeb1bb35c884ab0b65238640b41ec16ab9c57775b55d42a6c0b67dfd0fbd"
+    },
+    {
+      "bytes": 1709,
+      "path": "dry-run/d1/working/botanical-lotion-square-v3/comparator/artifact.svg",
+      "sha256": "c5dedd4421d33807d7378db7cff385b2fceb5ae5c6a033102d9786787143d7d1"
+    },
+    {
+      "bytes": 1372,
+      "path": "dry-run/d1/working/botanical-lotion-square-v3/comparator/run-spec.json",
+      "sha256": "1ee0a1fa5d153791ea182d81dfd98a726ed4e1b594b9f40c6945ad39cc12ce4e"
+    },
+    {
+      "bytes": 1948,
+      "path": "dry-run/d1/working/citrus-candle-square-v3/candidate/artifact.svg",
+      "sha256": "a8e6025f9258c0206915c82ac84013441ae3d168e683a68aa5b037efec736647"
+    },
+    {
+      "bytes": 1462,
+      "path": "dry-run/d1/working/citrus-candle-square-v3/candidate/run-spec.json",
+      "sha256": "765d9336e59f4152a82c9057c0bb76dfd4ebbdfdf5bd6c16b5cd2954540fd163"
+    },
+    {
+      "bytes": 1888,
+      "path": "dry-run/d1/working/citrus-candle-square-v3/comparator/artifact.svg",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 1372,
+      "path": "dry-run/d1/working/citrus-candle-square-v3/comparator/run-spec.json",
+      "sha256": "3b67ace2fab188d9b85a7e9693492d36eb037ec12dc4ea127def436a2bc08e25"
+    },
+    {
+      "bytes": 1711,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v3/candidate/artifact.svg",
+      "sha256": "3f1c9238942a2039b24ae5ac702d38bb9beaa4ae14d4ac255068e7683a87065d"
+    },
+    {
+      "bytes": 1477,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v3/candidate/run-spec.json",
+      "sha256": "5367f26521254fb125669ada319da6e6c5f27ab3c1981384f664635bc0be6149"
+    },
+    {
+      "bytes": 1651,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v3/comparator/artifact.svg",
+      "sha256": "5658fe110506a1f4d7ebaa24973a9ff548ac1d0875daa6eb1f0fae293cb19115"
+    },
+    {
+      "bytes": 1387,
+      "path": "dry-run/d1/working/coral-running-shoe-square-v3/comparator/run-spec.json",
+      "sha256": "965da936719e032a10641ffd4ca153bf6e2a4f244d0feea1ea8925be2d898ac3"
+    },
+    {
+      "bytes": 1909,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v3/candidate/artifact.svg",
+      "sha256": "d5fd22a5bc036032f9cadb572c7583db042d83a16ffb678528356cdc68264211"
+    },
+    {
+      "bytes": 1495,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v3/candidate/run-spec.json",
+      "sha256": "cfd048e05c38a3aa20284c3a7174e16ebdb5fdda7fcd412596771297043ee46b"
+    },
+    {
+      "bytes": 1849,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v3/comparator/artifact.svg",
+      "sha256": "149483d6c8b208f182130b5d65ca1ba2df249808302f207ddba55c06ca4f135f"
+    },
+    {
+      "bytes": 1405,
+      "path": "dry-run/d1/working/fitness-smartwatch-square-v3/comparator/run-spec.json",
+      "sha256": "9dce3719229046d260ea3c0f8c48ed17a198d374576a8a089c92519a7a390820"
+    },
+    {
+      "bytes": 1837,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v3/candidate/artifact.svg",
+      "sha256": "b6e6f27348ba9200c145bada63425ea5393eab212f213906266134dfaa9e3235"
+    },
+    {
+      "bytes": 1456,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v3/candidate/run-spec.json",
+      "sha256": "606b9cb6d21374640292691ef2ec0ec8d78b9af24d258db7c8e8f4c1cde3510c"
+    },
+    {
+      "bytes": 1777,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v3/comparator/artifact.svg",
+      "sha256": "2efc907cd37df177bdb843f4774fc2460c022b14d31574980ff3c23529ad32af"
+    },
+    {
+      "bytes": 1366,
+      "path": "dry-run/d1/working/single-origin-coffee-square-v3/comparator/run-spec.json",
+      "sha256": "ae9d8774f69fd7719de90594455885038a1c1fa91786c79f64c91456e835fdd2"
+    },
+    {
+      "bytes": 1830,
+      "path": "dry-run/d1/working/wireless-headphones-square-v3/candidate/artifact.svg",
+      "sha256": "fad0cb3be5ccb522c52e8148f5ecf95aa239f2ca501c415ea6ba88ede216ad72"
+    },
+    {
+      "bytes": 1491,
+      "path": "dry-run/d1/working/wireless-headphones-square-v3/candidate/run-spec.json",
+      "sha256": "f7ee02ae44ed1579d96f8e074645c10c8337cb789b3ae1988b94fb50d3c5b50a"
+    },
+    {
+      "bytes": 1770,
+      "path": "dry-run/d1/working/wireless-headphones-square-v3/comparator/artifact.svg",
+      "sha256": "fecd2113ec7deaa5cfb3cd9935c6de95291e78681e22b0d530ddb8b3cda36d5e"
+    },
+    {
+      "bytes": 1401,
+      "path": "dry-run/d1/working/wireless-headphones-square-v3/comparator/run-spec.json",
+      "sha256": "5fd0a7b112919eac391c90237fbe310fe5ab66e3ce47dd5cd47c87864c3695b7"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 702,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/baseline/audit-event-evidence.json",
+      "sha256": "5e4d499f48a9a72ae0c0ba82bce5530d52b19075255dca75844ab3e5724690ad"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 732,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/treatment/audit-event-evidence.json",
+      "sha256": "cfd95c5eb4f5928c95d04a97b6a4b4b109d51a17f8a0b17dca57551b6ad1e759"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-001-approved-artifact/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 694,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/baseline/audit-event-evidence.json",
+      "sha256": "4d33113a1d9de798a5c0c60a8731920cb8a50442c141befc34d52bbf53e90926"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 724,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/treatment/audit-event-evidence.json",
+      "sha256": "6a1ae6905acc5ec427dfc879721ef2c40d76a982e966cced3872bcfd684c4a8f"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-002-threshold/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-003-profile/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 692,
+      "path": "dry-run/d2/cases/d2v3-003-profile/baseline/audit-event-evidence.json",
+      "sha256": "7ed83f8ce7b48a735de05678f4d6199aac83b30a0e61deaa358a400af23b4815"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-003-profile/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-003-profile/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-003-profile/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-003-profile/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-003-profile/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-003-profile/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 722,
+      "path": "dry-run/d2/cases/d2v3-003-profile/treatment/audit-event-evidence.json",
+      "sha256": "cadcbf70ad4af8d40cf817f6ba18cc11e078d9b4bc8df776a807660681cee13b"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-003-profile/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-003-profile/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-003-profile/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-003-profile/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-003-profile/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-004-authority/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 694,
+      "path": "dry-run/d2/cases/d2v3-004-authority/baseline/audit-event-evidence.json",
+      "sha256": "14dda07e4f3e91f333edd37f2820d89310fd9f4909438bbd22f0cf0364089054"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-004-authority/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-004-authority/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-004-authority/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-004-authority/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-004-authority/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-004-authority/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 724,
+      "path": "dry-run/d2/cases/d2v3-004-authority/treatment/audit-event-evidence.json",
+      "sha256": "9af80811de9a752230f3c904ffdad54814de85985ae7f05f1d09336e761de48d"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-004-authority/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-004-authority/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-004-authority/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-004-authority/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-004-authority/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-005-credential/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 695,
+      "path": "dry-run/d2/cases/d2v3-005-credential/baseline/audit-event-evidence.json",
+      "sha256": "73d9d8a2fdf9cbdb2a2b479b14f7c6af70fbd6d023703d9ab055529a4ad0e4c6"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-005-credential/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-005-credential/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-005-credential/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-005-credential/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-005-credential/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-005-credential/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 725,
+      "path": "dry-run/d2/cases/d2v3-005-credential/treatment/audit-event-evidence.json",
+      "sha256": "fe0906dfef1079a25a2d3118c6fe7e16f30e3e992564b9dd0f286b6c6fdd959f"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-005-credential/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-005-credential/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-005-credential/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-005-credential/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-005-credential/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-006-generation/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 695,
+      "path": "dry-run/d2/cases/d2v3-006-generation/baseline/audit-event-evidence.json",
+      "sha256": "c23a231a4eeca48be1d33c49e2b9101cbe9c72a18d220bde8a72794fbf23d316"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-006-generation/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-006-generation/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-006-generation/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-006-generation/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-006-generation/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-006-generation/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 725,
+      "path": "dry-run/d2/cases/d2v3-006-generation/treatment/audit-event-evidence.json",
+      "sha256": "2f5ace20277f0e8cc1fe404ec1ca6a99f7df5f72815ee0703f38689fa11af6a8"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-006-generation/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-006-generation/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-006-generation/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-006-generation/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-006-generation/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 702,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/baseline/audit-event-evidence.json",
+      "sha256": "811d7ceebb883b8774fbb2756dd7d6438e4782c26367f8afad8ee08e086900dc"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 457,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/baseline/noninterference.json",
+      "sha256": "520081cdd7f293b4c84f0da09b330256f5f8b7a87c8c146570b8c71db71dc9f3"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 718,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/treatment/audit-event-evidence.json",
+      "sha256": "af49299bd20b81a08d42fe37ff77c2c317b7e98fdb26df01309dda6e33325b84"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 100,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/treatment/mutation.json",
+      "sha256": "134535d4c62a944c3d4884a9745743d92852e50b4ed261efcbd6a458504806c7"
+    },
+    {
+      "bytes": 457,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/treatment/noninterference.json",
+      "sha256": "520081cdd7f293b4c84f0da09b330256f5f8b7a87c8c146570b8c71db71dc9f3"
+    },
+    {
+      "bytes": 99,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/treatment/observation.json",
+      "sha256": "3cc9e6b517e5c8a1abdc62c8453878c51bef9219f49af13ba191405d7ddc673f"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-007-completion-bypass/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 700,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/baseline/audit-event-evidence.json",
+      "sha256": "172d7b4ce6b8b564f7049cfe93d46fa7bccacf3d69e249c30427bc8f30a8aad5"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 434,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/baseline/noninterference.json",
+      "sha256": "6299d3280bd08f784f522098fcdfc4fafb31547fd7059f773161a55e437c75bc"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 714,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/treatment/audit-event-evidence.json",
+      "sha256": "ae97a3bd8815ec6c5cf58de1b4331ff55ba96b2a4989443ea4f69184e95b287f"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 99,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/treatment/mutation.json",
+      "sha256": "73c448f66442fce4dfd00f7585a98a037698a213ee4a13a7a52a6bb0701ee702"
+    },
+    {
+      "bytes": 434,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/treatment/noninterference.json",
+      "sha256": "6299d3280bd08f784f522098fcdfc4fafb31547fd7059f773161a55e437c75bc"
+    },
+    {
+      "bytes": 98,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/treatment/observation.json",
+      "sha256": "86452fac3c9c447b2726ef4d4fd2aca505beae5b8392369ada6e6dfab476ac80"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-008-binding-trigger/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 695,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/baseline/audit-event-evidence.json",
+      "sha256": "722004c045a3c976166486161b516eea546661a2ca5522f3c99464a3c6c9cb90"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 725,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/treatment/audit-event-evidence.json",
+      "sha256": "caaad1a018f44f5f0849ecb404918b7a03649be44c81cef4d32e07b19fb7881b"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-009-evaluation/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-010-review/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 691,
+      "path": "dry-run/d2/cases/d2v3-010-review/baseline/audit-event-evidence.json",
+      "sha256": "1e169e4d629cd4f0d3d23af4055bbd9b750bd90fd7f2056556c453f0350705ff"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-010-review/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-010-review/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-010-review/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-010-review/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-010-review/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-010-review/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 721,
+      "path": "dry-run/d2/cases/d2v3-010-review/treatment/audit-event-evidence.json",
+      "sha256": "f73833ed94c4826aa1154281237b857eaa4ba3adc409f5f52708fcf13f28aba9"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-010-review/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-010-review/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-010-review/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-010-review/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-010-review/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 700,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/baseline/audit-event-evidence.json",
+      "sha256": "d94a631c82f00e78f10ab2ac70a9b5f2d06e0d3caf92a7106abb5bf54f301dd3"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 730,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/treatment/audit-event-evidence.json",
+      "sha256": "5935faec1aade1ee8c58c594febce49dbc4a9d41437eb06d31ee2cc466156bef"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-011-context-leakage/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 694,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/baseline/audit-event-evidence.json",
+      "sha256": "78861a1cfcd72326423799b5b96ee4cc94511da57ea23472630c37f7c54d7c5b"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/baseline/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 724,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/treatment/audit-event-evidence.json",
+      "sha256": "141505caa0cb6fdcac858b1f4ce26f94a365a51ed2f4c58fd2cfe729f0153e53"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 107,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/treatment/mutation.json",
+      "sha256": "2acd1e5d7c1dd1c2427051b868b40270362d02080eb31209ef19d9b33ecc598d"
+    },
+    {
+      "bytes": 447,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/treatment/noninterference.json",
+      "sha256": "edb4733c3407e30c36fc07b5db74166ae9e077f44eb611c137d5ac38ebcdcca7"
+    },
+    {
+      "bytes": 106,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/treatment/observation.json",
+      "sha256": "d946584b14630b217508d34c363c8eae7f362fd4b522d8f6f2551f228ffe696b"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-012-lifecycle/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 611,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/baseline/audit-event-evidence.json",
+      "sha256": "c90c4e9cafca835ccb2d3f5b97c7c9d142c6d330316750d36b0423007c1d5c17"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 453,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/baseline/noninterference.json",
+      "sha256": "2081e26a055ff34daa427c78356fc8eeae7d5698483691aaebf010579592a9d3"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 708,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/treatment/audit-event-evidence.json",
+      "sha256": "36d492caead1ec0fe121fdd1884169ed84c05de7d423b067da43d1504001aff0"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 97,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/treatment/mutation.json",
+      "sha256": "a04a28d979c697212fb83cd1019246e2c291e167265e6ce9b59040a4fdf15fbd"
+    },
+    {
+      "bytes": 453,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/treatment/noninterference.json",
+      "sha256": "2081e26a055ff34daa427c78356fc8eeae7d5698483691aaebf010579592a9d3"
+    },
+    {
+      "bytes": 96,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/treatment/observation.json",
+      "sha256": "5882c807e94b665058513fef793be832199be5051a8cc468fe528edf0fedf5e4"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-013-claim-history/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 704,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/baseline/audit-event-evidence.json",
+      "sha256": "e1e57bad2eb67f7795c3863f869f3df8080c75f9c30b732eb15260decbdfaef6"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 457,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/baseline/noninterference.json",
+      "sha256": "520081cdd7f293b4c84f0da09b330256f5f8b7a87c8c146570b8c71db71dc9f3"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 710,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/treatment/audit-event-evidence.json",
+      "sha256": "ce5d1b2f1d5abd1511093e3be57a7f18dfc5a7ef65c8aded275242578b236c57"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/treatment/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 457,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/treatment/noninterference.json",
+      "sha256": "520081cdd7f293b4c84f0da09b330256f5f8b7a87c8c146570b8c71db71dc9f3"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/treatment/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-014-never-bound-control/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 714,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/baseline/audit-event-evidence.json",
+      "sha256": "6e0401ae88c39f3bb9df4f54a1d892b6eb423065cbcca29668fc3b62c3a68fd9"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 457,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/baseline/noninterference.json",
+      "sha256": "520081cdd7f293b4c84f0da09b330256f5f8b7a87c8c146570b8c71db71dc9f3"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 720,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/treatment/audit-event-evidence.json",
+      "sha256": "189b835deaa6eca2b563afb3548e2f92982d01698e06b43f1a1372209029f174"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/treatment/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 457,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/treatment/noninterference.json",
+      "sha256": "520081cdd7f293b4c84f0da09b330256f5f8b7a87c8c146570b8c71db71dc9f3"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/treatment/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-015-legitimate-completion-control/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/baseline/after-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 709,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/baseline/audit-event-evidence.json",
+      "sha256": "a025f93bcc6dd6b82654f3a1687492ac251e5b468d08ed4ae04a7e15e76db84a"
+    },
+    {
+      "bytes": 2337,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/baseline/before-snapshot.json",
+      "sha256": "09ca35a428be05e98f816d71e7c58c24158ed7492682c1334223dbeeb66372b6"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/baseline/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 442,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/baseline/noninterference.json",
+      "sha256": "bee1f74b5c0d285d0322ceb6f1af5c65b8a1d32ae02dc9ce1c8aa9be9b9cbcd2"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/baseline/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/baseline/rollback.json",
+      "sha256": "b2bd10a587afe5e741608c9cd79519b635115748c333c74628fcc3f63df00514"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/treatment/after-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 715,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/treatment/audit-event-evidence.json",
+      "sha256": "07c9f73a7774cac6bb1ff94140557592b83bd894c762ead5e93094aec29e434e"
+    },
+    {
+      "bytes": 4943,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/treatment/before-snapshot.json",
+      "sha256": "40c17b7b8f60d9d68413b9bbca6bccb8af76d19b7ada959ef7dd20e7d40d07f7"
+    },
+    {
+      "bytes": 77,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/treatment/mutation.json",
+      "sha256": "af10358a487c80dfaa8d2465a5e6c958bfe8e1cb509ce9f19f96d3d59a30b247"
+    },
+    {
+      "bytes": 442,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/treatment/noninterference.json",
+      "sha256": "bee1f74b5c0d285d0322ceb6f1af5c65b8a1d32ae02dc9ce1c8aa9be9b9cbcd2"
+    },
+    {
+      "bytes": 112,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/treatment/observation.json",
+      "sha256": "ea1070c4faf364f450a37f5f4085411ffe488d72ed196b7fb108053f793e26b1"
+    },
+    {
+      "bytes": 257,
+      "path": "dry-run/d2/cases/d2v3-016-unbound-dispatch-control/treatment/rollback.json",
+      "sha256": "2dbd12ede00c12f241e1c8f1912b01728771a70296584ecd6912c993512a9256"
+    },
+    {
+      "bytes": 36864,
+      "path": "dry-run/d2/frozen-fixture/company.sqlite3",
+      "sha256": "6d93b3960c3bdbf8245bd433ac83c55797446688e1a9a0838508d3e4299ef661"
+    },
+    {
+      "bytes": 53,
+      "path": "dry-run/d2/frozen-fixture/repo/contracts/freeze.json",
+      "sha256": "d9f513190ee47caef6deb667f85bc26c2383231551e09948a445be77950bd7e7"
+    },
+    {
+      "bytes": 53,
+      "path": "dry-run/d2/frozen-fixture/repo/evidence/baseline.json",
+      "sha256": "a3d9eb1940cb6ad37c838ac12fed12874f545d944492d00ac5c2738b0a1a708c"
+    },
+    {
+      "bytes": 3610,
+      "path": "dry-run/d2/result.json",
+      "sha256": "0b52766d52868dbe19b9a889c0c26a67364a18a4f2514d590eba10e3ad135e53"
+    },
+    {
+      "bytes": 5974,
+      "path": "dry-run-result.json",
+      "sha256": "a3ec676e109d9ff8018215764ba35938267b66c772837bb12ca1a4cc55b89617"
+    },
+    {
+      "bytes": 23677,
+      "path": "red-probes.txt",
+      "sha256": "1fc24d919e8408991a217f5170b03b6ad7209e81bae642a6949cd8d072209cc3"
+    },
+    {
+      "bytes": 527,
+      "path": "regression-results.txt",
+      "sha256": "ceef999a62b40bb54cb8da2b0d4c0c6d55b031ab91a8ad8cb114f1f095f66d3c"
+    }
+  ],
+  "corrected_treatments_executed": false,
+  "external_actions_observed": [],
+  "schema_version": "phase-d-redesign-evidence-manifest/v1",
+  "status": "dry_run_complete_treatments_blocked"
+}

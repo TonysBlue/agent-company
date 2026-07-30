@@ -1,0 +1,40 @@
+{
+  "schema_version": "phase-d-redesign-ceo-start-proposal/v3",
+  "id": "phase-d-redesign-ceo-start-proposal-v3",
+  "decision_owner": "CEO",
+  "current_decision": "do_not_start",
+  "effective_authorization": false,
+  "proposal": "consider_starting_corrected_bounded_internal_d1_d2_only_after_authenticated_independent_approval",
+  "proposal_is_not_an_approval_or_start_decision": true,
+  "required_sequence": [
+    "verify_exact_source_commit_tree_documents_executables_tests_and_evidence",
+    "independent_reviewer_authenticates_approval_with_no_unresolved_critical_or_high_finding",
+    "ceo_authenticates_a_separate_effective_start_decision_after_and_bound_to_that_approval"
+  ],
+  "conditions_precedent": [
+    "corrected_v3_freeze_hashes_verified",
+    "strict_tdd_red_green_evidence_complete",
+    "deterministic_dry_run_validation_complete",
+    "agent_company_full_regression_passed",
+    "validation_passed",
+    "independent_reviewer_is_not_an_author_implementer_or_ceo",
+    "independent_review_binds_source_revision_freeze_documents_executables_tests_and_evidence",
+    "no_unresolved_critical_or_high_review_findings_in_any_representation",
+    "ceo_records_separate_effective_start_decision_after_independent_approval"
+  ],
+  "current_blockers": [
+    "authenticated_independent_approval_absent",
+    "separate_authenticated_post_approval_ceo_start_decision_absent"
+  ],
+  "scope_ceiling_if_later_authorized": {
+    "d1": "six frozen synthetic scenarios and two paired internal options per scenario",
+    "d2": "sixteen frozen cases applied only to separate isolated frozen synthetic fixture copies",
+    "customer_data": false,
+    "external_spend_cny": 0,
+    "outreach": false,
+    "publication": false,
+    "production": false,
+    "pixweave_source_edits": false,
+    "external_actions": []
+  }
+}

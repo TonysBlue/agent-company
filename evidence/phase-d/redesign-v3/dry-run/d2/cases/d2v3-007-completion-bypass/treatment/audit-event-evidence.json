@@ -1,0 +1,27 @@
+{
+  "event": {
+    "case_id": "d2v3-007-completion-bypass",
+    "mutation": {
+      "applied": false,
+      "attempted": true,
+      "error": "direct completion denied",
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "direct completion denied",
+      "mechanism": "sqlite_control",
+      "outcome": "denied"
+    },
+    "side": "treatment",
+    "workflow_id": "corrected_assurance_workflow_v3"
+  },
+  "event_sha256": "9065a7ab1abc0314a7eb8f855fd7a009beda45a2db89e14da0018e25be4e3f1f",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

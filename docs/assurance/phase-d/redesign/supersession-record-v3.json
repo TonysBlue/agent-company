@@ -1,0 +1,37 @@
+{
+  "schema_version": "phase-d-redesign-supersession/v3",
+  "id": "phase-d-d1-d2-redesign-v3-supersession",
+  "source_revision": {
+    "commit": "fc81f2bb550720d0574dde6e21a001d4ba55181c",
+    "tree": "7707608fd132e5a374f3f45c3f81409a1d7ad577"
+  },
+  "superseded_designs": [
+    {
+      "path": "docs/assurance/phase-d/redesign/corrected-freeze-v2.json",
+      "preservation": "unchanged_historical_design",
+      "execution_status": "not_authorized"
+    },
+    {
+      "path": "evidence/phase-d/d1",
+      "preservation": "unchanged_historical_evidence",
+      "conclusion_status": "invalid_and_superseded"
+    },
+    {
+      "path": "evidence/phase-d/d2",
+      "preservation": "unchanged_historical_evidence",
+      "conclusion_status": "invalid_and_superseded"
+    }
+  ],
+  "invalidated_claim_classes": [
+    "d1_treatment_quality_or_preference",
+    "d1_candidate_or_comparator_effect",
+    "d2_treatment_detection_rate",
+    "d2_false_pass_or_false_block_rate",
+    "d2_threshold_attainment",
+    "d1_or_d2_adoption_or_phase_progression"
+  ],
+  "v3_corrected_evidence_root": "evidence/phase-d/redesign-v3",
+  "v3_corrected_treatment_execution_status": "blocked_pending_authenticated_approval_and_ceo_start",
+  "historical_files_must_not_be_deleted_or_rewritten": true,
+  "fabricated_approval_or_authorization_forbidden": true
+}

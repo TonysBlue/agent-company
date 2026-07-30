@@ -1,0 +1,27 @@
+{
+  "event": {
+    "case_id": "d2v3-003-profile",
+    "mutation": {
+      "applied": false,
+      "attempted": true,
+      "error": "assurance state mutation denied",
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "assurance state mutation denied",
+      "mechanism": "sqlite_control",
+      "outcome": "denied"
+    },
+    "side": "treatment",
+    "workflow_id": "corrected_assurance_workflow_v3"
+  },
+  "event_sha256": "e9eecbc921718a9124d5c6c9277425fc290bd0167a56d1e7c0dcd9a28114eac5",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

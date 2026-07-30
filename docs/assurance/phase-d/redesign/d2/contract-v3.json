@@ -1,0 +1,97 @@
+{
+  "schema_version": "phase-d-d2-corrected-contract/v3",
+  "id": "phase-d-d2-corrected-contract-v3",
+  "status": "blocked_pending_authenticated_approval_and_ceo_start",
+  "treatment_execution_authorized": false,
+  "scope": "paired observed mutations on isolated frozen synthetic Company OS database and repository copies",
+  "mutation_bank": "docs/assurance/phase-d/redesign/d2/mutation-bank-v3.json",
+  "required_fault_classes": [
+    "stale_or_missing_approved_artifact",
+    "changed_threshold",
+    "changed_profile",
+    "changed_authority",
+    "changed_credential",
+    "changed_generation",
+    "direct_or_cli_completion_bypass",
+    "forged_or_missing_binding_or_trigger",
+    "contaminated_or_quarantined_evaluation",
+    "non_independent_contradictory_or_unbound_review",
+    "dashboard_or_context_leakage",
+    "lifecycle_rollback",
+    "claim_history_asymmetry"
+  ],
+  "required_control_classes": [
+    "never_bound_nonpilot_control",
+    "legitimate_bound_completion_control",
+    "unbound_nonpilot_dispatch_control"
+  ],
+  "source_policy": {
+    "synthetic_fixture_for_dry_run": "agent_company.phase_d_redesign.create_harness_fixture",
+    "live_database_or_worktree_mutation": false,
+    "customer_data": false
+  },
+  "workflows": {
+    "baseline": {
+      "id": "frozen_current_workflow_v3",
+      "database_controls": [],
+      "protected_repo_paths": []
+    },
+    "treatment": {
+      "id": "corrected_assurance_workflow_v3",
+      "database_controls": [
+        "deny_direct_completion",
+        "protect_approval_records",
+        "protect_audit_records",
+        "protect_execution_bindings",
+        "protect_assurance_state"
+      ],
+      "protected_repo_paths": [
+        "contracts/freeze.json",
+        "evidence/baseline.json"
+      ]
+    }
+  },
+  "workflow_distinction_required": true,
+  "per_case_evidence_required_for_each_workflow": [
+    "before_snapshot",
+    "mutation",
+    "observed_denial_or_allow",
+    "rollback",
+    "after_snapshot",
+    "audit_event_evidence",
+    "noninterference"
+  ],
+  "rollback_rule": "after_snapshot_must_equal_before_snapshot_after_restoration",
+  "noninterference_rule": "every protected table and protected repository path must remain equal during the mutation observation",
+  "comparison_rule": {
+    "baseline_role": "comparison_only_and_never_a_waiver",
+    "fault_requirement": "every seeded Critical/High fault must be independently denied by treatment whether baseline allows or denies it",
+    "control_requirement": "every frozen valid control must be evaluated and allowed by treatment",
+    "asserted_numerical_success_constants_allowed": false,
+    "minimum_evaluable_condition": "all thirteen material fault classes and all three valid control classes observed"
+  },
+  "execution_gate": {
+    "corrected_freeze": "docs/assurance/phase-d/redesign/corrected-freeze-v3.json",
+    "independent_approval": "docs/assurance/phase-d/redesign/independent-approval-v3.json",
+    "ceo_start_decision": "docs/assurance/phase-d/redesign/ceo-start-decision-v3.json",
+    "missing_or_invalid_decision_behavior": "deny"
+  },
+  "allowed_while_blocked": [
+    "tooling_implementation",
+    "synthetic_fixture_creation",
+    "red_tests",
+    "dry_run_canary_validation",
+    "regression_validation"
+  ],
+  "forbidden_actions": [
+    "corrected_treatment_execution_without_both_authenticated_decisions",
+    "live_database_mutation",
+    "current_worktree_mutation",
+    "customer_data",
+    "external_spend",
+    "outreach",
+    "publication",
+    "production",
+    "pixweave_source_edits"
+  ]
+}

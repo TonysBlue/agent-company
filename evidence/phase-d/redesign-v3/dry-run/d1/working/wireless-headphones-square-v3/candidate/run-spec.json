@@ -1,0 +1,45 @@
+{
+  "artifact_sha256": "fad0cb3be5ccb522c52e8148f5ecf95aa239f2ca501c415ea6ba88ede216ad72",
+  "artifact_validation": {
+    "bounded": true,
+    "canvas": {
+      "height": 512,
+      "width": 512
+    },
+    "overflow": false,
+    "overflow_reasons": []
+  },
+  "assurance_workflow": {
+    "id": "corrected_assurance_workflow_v3",
+    "renderer": "structured_safe_area_v3",
+    "steps": [
+      "validate_frozen_source_brief_and_messages",
+      "plan_separate_headline_and_support_hierarchy",
+      "render_structured_safe_area",
+      "validate_all_svg_geometry_and_hard_gates",
+      "hash_source_artifact_and_trace"
+    ]
+  },
+  "attempt_budget": 1,
+  "brief": {
+    "brand_tone": "technical minimal",
+    "goal": "Communicate focused listening with a clean technical composition.",
+    "required_constraints": [
+      "do not alter headband or earcup geometry",
+      "no unsupported noise-cancellation claim",
+      "keep both earcups fully visible"
+    ]
+  },
+  "dry_run_only": true,
+  "evidence_budget_bytes": 1048576,
+  "messages": {
+    "headline": "Focus without clutter",
+    "support": "Wireless over-ear"
+  },
+  "model": "deterministic-local-svg-renderer/v3",
+  "scenario_id": "wireless-headphones-square-v3",
+  "source_bytes_sha256": "67c8a55ba46e43c0b738ea45d0aa26ac785706b11d1ad99e1a10fa92381fb0bd",
+  "source_sha256": "67c8a55ba46e43c0b738ea45d0aa26ac785706b11d1ad99e1a10fa92381fb0bd",
+  "timeout_seconds": 60,
+  "tool": "agent_company.phase_d_redesign.execute_d1_workflow"
+}

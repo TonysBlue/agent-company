@@ -1,0 +1,5 @@
+{
+  "detail": "mutation committed in isolated copy",
+  "mechanism": "database_commit",
+  "outcome": "allowed"
+}

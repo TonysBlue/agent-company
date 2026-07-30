@@ -1,0 +1,38 @@
+{
+  "bundle_sha256": "9541906a49f20a6605a83cfa2d6a55874b6f91fb3becdb9203f4686ab8bc2b1d",
+  "files": [
+    {
+      "bytes": 756,
+      "path": "brief.json",
+      "role": "scenario_brief",
+      "sha256": "53b5e330a23aab15d7bd5720f58c5c1607daf988726f79da0cbadbb74c809750"
+    },
+    {
+      "bytes": 1888,
+      "path": "option-A.svg",
+      "role": "blind_option",
+      "sha256": "7f4bda3d811ef983d0fe8c6998891a441f49f51404944163dd188d4d74ad186d"
+    },
+    {
+      "bytes": 1948,
+      "path": "option-B.svg",
+      "role": "blind_option",
+      "sha256": "a8e6025f9258c0206915c82ac84013441ae3d168e683a68aa5b037efec736647"
+    },
+    {
+      "bytes": 922,
+      "path": "original-source.svg",
+      "role": "original_source",
+      "sha256": "cf6fc56071f38cbbde9eba8cd03e889cb75641ef7a9a0635302d5ed0d9aaee94"
+    },
+    {
+      "bytes": 4793,
+      "path": "rater-form.json",
+      "role": "rater_form",
+      "sha256": "1356a2df7aa891efe5fb8e2dcdb063ca15bb88b17c5117da35ae73357025aeea"
+    }
+  ],
+  "identity_disclosure": false,
+  "scenario_id": "citrus-candle-square-v3",
+  "schema_version": "phase-d-d1-delivery-bundle/v2"
+}

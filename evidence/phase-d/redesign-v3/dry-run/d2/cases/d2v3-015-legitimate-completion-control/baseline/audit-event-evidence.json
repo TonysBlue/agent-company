@@ -1,0 +1,27 @@
+{
+  "event": {
+    "case_id": "d2v3-015-legitimate-completion-control",
+    "mutation": {
+      "applied": true,
+      "attempted": true,
+      "error": null,
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "mutation committed in isolated copy",
+      "mechanism": "database_commit",
+      "outcome": "allowed"
+    },
+    "side": "baseline",
+    "workflow_id": "frozen_current_workflow_v3"
+  },
+  "event_sha256": "933caba0f98e45980dcdfea921e550f63f523c7b6c6614214ed5723ba5ed951c",
+  "observed_audit_rows": [
+    {
+      "action": "fixture_created",
+      "details": "{}",
+      "id": 1
+    }
+  ],
+  "observed_audit_rows_sha256": "7ced5cff2a10a6139c9db6a723178562f3af253d8e01b24e77e4a66b3908760b"
+}

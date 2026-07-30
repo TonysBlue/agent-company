@@ -1,0 +1,5 @@
+{
+  "detail": "direct completion denied",
+  "mechanism": "sqlite_control",
+  "outcome": "denied"
+}

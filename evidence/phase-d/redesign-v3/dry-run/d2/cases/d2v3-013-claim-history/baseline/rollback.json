@@ -1,0 +1,6 @@
+{
+  "after_state_sha256": "a67751b726bdc51202e6284e5fbd65160dad4af2a61d977aacd70c5a63fffe5a",
+  "before_state_sha256": "a67751b726bdc51202e6284e5fbd65160dad4af2a61d977aacd70c5a63fffe5a",
+  "completed": true,
+  "method": "restore_frozen_pre_mutation_copy"
+}

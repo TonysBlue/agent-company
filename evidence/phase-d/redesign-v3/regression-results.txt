@@ -1,0 +1,8 @@
+Phase D redesign V3 verification results (2026-07-30)
+
+- Focused Phase D suite: 35 tests passed.
+- Agent Company full regression: 255 tests passed in 18.165s.
+- PixWeave full regression: 58 tests passed in 0.312s.
+- Company OS validation: {"errors": [], "ok": true}.
+- Synthetic V3 dry-run: status=dry_run_complete_treatments_blocked; corrected_treatments_executed=false; D1 scenarios=6; D2 canaries=16; synthetic thresholds=true.
+- No D1/D2 treatment, live/customer/spend/public action, or PixWeave source edit was performed.

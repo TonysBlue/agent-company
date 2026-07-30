@@ -1,0 +1,187 @@
+{
+  "anchored_dimensions": [
+    {
+      "anchors": {
+        "1": "1: product identity is lost or materially distorted",
+        "3": "3: product is recognizable with minor ambiguity",
+        "5": "5: product is immediately recognizable and faithfully preserved"
+      },
+      "id": "product_recognizability",
+      "scale": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "anchors": {
+        "1": "1: key brief or message requirements are missing or wrong",
+        "3": "3: core requirements are present with minor weakness",
+        "5": "5: every requirement is accurate, clear, and well integrated"
+      },
+      "id": "brief_and_message_fidelity",
+      "scale": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "anchors": {
+        "1": "1: hierarchy is confusing or required text is unreadable",
+        "3": "3: hierarchy and text are usable with visible weaknesses",
+        "5": "5: attention and reading order are immediate at intended size"
+      },
+      "id": "visual_hierarchy_and_legibility",
+      "scale": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "anchors": {
+        "1": "1: visual language conflicts with the stated brand",
+        "3": "3: broadly consistent with some generic or uneven choices",
+        "5": "5: distinctive, internally consistent, and on-brief"
+      },
+      "id": "brand_coherence",
+      "scale": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "anchors": {
+        "1": "1: obvious artifacts, clipping, overflow, or unfinished details",
+        "3": "3: deliverable with minor polish issues",
+        "5": "5: clean, bounded, polished, and channel-ready"
+      },
+      "id": "craft_and_delivery_readiness",
+      "scale": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "hard_gates": {
+    "options": [
+      "A",
+      "B"
+    ],
+    "per_option": [
+      {
+        "allowed": [
+          "pass",
+          "fail",
+          "uncertain"
+        ],
+        "id": "source_product_integrity",
+        "question": "Is the source product recognizable and free of material geometry loss or invention?"
+      },
+      {
+        "allowed": [
+          "pass",
+          "fail",
+          "uncertain"
+        ],
+        "id": "message_and_brief_accuracy",
+        "question": "Are every required message and brief constraint accurate, legible, and unsupported claims absent?"
+      },
+      {
+        "allowed": [
+          "pass",
+          "fail",
+          "uncertain"
+        ],
+        "id": "brand_and_rights_safety",
+        "question": "Does the option obey the brand rules and avoid people, third-party marks, or rights ambiguity?"
+      },
+      {
+        "allowed": [
+          "pass",
+          "fail",
+          "uncertain"
+        ],
+        "id": "technical_delivery_integrity",
+        "question": "Is the option complete, readable, within the canvas, and free of clipping or overflow?"
+      }
+    ]
+  },
+  "instructions": {
+    "abstention_rule": "Use abstain when evidence is insufficient; use tie only when both are judgeable and equivalent.",
+    "hard_gate_rule": "Complete all four gates for each option before dimension scores or preference.",
+    "independence": "Do not seek system identity or custody mapping. Record any accidental disclosure.",
+    "task": "Evaluate A and B independently, then state a comparative preference."
+  },
+  "response_template": {
+    "confidence": {
+      "scale": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "value": null
+    },
+    "dimension_scores": {
+      "A": {},
+      "B": {}
+    },
+    "elapsed_minutes": null,
+    "hard_gate_results": {
+      "A": {},
+      "B": {}
+    },
+    "preference": {
+      "allowed": [
+        "A",
+        "B",
+        "tie",
+        "abstain"
+      ],
+      "value": null
+    },
+    "protocol_violations": [],
+    "rationale": ""
+  },
+  "scenario": {
+    "aspect_ratio": "1:1",
+    "brief": {
+      "brand_tone": "sunny relaxed",
+      "goal": "Create a warm home-fragrance visual that keeps the lit candle legible.",
+      "required_constraints": [
+        "preserve jar, label, wick and flame",
+        "no therapeutic claims",
+        "no unsafe placement or people"
+      ]
+    },
+    "channel": "social-square",
+    "messages": {
+      "headline": "Light the bright side",
+      "support": "Fresh citrus notes"
+    },
+    "product_category": "yellow glass citrus candle",
+    "recognizable_features": [
+      "yellow cylindrical glass jar",
+      "single orange flame",
+      "cream label with orange-slice mark",
+      "CITRUS GROVE wording"
+    ]
+  },
+  "scenario_id": "citrus-candle-square-v3",
+  "schema_version": "phase-d-d1-rater-form/v2"
+}

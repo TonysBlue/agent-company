@@ -1,0 +1,6 @@
+{
+  "applied": false,
+  "attempted": true,
+  "error": "assurance state mutation denied",
+  "kind": "sql"
+}

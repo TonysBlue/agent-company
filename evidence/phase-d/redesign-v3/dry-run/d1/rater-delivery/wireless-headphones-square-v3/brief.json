@@ -1,0 +1,26 @@
+{
+  "aspect_ratio": "1:1",
+  "brief": {
+    "brand_tone": "technical minimal",
+    "goal": "Communicate focused listening with a clean technical composition.",
+    "required_constraints": [
+      "do not alter headband or earcup geometry",
+      "no unsupported noise-cancellation claim",
+      "keep both earcups fully visible"
+    ]
+  },
+  "channel": "social-square",
+  "messages": {
+    "headline": "Focus without clutter",
+    "support": "Wireless over-ear"
+  },
+  "product_category": "blue wireless over-ear headphones",
+  "recognizable_features": [
+    "navy padded headband",
+    "two rounded rectangular earcups",
+    "light-blue outer earcup trim",
+    "small status light on right earcup"
+  ],
+  "scenario_id": "wireless-headphones-square-v3",
+  "schema_version": "phase-d-d1-rater-brief/v2"
+}

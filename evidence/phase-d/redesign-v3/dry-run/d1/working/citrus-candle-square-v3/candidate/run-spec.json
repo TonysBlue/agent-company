@@ -1,0 +1,45 @@
+{
+  "artifact_sha256": "a8e6025f9258c0206915c82ac84013441ae3d168e683a68aa5b037efec736647",
+  "artifact_validation": {
+    "bounded": true,
+    "canvas": {
+      "height": 512,
+      "width": 512
+    },
+    "overflow": false,
+    "overflow_reasons": []
+  },
+  "assurance_workflow": {
+    "id": "corrected_assurance_workflow_v3",
+    "renderer": "structured_safe_area_v3",
+    "steps": [
+      "validate_frozen_source_brief_and_messages",
+      "plan_separate_headline_and_support_hierarchy",
+      "render_structured_safe_area",
+      "validate_all_svg_geometry_and_hard_gates",
+      "hash_source_artifact_and_trace"
+    ]
+  },
+  "attempt_budget": 1,
+  "brief": {
+    "brand_tone": "sunny relaxed",
+    "goal": "Create a warm home-fragrance visual that keeps the lit candle legible.",
+    "required_constraints": [
+      "preserve jar, label, wick and flame",
+      "no therapeutic claims",
+      "no unsafe placement or people"
+    ]
+  },
+  "dry_run_only": true,
+  "evidence_budget_bytes": 1048576,
+  "messages": {
+    "headline": "Light the bright side",
+    "support": "Fresh citrus notes"
+  },
+  "model": "deterministic-local-svg-renderer/v3",
+  "scenario_id": "citrus-candle-square-v3",
+  "source_bytes_sha256": "cf6fc56071f38cbbde9eba8cd03e889cb75641ef7a9a0635302d5ed0d9aaee94",
+  "source_sha256": "cf6fc56071f38cbbde9eba8cd03e889cb75641ef7a9a0635302d5ed0d9aaee94",
+  "timeout_seconds": 60,
+  "tool": "agent_company.phase_d_redesign.execute_d1_workflow"
+}

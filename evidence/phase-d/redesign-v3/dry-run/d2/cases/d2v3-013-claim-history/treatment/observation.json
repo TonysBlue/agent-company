@@ -1,0 +1,5 @@
+{
+  "detail": "audit deletion denied",
+  "mechanism": "sqlite_control",
+  "outcome": "denied"
+}

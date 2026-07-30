@@ -1,0 +1,121 @@
+{
+  "schema_version": "phase-d-d1-corrected-contract/v3",
+  "id": "phase-d-d1-corrected-contract-v3",
+  "status": "blocked_pending_authenticated_approval_and_ceo_start",
+  "treatment_execution_authorized": false,
+  "scope": "bounded synthetic product-source comparison with identical paired inputs and assurance workflow as the sole treatment variable",
+  "scenario_bank": "docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json",
+  "paired_input_parity": {
+    "byte_identical_fields": [
+      "source_bytes",
+      "brief",
+      "messages",
+      "attempt_budget",
+      "model",
+      "tool",
+      "timeout_seconds",
+      "evidence_budget_bytes"
+    ],
+    "only_permitted_difference": "assurance_workflow",
+    "attempts_per_option": 1,
+    "model": "deterministic-local-svg-renderer/v3",
+    "tool": "agent_company.phase_d_redesign.execute_d1_workflow",
+    "timeout_seconds": 60,
+    "evidence_budget_bytes_per_option": 1048576,
+    "abort_on_parity_mismatch": true
+  },
+  "workflows": {
+    "candidate": {
+      "id": "corrected_assurance_workflow_v3",
+      "renderer": "structured_safe_area_v3",
+      "steps": [
+        "validate_frozen_source_brief_and_messages",
+        "plan_separate_headline_and_support_hierarchy",
+        "render_structured_safe_area",
+        "validate_all_svg_geometry_and_hard_gates",
+        "hash_source_artifact_and_trace"
+      ]
+    },
+    "comparator": {
+      "id": "frozen_current_workflow_v3",
+      "renderer": "single_banner_v2",
+      "steps": [
+        "validate_frozen_source",
+        "render_single_combined_message_banner",
+        "validate_all_svg_geometry",
+        "hash_source_artifact_and_trace"
+      ]
+    }
+  },
+  "workflow_distinction": {
+    "required": true,
+    "same_renderer_or_trace_allowed": false,
+    "byte_identical_output_allowed": false,
+    "identity_labels_in_artifacts_allowed": false
+  },
+  "randomization": {
+    "algorithm": "sha256_seeded_rank_exact_half",
+    "assignment": "randomized_exactly_balanced_across_frozen_bank",
+    "candidate_in_a_count": 3,
+    "candidate_in_b_count": 3,
+    "seed_source": "scenario_bank.randomization_seed"
+  },
+  "artifact_bounds": {
+    "canvas_width_px": 512,
+    "canvas_height_px": 512,
+    "maximum_message_characters": 96,
+    "maximum_message_lines": 3,
+    "maximum_option_bytes": 1048576,
+    "overflow_allowed": false,
+    "geometry_policy": "all_path_and_non_path_geometry_must_be_provably_inside_canvas_else_fail_closed"
+  },
+  "rater_protocol": {
+    "original_source_artifact_and_sha256_required": true,
+    "hard_gates_per_option": 4,
+    "anchored_dimensions": 5,
+    "dimension_scale": [1, 2, 3, 4, 5],
+    "required_anchors": [1, 3, 5],
+    "preference_choices": ["A", "B", "tie", "abstain"],
+    "required_fields": [
+      "confidence",
+      "rationale",
+      "elapsed_minutes",
+      "protocol_violations"
+    ],
+    "independent_raters_required_before_analysis": 2
+  },
+  "custody": {
+    "mapping_root": "evidence/phase-d/redesign-v3/custody/d1",
+    "rater_delivery_root": "evidence/phase-d/redesign-v3/dry-run/d1/rater-delivery",
+    "roots_must_be_disjoint": true,
+    "delivery_must_exclude": [
+      "candidate_or_comparator_identity",
+      "mapping_paths",
+      "custody_paths",
+      "generated_paths"
+    ],
+    "each_delivery_bundle_hashed": true
+  },
+  "execution_gate": {
+    "corrected_freeze": "docs/assurance/phase-d/redesign/corrected-freeze-v3.json",
+    "independent_approval": "docs/assurance/phase-d/redesign/independent-approval-v3.json",
+    "ceo_start_decision": "docs/assurance/phase-d/redesign/ceo-start-decision-v3.json",
+    "missing_or_invalid_decision_behavior": "deny"
+  },
+  "allowed_while_blocked": [
+    "tooling_implementation",
+    "fixture_creation",
+    "red_tests",
+    "synthetic_dry_run_validation",
+    "regression_validation"
+  ],
+  "forbidden_actions": [
+    "corrected_treatment_execution_without_both_authenticated_decisions",
+    "human_rater_delivery_or_outreach",
+    "customer_data",
+    "external_spend",
+    "publication",
+    "production",
+    "pixweave_source_edits"
+  ]
+}

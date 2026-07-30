@@ -1,0 +1,267 @@
+Script started on 2026-07-30 10:27:43+08:00 [COMMAND="python3.11 -m unittest tests.test_phase_d_redesign_v3 -v" <not executed on terminal>]
+test_red_d1_assignment_is_randomized_and_exactly_balanced (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_d1_assignment_is_randomized_and_exactly_balanced) ... ERROR
+test_red_d1_uses_distinct_workflows_without_input_drift_or_artifact_identity (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_d1_uses_distinct_workflows_without_input_drift_or_artifact_identity) ... ERROR
+test_red_rater_bundle_contains_exact_original_source_and_hash (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_rater_bundle_contains_exact_original_source_and_hash) ... ERROR
+test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas) ...
+  test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas) (artifact=b'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><path d="M 10 10 L 700 10"/></svg>') ... FAIL
+  test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas) (artifact=b'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><circle cx="510" cy="20" r="10"/></svg>') ... FAIL
+  test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas) (artifact=b'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><polygon points="0,0 40,0 40,600"/></svg>') ... FAIL
+test_red_d2_bank_has_sixteen_cases_and_every_charter_fault_class_and_control (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D2RedTest.test_red_d2_bank_has_sixteen_cases_and_every_charter_fault_class_and_control) ... ERROR
+test_red_d2_baseline_denial_cannot_hide_treatment_regression (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D2RedTest.test_red_d2_baseline_denial_cannot_hide_treatment_regression) ... FAIL
+test_red_freeze_binds_source_and_every_executable_verification_class (tests.test_phase_d_redesign_v3.PhaseDRedesignV3FreezeRedTest.test_red_freeze_binds_source_and_every_executable_verification_class) ... ERROR
+test_red_approval_without_separate_post_approval_ceo_start_is_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_approval_without_separate_post_approval_ceo_start_is_rejected) ... ERROR
+test_red_current_do_not_start_cannot_authorize_execution (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_current_do_not_start_cannot_authorize_execution) ... ERROR
+test_red_forged_approval_is_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_forged_approval_is_rejected) ... ERROR
+test_red_unresolved_critical_high_string_and_list_are_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_unresolved_critical_high_string_and_list_are_rejected) ...
+  test_red_unresolved_critical_high_string_and_list_are_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_unresolved_critical_high_string_and_list_are_rejected) (unresolved='Critical: forged approval remains unresolved') ... ERROR
+  test_red_unresolved_critical_high_string_and_list_are_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_unresolved_critical_high_string_and_list_are_rejected) (unresolved=['HIGH - executable drift is unresolved']) ... ERROR
+test_red_v3_freeze_rejects_bound_executable_drift (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_v3_freeze_rejects_bound_executable_drift) ... ERROR
+
+======================================================================
+ERROR: test_red_d1_assignment_is_randomized_and_exactly_balanced (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_d1_assignment_is_randomized_and_exactly_balanced)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 39, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 236, in test_red_d1_assignment_is_randomized_and_exactly_balanced
+    bank = redesign.load_json(REDESIGN / "d1" / "scenario-bank-v3.json")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 41, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json'
+
+======================================================================
+ERROR: test_red_d1_uses_distinct_workflows_without_input_drift_or_artifact_identity (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_d1_uses_distinct_workflows_without_input_drift_or_artifact_identity)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 39, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 216, in test_red_d1_uses_distinct_workflows_without_input_drift_or_artifact_identity
+    bank = redesign.validate_scenario_bank(REDESIGN.parents[3], REDESIGN / "d1" / "scenario-bank-v3.json")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 169, in validate_scenario_bank
+    bank = load_json(bank_path)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 41, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json'
+
+======================================================================
+ERROR: test_red_rater_bundle_contains_exact_original_source_and_hash (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_rater_bundle_contains_exact_original_source_and_hash)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 267, in test_red_rater_bundle_contains_exact_original_source_and_hash
+    source_records = [item for item in manifest["files"] if item["role"] == "original_source"]
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 267, in <listcomp>
+    source_records = [item for item in manifest["files"] if item["role"] == "original_source"]
+                                                            ~~~~^^^^^^^^
+KeyError: 'role'
+
+======================================================================
+ERROR: test_red_d2_bank_has_sixteen_cases_and_every_charter_fault_class_and_control (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D2RedTest.test_red_d2_bank_has_sixteen_cases_and_every_charter_fault_class_and_control)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 39, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v3.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 316, in test_red_d2_bank_has_sixteen_cases_and_every_charter_fault_class_and_control
+    contract = redesign.load_json(REDESIGN / "d2" / "contract-v3.json")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 41, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v3.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v3.json'
+
+======================================================================
+ERROR: test_red_freeze_binds_source_and_every_executable_verification_class (tests.test_phase_d_redesign_v3.PhaseDRedesignV3FreezeRedTest.test_red_freeze_binds_source_and_every_executable_verification_class)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 39, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v3.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 327, in test_red_freeze_binds_source_and_every_executable_verification_class
+    freeze = redesign.load_json(REDESIGN / "corrected-freeze-v3.json")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 41, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v3.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v3.json'
+
+======================================================================
+ERROR: test_red_approval_without_separate_post_approval_ceo_start_is_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_approval_without_separate_post_approval_ceo_start_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 152, in test_red_approval_without_separate_post_approval_ceo_start_is_rejected
+    approval = _signed_approval(
+               ^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 65, in _signed_approval
+    return redesign.sign_governance_record(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'sign_governance_record'
+
+======================================================================
+ERROR: test_red_current_do_not_start_cannot_authorize_execution (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_current_do_not_start_cannot_authorize_execution)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 170, in test_red_current_do_not_start_cannot_authorize_execution
+    approval = _signed_approval(
+               ^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 65, in _signed_approval
+    return redesign.sign_governance_record(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'sign_governance_record'
+
+======================================================================
+ERROR: test_red_forged_approval_is_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_forged_approval_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 106, in test_red_forged_approval_is_rejected
+    approval = _signed_approval(freeze, freeze_hash, documents, bindings, b"attacker credential")
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 65, in _signed_approval
+    return redesign.sign_governance_record(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'sign_governance_record'
+
+======================================================================
+ERROR: test_red_unresolved_critical_high_string_and_list_are_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_unresolved_critical_high_string_and_list_are_rejected) (unresolved='Critical: forged approval remains unresolved')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 131, in test_red_unresolved_critical_high_string_and_list_are_rejected
+    approval = _signed_approval(
+               ^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 65, in _signed_approval
+    return redesign.sign_governance_record(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'sign_governance_record'
+
+======================================================================
+ERROR: test_red_unresolved_critical_high_string_and_list_are_rejected (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_unresolved_critical_high_string_and_list_are_rejected) (unresolved=['HIGH - executable drift is unresolved'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 131, in test_red_unresolved_critical_high_string_and_list_are_rejected
+    approval = _signed_approval(
+               ^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 65, in _signed_approval
+    return redesign.sign_governance_record(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'sign_governance_record'
+
+======================================================================
+ERROR: test_red_v3_freeze_rejects_bound_executable_drift (tests.test_phase_d_redesign_v3.PhaseDRedesignV3GovernanceRedTest.test_red_v3_freeze_rejects_bound_executable_drift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 39, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v3.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 196, in test_red_v3_freeze_rejects_bound_executable_drift
+    verification = redesign.verify_corrected_freeze(ROOT, freeze_path)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 91, in verify_corrected_freeze
+    freeze = load_json(freeze_path)
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 41, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v3.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v3.json'
+
+======================================================================
+FAIL: test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas) (artifact=b'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><path d="M 10 10 L 700 10"/></svg>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 283, in test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas) (artifact=b'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><circle cx="510" cy="20" r="10"/></svg>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 283, in test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D1RedTest.test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas) (artifact=b'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><polygon points="0,0 40,0 40,600"/></svg>')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 283, in test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_red_d2_baseline_denial_cannot_hide_treatment_regression (tests.test_phase_d_redesign_v3.PhaseDRedesignV3D2RedTest.test_red_d2_baseline_denial_cannot_hide_treatment_regression)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v3.py", line 310, in test_red_d2_baseline_denial_cannot_hide_treatment_regression
+    self.assertEqual(result["required_treatment_denial_ids"], ["fault-hidden-by-baseline"])
+AssertionError: Lists differ: [] != ['fault-hidden-by-baseline']
+
+Second list contains 1 additional elements.
+First extra element 0:
+'fault-hidden-by-baseline'
+
+- []
++ ['fault-hidden-by-baseline']
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.009s
+
+FAILED (failures=4, errors=11)
+
+Script done on 2026-07-30 10:27:43+08:00 [COMMAND_EXIT_CODE="1"]

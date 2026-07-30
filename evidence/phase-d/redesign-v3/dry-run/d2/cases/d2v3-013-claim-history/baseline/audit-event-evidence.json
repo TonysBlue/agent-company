@@ -1,0 +1,21 @@
+{
+  "event": {
+    "case_id": "d2v3-013-claim-history",
+    "mutation": {
+      "applied": true,
+      "attempted": true,
+      "error": null,
+      "kind": "sql"
+    },
+    "observation": {
+      "detail": "mutation committed in isolated copy",
+      "mechanism": "database_commit",
+      "outcome": "allowed"
+    },
+    "side": "baseline",
+    "workflow_id": "frozen_current_workflow_v3"
+  },
+  "event_sha256": "672f33b8dd40316ae3dcdf1d81c26fc9fab91227092d181639de73621fcbb1ba",
+  "observed_audit_rows": [],
+  "observed_audit_rows_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+}

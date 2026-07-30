@@ -1,0 +1,99 @@
+{
+  "database": {
+    "file_sha256": "6d93b3960c3bdbf8245bd433ac83c55797446688e1a9a0838508d3e4299ef661",
+    "tables": {
+      "approvals": [
+        {
+          "decision": null,
+          "id": 1,
+          "status": "pending"
+        }
+      ],
+      "assurance_execution_bindings": [
+        {
+          "binding_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "id": 1
+        }
+      ],
+      "assurance_state": [
+        {
+          "name": "approved_artifact",
+          "value": "fresh-and-present"
+        },
+        {
+          "name": "threshold",
+          "value": "frozen-threshold-v1"
+        },
+        {
+          "name": "profile",
+          "value": "frozen-profile-v1"
+        },
+        {
+          "name": "authority",
+          "value": "principal-evaluator"
+        },
+        {
+          "name": "credential",
+          "value": "credential-generation-v1"
+        },
+        {
+          "name": "generation",
+          "value": "execution-generation-v1"
+        },
+        {
+          "name": "evaluation",
+          "value": "trusted-and-clean"
+        },
+        {
+          "name": "review",
+          "value": "independent-bound-consistent"
+        },
+        {
+          "name": "dashboard_context",
+          "value": "redacted"
+        },
+        {
+          "name": "lifecycle",
+          "value": "monotonic"
+        }
+      ],
+      "audit_log": [
+        {
+          "action": "fixture_created",
+          "details": "{}",
+          "id": 1
+        }
+      ],
+      "operational_counters": [
+        {
+          "name": "worker_heartbeats",
+          "value": 7
+        }
+      ],
+      "tasks": [
+        {
+          "id": 1,
+          "status": "running",
+          "title": "synthetic canary task"
+        },
+        {
+          "id": 2,
+          "status": "running",
+          "title": "synthetic approved bound task"
+        }
+      ]
+    },
+    "triggers": []
+  },
+  "repository": {
+    "contracts/freeze.json": {
+      "bytes": 53,
+      "sha256": "d9f513190ee47caef6deb667f85bc26c2383231551e09948a445be77950bd7e7"
+    },
+    "evidence/baseline.json": {
+      "bytes": 53,
+      "sha256": "a3d9eb1940cb6ad37c838ac12fed12874f545d944492d00ac5c2738b0a1a708c"
+    }
+  },
+  "state_sha256": "a67751b726bdc51202e6284e5fbd65160dad4af2a61d977aacd70c5a63fffe5a"
+}

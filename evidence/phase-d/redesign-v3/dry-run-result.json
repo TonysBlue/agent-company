@@ -1,0 +1,167 @@
+{
+  "corrected_treatments_executed": false,
+  "d1": {
+    "bounded_nonoverflow_artifacts_verified": true,
+    "delivery_bundles": [
+      {
+        "bundle_sha256": "9537d92f4477511ae7167b31025b61d181b2f3be3652d7e3b480e5400f89e956",
+        "delivery_path": "dry-run/d1/rater-delivery/botanical-lotion-square-v3",
+        "scenario_id": "botanical-lotion-square-v3"
+      },
+      {
+        "bundle_sha256": "017d192f7facf47b3147d7d1d3583e0bea97ed66dde043d35d0cea2cefbe7c93",
+        "delivery_path": "dry-run/d1/rater-delivery/single-origin-coffee-square-v3",
+        "scenario_id": "single-origin-coffee-square-v3"
+      },
+      {
+        "bundle_sha256": "5af6be4b12bb4576a786597b2747cdb63045977e32fb30ca7b66cb77e17b361f",
+        "delivery_path": "dry-run/d1/rater-delivery/wireless-headphones-square-v3",
+        "scenario_id": "wireless-headphones-square-v3"
+      },
+      {
+        "bundle_sha256": "44494b4e10247754631aa22fb0db634ab871868012aac2a82bb27bc3065927e9",
+        "delivery_path": "dry-run/d1/rater-delivery/coral-running-shoe-square-v3",
+        "scenario_id": "coral-running-shoe-square-v3"
+      },
+      {
+        "bundle_sha256": "3191476d83340f417ea981b2eec20e7cd99091d9d03f0f387f9c12e9dedb2cf1",
+        "delivery_path": "dry-run/d1/rater-delivery/fitness-smartwatch-square-v3",
+        "scenario_id": "fitness-smartwatch-square-v3"
+      },
+      {
+        "bundle_sha256": "9541906a49f20a6605a83cfa2d6a55874b6f91fb3becdb9203f4686ab8bc2b1d",
+        "delivery_path": "dry-run/d1/rater-delivery/citrus-candle-square-v3",
+        "scenario_id": "citrus-candle-square-v3"
+      }
+    ],
+    "paired_input_parity_verified": true,
+    "randomized_exact_balance_verified": true,
+    "ratings_collected": 0,
+    "scenario_count": 6,
+    "schema_version": "phase-d-d1-redesign-dry-run/v1",
+    "status": "dry_run_complete_treatment_blocked",
+    "treatment_execution": false,
+    "workflow_distinction_verified": true
+  },
+  "d2": {
+    "all_controls_evaluated": true,
+    "all_seeded_material_faults_denied": true,
+    "canary_count": 16,
+    "canary_ids": [
+      "d2v3-001-approved-artifact",
+      "d2v3-002-threshold",
+      "d2v3-003-profile",
+      "d2v3-004-authority",
+      "d2v3-005-credential",
+      "d2v3-006-generation",
+      "d2v3-007-completion-bypass",
+      "d2v3-008-binding-trigger",
+      "d2v3-009-evaluation",
+      "d2v3-010-review",
+      "d2v3-011-context-leakage",
+      "d2v3-012-lifecycle",
+      "d2v3-013-claim-history",
+      "d2v3-014-never-bound-control",
+      "d2v3-015-legitimate-completion-control",
+      "d2v3-016-unbound-dispatch-control"
+    ],
+    "comparison": {
+      "all_controls_evaluated": true,
+      "all_seeded_material_faults_denied": true,
+      "all_valid_controls_allowed": true,
+      "evaluated_control_ids": [
+        "d2v3-014-never-bound-control",
+        "d2v3-015-legitimate-completion-control",
+        "d2v3-016-unbound-dispatch-control"
+      ],
+      "observation_derived_comparison_passed": true,
+      "observed_baseline_allowed_control_ids": [
+        "d2v3-014-never-bound-control",
+        "d2v3-015-legitimate-completion-control",
+        "d2v3-016-unbound-dispatch-control"
+      ],
+      "observed_baseline_escape_ids": [
+        "d2v3-001-approved-artifact",
+        "d2v3-002-threshold",
+        "d2v3-003-profile",
+        "d2v3-004-authority",
+        "d2v3-005-credential",
+        "d2v3-006-generation",
+        "d2v3-007-completion-bypass",
+        "d2v3-008-binding-trigger",
+        "d2v3-009-evaluation",
+        "d2v3-010-review",
+        "d2v3-011-context-leakage",
+        "d2v3-012-lifecycle",
+        "d2v3-013-claim-history"
+      ],
+      "required_treatment_allow_ids": [
+        "d2v3-014-never-bound-control",
+        "d2v3-015-legitimate-completion-control",
+        "d2v3-016-unbound-dispatch-control"
+      ],
+      "required_treatment_denial_ids": [
+        "d2v3-001-approved-artifact",
+        "d2v3-002-threshold",
+        "d2v3-003-profile",
+        "d2v3-004-authority",
+        "d2v3-005-credential",
+        "d2v3-006-generation",
+        "d2v3-007-completion-bypass",
+        "d2v3-008-binding-trigger",
+        "d2v3-009-evaluation",
+        "d2v3-010-review",
+        "d2v3-011-context-leakage",
+        "d2v3-012-lifecycle",
+        "d2v3-013-claim-history"
+      ],
+      "seeded_material_fault_ids": [
+        "d2v3-001-approved-artifact",
+        "d2v3-002-threshold",
+        "d2v3-003-profile",
+        "d2v3-004-authority",
+        "d2v3-005-credential",
+        "d2v3-006-generation",
+        "d2v3-007-completion-bypass",
+        "d2v3-008-binding-trigger",
+        "d2v3-009-evaluation",
+        "d2v3-010-review",
+        "d2v3-011-context-leakage",
+        "d2v3-012-lifecycle",
+        "d2v3-013-claim-history"
+      ],
+      "threshold_source": "paired_baseline_observations",
+      "thresholds_passed": true,
+      "treatment_allowed_required_control_ids": [
+        "d2v3-014-never-bound-control",
+        "d2v3-015-legitimate-completion-control",
+        "d2v3-016-unbound-dispatch-control"
+      ],
+      "treatment_denied_required_ids": [
+        "d2v3-001-approved-artifact",
+        "d2v3-002-threshold",
+        "d2v3-003-profile",
+        "d2v3-004-authority",
+        "d2v3-005-credential",
+        "d2v3-006-generation",
+        "d2v3-007-completion-bypass",
+        "d2v3-008-binding-trigger",
+        "d2v3-009-evaluation",
+        "d2v3-010-review",
+        "d2v3-011-context-leakage",
+        "d2v3-012-lifecycle",
+        "d2v3-013-claim-history"
+      ]
+    },
+    "frozen_fixture_unchanged": true,
+    "schema_version": "phase-d-d2-redesign-dry-run/v1",
+    "status": "dry_run_complete_treatment_blocked",
+    "threshold_source": "paired_baseline_observations",
+    "thresholds_passed": true,
+    "treatment_execution": false
+  },
+  "forbidden_actions_observed": [],
+  "independent_approval_present": false,
+  "schema_version": "phase-d-redesign-dry-run/v1",
+  "status": "dry_run_complete_treatments_blocked"
+}

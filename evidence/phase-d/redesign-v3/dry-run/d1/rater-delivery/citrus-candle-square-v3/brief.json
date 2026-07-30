@@ -1,0 +1,26 @@
+{
+  "aspect_ratio": "1:1",
+  "brief": {
+    "brand_tone": "sunny relaxed",
+    "goal": "Create a warm home-fragrance visual that keeps the lit candle legible.",
+    "required_constraints": [
+      "preserve jar, label, wick and flame",
+      "no therapeutic claims",
+      "no unsafe placement or people"
+    ]
+  },
+  "channel": "social-square",
+  "messages": {
+    "headline": "Light the bright side",
+    "support": "Fresh citrus notes"
+  },
+  "product_category": "yellow glass citrus candle",
+  "recognizable_features": [
+    "yellow cylindrical glass jar",
+    "single orange flame",
+    "cream label with orange-slice mark",
+    "CITRUS GROVE wording"
+  ],
+  "scenario_id": "citrus-candle-square-v3",
+  "schema_version": "phase-d-d1-rater-brief/v2"
+}

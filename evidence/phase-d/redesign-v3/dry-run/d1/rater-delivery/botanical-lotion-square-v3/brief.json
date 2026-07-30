@@ -1,0 +1,26 @@
+{
+  "aspect_ratio": "1:1",
+  "brief": {
+    "brand_tone": "calm botanical",
+    "goal": "Create a calm launch visual that keeps the complete bottle recognizable.",
+    "required_constraints": [
+      "preserve bottle silhouette and pump",
+      "no medical claims",
+      "no people or third-party marks"
+    ]
+  },
+  "channel": "social-square",
+  "messages": {
+    "headline": "Daily hydration",
+    "support": "Plant-derived formula"
+  },
+  "product_category": "amber pump-bottle botanical lotion",
+  "recognizable_features": [
+    "amber cylindrical bottle",
+    "black right-facing pump",
+    "cream label with green leaf mark",
+    "BOTANICAL LOTION label"
+  ],
+  "scenario_id": "botanical-lotion-square-v3",
+  "schema_version": "phase-d-d1-rater-brief/v2"
+}

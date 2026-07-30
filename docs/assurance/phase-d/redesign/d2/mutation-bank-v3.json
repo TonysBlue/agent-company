@@ -1,0 +1,188 @@
+{
+  "schema_version": "phase-d-d2-mutation-bank/v3",
+  "id": "phase-d-d2-charter-complete-observed-mutations-v3",
+  "treatment_execution_status": "blocked_pending_authenticated_approval_and_ceo_start",
+  "dry_run_subset": [
+    "d2v3-001-approved-artifact",
+    "d2v3-007-completion-bypass",
+    "d2v3-014-never-bound-control"
+  ],
+  "cases": [
+    {
+      "id": "d2v3-001-approved-artifact",
+      "fault_class": "stale_or_missing_approved_artifact",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='missing' WHERE name='approved_artifact'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-002-threshold",
+      "fault_class": "changed_threshold",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='changed' WHERE name='threshold'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-003-profile",
+      "fault_class": "changed_profile",
+      "severity": "high",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='changed' WHERE name='profile'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-004-authority",
+      "fault_class": "changed_authority",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='attacker' WHERE name='authority'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-005-credential",
+      "fault_class": "changed_credential",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='rotated' WHERE name='credential'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-006-generation",
+      "fault_class": "changed_generation",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='changed' WHERE name='generation'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-007-completion-bypass",
+      "fault_class": "direct_or_cli_completion_bypass",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE tasks SET status='completed' WHERE id=1"},
+      "protected_tables": ["approvals", "audit_log", "operational_counters", "assurance_execution_bindings", "assurance_state"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-008-binding-trigger",
+      "fault_class": "forged_or_missing_binding_or_trigger",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_execution_bindings SET binding_sha256='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb' WHERE id=1"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_state"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-009-evaluation",
+      "fault_class": "contaminated_or_quarantined_evaluation",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='quarantined' WHERE name='evaluation'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-010-review",
+      "fault_class": "non_independent_contradictory_or_unbound_review",
+      "severity": "high",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='non-independent' WHERE name='review'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-011-context-leakage",
+      "fault_class": "dashboard_or_context_leakage",
+      "severity": "high",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='raw-secret-exposed' WHERE name='dashboard_context'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-012-lifecycle",
+      "fault_class": "lifecycle_rollback",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE assurance_state SET value='rolled-back' WHERE name='lifecycle'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "operational_counters", "assurance_execution_bindings"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-013-claim-history",
+      "fault_class": "claim_history_asymmetry",
+      "severity": "critical",
+      "seeded_fault": true,
+      "valid_control": false,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "DELETE FROM audit_log WHERE id=1"},
+      "protected_tables": ["tasks", "approvals", "operational_counters", "assurance_execution_bindings", "assurance_state"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-014-never-bound-control",
+      "fault_class": "never_bound_nonpilot_control",
+      "severity": "high",
+      "seeded_fault": false,
+      "valid_control": true,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE tasks SET title='synthetic unbound task refreshed' WHERE id=1"},
+      "protected_tables": ["approvals", "audit_log", "operational_counters", "assurance_execution_bindings", "assurance_state"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-015-legitimate-completion-control",
+      "fault_class": "legitimate_bound_completion_control",
+      "severity": "high",
+      "seeded_fault": false,
+      "valid_control": true,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE tasks SET status='completed' WHERE id=2"},
+      "protected_tables": ["approvals", "audit_log", "operational_counters", "assurance_execution_bindings", "assurance_state"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    },
+    {
+      "id": "d2v3-016-unbound-dispatch-control",
+      "fault_class": "unbound_nonpilot_dispatch_control",
+      "severity": "medium",
+      "seeded_fault": false,
+      "valid_control": true,
+      "target": "database",
+      "mutation": {"kind": "sql", "statement": "UPDATE operational_counters SET value=value+1 WHERE name='worker_heartbeats'"},
+      "protected_tables": ["tasks", "approvals", "audit_log", "assurance_execution_bindings", "assurance_state"],
+      "protected_repo_paths": ["contracts/freeze.json", "evidence/baseline.json"]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "artifact_sha256": "d5fd22a5bc036032f9cadb572c7583db042d83a16ffb678528356cdc68264211",
+  "artifact_validation": {
+    "bounded": true,
+    "canvas": {
+      "height": 512,
+      "width": 512
+    },
+    "overflow": false,
+    "overflow_reasons": []
+  },
+  "assurance_workflow": {
+    "id": "corrected_assurance_workflow_v3",
+    "renderer": "structured_safe_area_v3",
+    "steps": [
+      "validate_frozen_source_brief_and_messages",
+      "plan_separate_headline_and_support_hierarchy",
+      "render_structured_safe_area",
+      "validate_all_svg_geometry_and_hard_gates",
+      "hash_source_artifact_and_trace"
+    ]
+  },
+  "attempt_budget": 1,
+  "brief": {
+    "brand_tone": "quiet capable",
+    "goal": "Show the watch as a clear daily-activity companion without health promises.",
+    "required_constraints": [
+      "preserve screen readings and case shape",
+      "no diagnostic or health-outcome claims",
+      "keep both straps visible"
+    ]
+  },
+  "dry_run_only": true,
+  "evidence_budget_bytes": 1048576,
+  "messages": {
+    "headline": "Your day at a glance",
+    "support": "Activity and time together"
+  },
+  "model": "deterministic-local-svg-renderer/v3",
+  "scenario_id": "fitness-smartwatch-square-v3",
+  "source_bytes_sha256": "7cef087a40cb77d2885318df5d9b0ea361b777615264288f5f39703224583341",
+  "source_sha256": "7cef087a40cb77d2885318df5d9b0ea361b777615264288f5f39703224583341",
+  "timeout_seconds": 60,
+  "tool": "agent_company.phase_d_redesign.execute_d1_workflow"
+}

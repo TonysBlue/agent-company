@@ -1,0 +1,26 @@
+{
+  "aspect_ratio": "1:1",
+  "brief": {
+    "brand_tone": "confident craft",
+    "goal": "Present a freshly roasted craft coffee while preserving the pouch label.",
+    "required_constraints": [
+      "keep SINGLE ORIGIN readable",
+      "no fabricated awards",
+      "omit price and discount claims"
+    ]
+  },
+  "channel": "social-square",
+  "messages": {
+    "headline": "Single origin",
+    "support": "Roasted this week"
+  },
+  "product_category": "matte single-origin coffee pouch",
+  "recognizable_features": [
+    "black gusseted pouch",
+    "cream rectangular label",
+    "brown coffee-bean emblem",
+    "SINGLE ORIGIN wording"
+  ],
+  "scenario_id": "single-origin-coffee-square-v3",
+  "schema_version": "phase-d-d1-rater-brief/v2"
+}

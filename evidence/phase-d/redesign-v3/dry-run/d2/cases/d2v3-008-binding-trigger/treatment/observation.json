@@ -1,0 +1,5 @@
+{
+  "detail": "binding mutation denied",
+  "mechanism": "sqlite_control",
+  "outcome": "denied"
+}
