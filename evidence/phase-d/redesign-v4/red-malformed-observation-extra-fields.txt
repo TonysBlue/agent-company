@@ -1,0 +1,24 @@
+test_thresholds_require_exact_named_contract_and_bank_coverage (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ThresholdContractTest.test_thresholds_require_exact_named_contract_and_bank_coverage) ...
+  test_thresholds_require_exact_named_contract_and_bank_coverage (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ThresholdContractTest.test_thresholds_require_exact_named_contract_and_bank_coverage) (malformed_name='extra_top_level_field') ... FAIL
+  test_thresholds_require_exact_named_contract_and_bank_coverage (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ThresholdContractTest.test_thresholds_require_exact_named_contract_and_bank_coverage) (malformed_name='extra_nested_observation_field') ... FAIL
+
+======================================================================
+FAIL: test_thresholds_require_exact_named_contract_and_bank_coverage (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ThresholdContractTest.test_thresholds_require_exact_named_contract_and_bank_coverage) (malformed_name='extra_top_level_field')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 723, in test_thresholds_require_exact_named_contract_and_bank_coverage
+    with self.assertRaisesRegex(
+AssertionError: PhaseDRedesignError not raised
+
+======================================================================
+FAIL: test_thresholds_require_exact_named_contract_and_bank_coverage (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ThresholdContractTest.test_thresholds_require_exact_named_contract_and_bank_coverage) (malformed_name='extra_nested_observation_field')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 723, in test_thresholds_require_exact_named_contract_and_bank_coverage
+    with self.assertRaisesRegex(
+AssertionError: PhaseDRedesignError not raised
+
+----------------------------------------------------------------------
+Ran 1 test in 0.028s
+
+FAILED (failures=2)

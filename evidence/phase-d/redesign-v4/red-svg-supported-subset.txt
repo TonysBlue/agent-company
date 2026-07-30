@@ -1,0 +1,51 @@
+test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) ...
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='foreign_namespace') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='external_image') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='paint_server_reference') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='malformed_path_separators') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='path_without_moveto') ... FAIL
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='foreign_namespace')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 475, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='external_image')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 475, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='paint_server_reference')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 475, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='malformed_path_separators')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 475, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='path_without_moveto')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 475, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 1 test in 0.003s
+
+FAILED (failures=5)

@@ -1,0 +1,6 @@
+{
+  "errors": [
+    "Chairman inbox/outbox paths missing"
+  ],
+  "ok": false
+}

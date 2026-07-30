@@ -31,7 +31,7 @@ D1_OUTPUT = ROOT / "evidence" / "phase-d" / "d1"
 D2_OUTPUT = ROOT / "evidence" / "phase-d" / "d2"
 PIXWEAVE = Path("/home/tony/products/pixweave")
 AGENT_COMPANY = Path("/home/tony/agent-company")
-CORRECTED_FREEZE = ROOT / "docs" / "assurance" / "phase-d" / "redesign" / "corrected-freeze-v2.json"
+CORRECTED_FREEZE = ROOT / "docs" / "assurance" / "phase-d" / "redesign" / "corrected-freeze-v4.json"
 
 
 def git_commit(repository: Path) -> str:
@@ -276,13 +276,10 @@ def main() -> int:
     # Historical D1/D2 treatment conclusions are superseded; corrected execution needs a
     # separately authored approval bound to the corrected freeze before this legacy entrypoint
     # can do anything.
-    corrected = verify_corrected_freeze(ROOT, CORRECTED_FREEZE)
-    if not corrected["execution_authorized"]:
-        raise PhaseDTreatmentError(
-            "legacy Phase D treatment runner blocked by corrected freeze pending independent approval"
-        )
     raise PhaseDTreatmentError(
-        "legacy Phase D treatment runner is permanently superseded; use a separately reviewed corrected runner"
+        "Phase D D1/D2 treatment execution is blocked by V4: real Company OS replay, "
+        "an immutable committed candidate review target, external credentials, independent "
+        "approval and a post-approval CEO start decision are absent"
     )
     contracts = verify_start_contracts(ROOT, START_FREEZE)
     if git_status(PIXWEAVE):

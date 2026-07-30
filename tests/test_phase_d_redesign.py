@@ -28,24 +28,15 @@ REDESIGN = ROOT / "docs" / "assurance" / "phase-d" / "redesign"
 
 
 class PhaseDRedesignContractTest(unittest.TestCase):
-    def test_corrected_freeze_preserves_findings_and_blocks_unreviewed_execution(self) -> None:
+    def test_v2_freeze_is_superseded_and_cannot_authorize(self) -> None:
         freeze = REDESIGN / "corrected-freeze-v2.json"
 
-        verification = verify_corrected_freeze(ROOT, freeze)
-
-        self.assertEqual(verification["status"], "blocked_pending_independent_approval")
-        self.assertFalse(verification["execution_authorized"])
-        findings = verification["documents"]["independent_findings"]
-        self.assertEqual(findings["reviewed_head"], "6626411")
-        self.assertEqual({item["pilot"] for item in findings["findings"]}, {"d1", "d2", "governance"})
-        self.assertTrue(findings["prior_treatment_conclusions_invalid"])
-        proposal = verification["documents"]["ceo_start_proposal"]
-        self.assertEqual(proposal["current_decision"], "do_not_start")
-        self.assertFalse(proposal["effective_authorization"])
-        with self.assertRaisesRegex(PhaseDRedesignError, "independent approval"):
+        with self.assertRaisesRegex(PhaseDRedesignError, "superseded"):
+            verify_corrected_freeze(ROOT, freeze)
+        with self.assertRaisesRegex(PhaseDRedesignError, "superseded"):
             verify_corrected_freeze(ROOT, freeze, require_execution_approval=True)
 
-    def test_freeze_hash_drift_fails_closed(self) -> None:
+    def test_v2_freeze_fails_closed_before_hash_or_approval_processing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             document = root / "contract.json"
@@ -62,7 +53,7 @@ class PhaseDRedesignContractTest(unittest.TestCase):
                 "execution_gate": {"independent_approval_path": "approval.json"},
             }), encoding="utf-8")
 
-            with self.assertRaisesRegex(PhaseDRedesignError, "hash mismatch"):
+            with self.assertRaisesRegex(PhaseDRedesignError, "superseded"):
                 verify_corrected_freeze(root, freeze)
 
 
@@ -89,12 +80,14 @@ class PhaseDRedesignD1Test(unittest.TestCase):
             for field in ("brief", "messages", "attempt_budget", "model", "tool", "timeout_seconds", "evidence_budget_bytes"):
                 self.assertEqual(specs["candidate"][field], specs["comparator"][field])
 
-    def test_artifacts_are_bounded_and_rater_form_is_self_contained(self) -> None:
+    def test_svg_validator_accepts_supported_subset_and_rater_form_is_self_contained(self) -> None:
         bank = validate_scenario_bank(ROOT, self.bank_path)
         scenario = bank["scenarios"][0]
-        source = (ROOT / scenario["source_path"]).read_bytes()
-
-        artifact = render_bounded_artifact(scenario, source)
+        artifact = (
+            b'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" '
+            b'viewBox="0 0 512 512"><rect x="0" y="0" width="512" '
+            b'height="512" fill="#111827"/></svg>'
+        )
         validation = validate_bounded_svg(artifact)
         form = build_rater_form(scenario)
 
@@ -112,29 +105,22 @@ class PhaseDRedesignD1Test(unittest.TestCase):
         self.assertIn("protocol_violations", response)
         self.assertEqual(set(response["hard_gate_results"]), {"A", "B"})
 
-    def test_delivery_bundle_is_hashed_and_contains_no_custody_or_generated_paths(self) -> None:
+    def test_legacy_renderer_and_delivery_bundle_are_blocked_without_output(self) -> None:
         bank = validate_scenario_bank(ROOT, self.bank_path)
         scenario = bank["scenarios"][0]
         source = (ROOT / scenario["source_path"]).read_bytes()
-        artifact = render_bounded_artifact(scenario, source)
-        form = build_rater_form(scenario)
 
         with tempfile.TemporaryDirectory() as tmp:
             destination = Path(tmp) / "delivery" / str(scenario["id"])
-            manifest = write_delivery_bundle(destination, scenario, artifact, artifact, form)
-
-            self.assertEqual(manifest["schema_version"], "phase-d-d1-delivery-bundle/v2")
-            self.assertRegex(manifest["bundle_sha256"], r"^[0-9a-f]{64}$")
-            delivered = [item["path"] for item in manifest["files"]]
-            self.assertEqual(set(delivered), {"brief.json", "option-A.svg", "option-B.svg", "rater-form.json"})
-            serialized = json.dumps(manifest, sort_keys=True).lower()
-            for forbidden in ("candidate", "comparator", "mapping", "custody", "generated/"):
-                self.assertNotIn(forbidden, serialized)
-            self.assertFalse(any("custody" in path.name.lower() for path in destination.rglob("*")))
+            with self.assertRaisesRegex(PhaseDRedesignError, "blocked|superseded"):
+                render_bounded_artifact(scenario, source)
+            with self.assertRaisesRegex(PhaseDRedesignError, "blocked|superseded"):
+                write_delivery_bundle(destination, scenario, b"A", b"B", {})
+            self.assertFalse(destination.exists())
 
 
 class PhaseDRedesignD2Test(unittest.TestCase):
-    def test_isolated_mutation_pair_retains_complete_rollback_evidence(self) -> None:
+    def test_surrogate_mutation_fixture_is_blocked_without_evidence(self) -> None:
         case = {
             "id": "canary-direct-completion",
             "seeded_fault": True,
@@ -156,35 +142,12 @@ class PhaseDRedesignD2Test(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             frozen = root / "frozen"
-            create_harness_fixture(frozen)
-            source_before = {path.relative_to(frozen).as_posix(): path.read_bytes() for path in frozen.rglob("*") if path.is_file()}
-            result = execute_mutation_pair(frozen, case, baseline, treatment, root / "evidence")
-            source_after = {path.relative_to(frozen).as_posix(): path.read_bytes() for path in frozen.rglob("*") if path.is_file()}
+            with self.assertRaisesRegex(PhaseDRedesignError, "surrogate|blocked|superseded"):
+                create_harness_fixture(frozen)
+            self.assertFalse(frozen.exists())
+            self.assertFalse((root / "evidence").exists())
 
-            self.assertEqual(source_before, source_after)
-            self.assertEqual(result["baseline"]["observation"]["outcome"], "allowed")
-            self.assertEqual(result["treatment"]["observation"]["outcome"], "denied")
-            for side in ("baseline", "treatment"):
-                record = result[side]
-                self.assertEqual(record["before_snapshot"]["state_sha256"], record["after_snapshot"]["state_sha256"])
-                self.assertTrue(record["rollback"]["completed"])
-                self.assertTrue(record["noninterference"]["passed"])
-                self.assertIn("event_sha256", record["audit_event_evidence"])
-                evidence_dir = root / "evidence" / case["id"] / side
-                self.assertEqual(
-                    {path.name for path in evidence_dir.iterdir()},
-                    {
-                        "before-snapshot.json",
-                        "mutation.json",
-                        "observation.json",
-                        "rollback.json",
-                        "after-snapshot.json",
-                        "audit-event-evidence.json",
-                        "noninterference.json",
-                    },
-                )
-
-    def test_repository_mutation_is_real_isolated_and_rolled_back(self) -> None:
+    def test_surrogate_repository_mutation_is_blocked_without_evidence(self) -> None:
         case = {
             "id": "canary-contract-rewrite",
             "seeded_fault": True,
@@ -207,13 +170,10 @@ class PhaseDRedesignD2Test(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             frozen = root / "frozen"
-            create_harness_fixture(frozen)
-            result = execute_mutation_pair(frozen, case, baseline, treatment, root / "evidence")
-
-            self.assertEqual(result["baseline"]["observation"]["outcome"], "allowed")
-            self.assertEqual(result["treatment"]["observation"]["outcome"], "denied")
-            self.assertTrue(result["baseline"]["mutation"]["attempted"])
-            self.assertTrue(result["treatment"]["mutation"]["attempted"])
+            with self.assertRaisesRegex(PhaseDRedesignError, "surrogate|blocked|superseded"):
+                create_harness_fixture(frozen)
+            self.assertFalse(frozen.exists())
+            self.assertFalse((root / "evidence").exists())
 
     def test_thresholds_are_derived_only_from_paired_observations(self) -> None:
         pairs = [
@@ -240,15 +200,8 @@ class PhaseDRedesignD2Test(unittest.TestCase):
             },
         ]
 
-        result = derive_d2_observation_thresholds(pairs)
-
-        self.assertEqual(result["threshold_source"], "paired_baseline_observations")
-        self.assertEqual(result["observed_baseline_escape_ids"], ["fault-a"])
-        self.assertEqual(result["required_treatment_denial_ids"], ["fault-a"])
-        self.assertEqual(result["observed_baseline_allowed_control_ids"], ["control-a"])
-        self.assertEqual(result["required_treatment_allow_ids"], ["control-a"])
-        self.assertTrue(result["observation_derived_comparison_passed"])
-        self.assertNotIn("asserted_thresholds", result)
+        with self.assertRaisesRegex(PhaseDRedesignError, "exact contract and bank"):
+            derive_d2_observation_thresholds(pairs)
 
 
 class PhaseDRedesignDryRunTest(unittest.TestCase):
@@ -256,17 +209,22 @@ class PhaseDRedesignDryRunTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "phase-d-redesign"
 
-            result = run_redesign_dry_run(ROOT, output)
+            result = run_redesign_dry_run(
+                ROOT,
+                output,
+                freeze_path=REDESIGN / "corrected-freeze-v4.json",
+                allow_development_overlay=True,
+            )
 
-            self.assertEqual(result["status"], "dry_run_complete_treatments_blocked")
+            self.assertEqual(result["status"], "blocked_protocol_checks_complete")
             self.assertFalse(result["corrected_treatments_executed"])
-            self.assertEqual(result["d1"]["scenario_count"], 6)
-            self.assertEqual(result["d2"]["canary_count"], 3)
-            self.assertEqual(result["d2"]["threshold_source"], "paired_baseline_observations")
-            deliveries = list((output / "dry-run" / "d1" / "rater-delivery").glob("*/bundle-manifest.json"))
-            self.assertEqual(len(deliveries), 6)
-            self.assertTrue((output / "custody" / "d1" / "custody-mapping.json").is_file())
-            self.assertFalse((output / "dry-run" / "d1" / "rater-delivery" / "custody-mapping.json").exists())
+            self.assertEqual(result["d1"]["scenario_contracts_checked"], 6)
+            self.assertEqual(result["d1"]["treatment_workflows_executed"], 0)
+            self.assertEqual(result["d1"]["artifacts_generated"], 0)
+            self.assertEqual(result["d2"]["named_control_mappings_checked"], 16)
+            self.assertEqual(result["d2"]["database_mutations_attempted"], 0)
+            self.assertFalse(result["d2"]["thresholds_passed"])
+            self.assertFalse(any(output.rglob("*.svg")))
             self.assertTrue((output / "evidence-manifest.json").is_file())
 
 

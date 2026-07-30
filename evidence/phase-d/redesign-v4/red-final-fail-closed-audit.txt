@@ -1,0 +1,42 @@
+test_superseded_treatment_helpers_are_not_callable (tests.test_phase_d_redesign_v4.PhaseDRedesignV4BlockedDryRunTest.test_superseded_treatment_helpers_are_not_callable) ... FAIL
+test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) ...
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='nested_svg_viewport') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='embedded_svg_image') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='malformed_point_separators') ... FAIL
+
+======================================================================
+FAIL: test_superseded_treatment_helpers_are_not_callable (tests.test_phase_d_redesign_v4.PhaseDRedesignV4BlockedDryRunTest.test_superseded_treatment_helpers_are_not_callable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 62, in test_superseded_treatment_helpers_are_not_callable
+    with self.assertRaisesRegex(redesign.PhaseDRedesignError, "superseded|blocked"):
+AssertionError: PhaseDRedesignError not raised
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='nested_svg_viewport')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 499, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='embedded_svg_image')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 499, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='malformed_point_separators')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 499, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+FAILED (failures=4)

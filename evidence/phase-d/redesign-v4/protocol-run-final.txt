@@ -1,0 +1,327 @@
+{
+  "authorization": {
+    "blockers": [
+      "immutable_committed_candidate_review_target_absent",
+      "real_company_os_c2_replay_not_implemented"
+    ],
+    "execution_authorized": false,
+    "status": "blocked_pending_immutable_review_target_and_real_replay"
+  },
+  "checks_executed": [
+    "immutable_review_target_protocol",
+    "external_governance_registry_protocol",
+    "d1_static_input_and_renderer_contract",
+    "d1_svg_adversarial_validator_canaries",
+    "d2_named_production_control_mapping",
+    "d2_real_replay_blocker",
+    "evidence_manifest_reproducibility_protocol"
+  ],
+  "corrected_treatments_executed": false,
+  "d1": {
+    "artifacts_generated": 0,
+    "assignment_protocol_checked": true,
+    "ratings_collected": 0,
+    "scenario_contracts_checked": 6,
+    "status": "blocked_static_protocol_verified",
+    "svg_validator_canaries": [
+      {
+        "case_id": "absolute_path_inside",
+        "expected_bounded": true,
+        "observed_bounded": true,
+        "overflow_reasons": []
+      },
+      {
+        "case_id": "relative_path_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_or_invalid_path_geometry"
+        ]
+      },
+      {
+        "case_id": "stroke_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_rect_stroke_bounds"
+        ]
+      },
+      {
+        "case_id": "style_transform_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_rect_attribute"
+        ]
+      },
+      {
+        "case_id": "nested_text_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_text_attribute",
+          "unsupported_tspan_geometry"
+        ]
+      },
+      {
+        "case_id": "use_defs_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_defs_geometry",
+          "unsupported_rect_attribute",
+          "unsupported_use_geometry"
+        ]
+      },
+      {
+        "case_id": "curve_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_or_invalid_path_geometry"
+        ]
+      },
+      {
+        "case_id": "arc_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_or_invalid_path_geometry"
+        ]
+      },
+      {
+        "case_id": "malformed_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "invalid_polygon_bounds"
+        ]
+      },
+      {
+        "case_id": "foreign_namespace_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_foreign_namespace_element"
+        ]
+      },
+      {
+        "case_id": "external_image_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_image_reference"
+        ]
+      },
+      {
+        "case_id": "paint_server_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_rect_fill_paint"
+        ]
+      },
+      {
+        "case_id": "malformed_path_separators_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_or_invalid_path_geometry"
+        ]
+      },
+      {
+        "case_id": "path_without_moveto_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_or_invalid_path_geometry"
+        ]
+      },
+      {
+        "case_id": "incomplete_moveto_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_or_invalid_path_geometry"
+        ]
+      },
+      {
+        "case_id": "incomplete_lineto_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_or_invalid_path_geometry"
+        ]
+      },
+      {
+        "case_id": "nested_svg_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_nested_svg_viewport"
+        ]
+      },
+      {
+        "case_id": "embedded_svg_image_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "unsupported_image_reference"
+        ]
+      },
+      {
+        "case_id": "malformed_points_rejected",
+        "expected_bounded": false,
+        "observed_bounded": false,
+        "overflow_reasons": [
+          "invalid_polygon_bounds"
+        ]
+      }
+    ],
+    "treatment_workflows_executed": 0
+  },
+  "d2": {
+    "control_mappings": [
+      {
+        "case_id": "d2v4-001-approved-artifact",
+        "control_id": "pilot-g4-artifact-set-freshness",
+        "entrypoint": "PilotGate.runtime_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion",
+        "fault_class": "stale_or_missing_approved_artifact",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-002-threshold",
+        "control_id": "execution-evaluation-policy-binding",
+        "entrypoint": "PilotGate.runtime_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion",
+        "fault_class": "changed_threshold",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-003-profile",
+        "control_id": "execution-profile-binding",
+        "entrypoint": "PilotGate.runtime_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion",
+        "fault_class": "changed_profile",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-004-authority",
+        "control_id": "execution-principal-authority-binding",
+        "entrypoint": "PilotGate.runtime_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion",
+        "fault_class": "changed_authority",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-005-credential",
+        "control_id": "execution-principal-credential-binding",
+        "entrypoint": "PilotGate.runtime_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion",
+        "fault_class": "changed_credential",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-006-generation",
+        "control_id": "runtime-generation-fence",
+        "entrypoint": "PilotGate.runtime_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion",
+        "fault_class": "changed_generation",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-007-completion-bypass",
+        "control_id": "tasks-bound-pilot-completion-guard",
+        "entrypoint": "PilotGate.completion_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_direct_sql_cannot_complete_a_claimed_bound_pilot",
+        "fault_class": "direct_or_cli_completion_bypass",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-008-binding-trigger",
+        "control_id": "execution-binding-integrity-and-trigger-set",
+        "entrypoint": "PilotGate.runtime_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_forged_execution_binding_and_dropped_triggers_fail_closed",
+        "fault_class": "forged_or_missing_binding_or_trigger",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-009-evaluation",
+        "control_id": "trusted-eval-quarantine-gate",
+        "entrypoint": "TrustedEvaluator.quarantine",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_quarantined_eval_fails_closed",
+        "fault_class": "contaminated_or_quarantined_evaluation",
+        "module": "agent_company.trusted_evaluator"
+      },
+      {
+        "case_id": "d2v4-010-review",
+        "control_id": "completion-independent-review-lineage",
+        "entrypoint": "PilotGate.completion_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_implementer_authored_review_is_not_independent",
+        "fault_class": "non_independent_contradictory_or_unbound_review",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-011-context-leakage",
+        "control_id": "dashboard-and-context-secret-redaction",
+        "entrypoint": "build_snapshot",
+        "existing_regression_test": "tests.test_dashboard.DashboardTest.test_snapshot_uses_live_sources_and_no_fabricated_operations_metrics",
+        "fault_class": "dashboard_or_context_leakage",
+        "module": "agent_company.dashboard"
+      },
+      {
+        "case_id": "d2v4-012-lifecycle",
+        "control_id": "artifact-lifecycle-transition-guard",
+        "entrypoint": "AssuranceKernel.transition",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_superseded_artifact_status_cannot_be_rolled_back_with_raw_sql",
+        "fault_class": "lifecycle_rollback",
+        "module": "agent_company.assurance"
+      },
+      {
+        "case_id": "d2v4-013-claim-history",
+        "control_id": "claim-history-symmetry-integrity",
+        "entrypoint": "PilotGate.claim_fence_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_reports_history_without_current_claim_counterpart",
+        "fault_class": "claim_history_asymmetry",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-014-never-bound-control",
+        "control_id": "never-bound-nonpilot-compatibility",
+        "entrypoint": "PilotGate.completion_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible",
+        "fault_class": "never_bound_nonpilot_control",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-015-legitimate-completion-control",
+        "control_id": "legitimate-bound-atomic-completion",
+        "entrypoint": "PilotGate.completion_decision",
+        "existing_regression_test": "tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion",
+        "fault_class": "legitimate_bound_completion_control",
+        "module": "agent_company.pilot_gate"
+      },
+      {
+        "case_id": "d2v4-016-unbound-dispatch-control",
+        "control_id": "unbound-nonpilot-dispatch-compatibility",
+        "entrypoint": "PilotGate.dispatch_decision",
+        "existing_regression_test": "tests.test_pilot_gate.PilotGateTest.test_unbound_and_nonpilot_tasks_are_unchanged",
+        "fault_class": "unbound_nonpilot_dispatch_control",
+        "module": "agent_company.pilot_gate"
+      }
+    ],
+    "database_mutations_attempted": 0,
+    "named_control_mappings_checked": 16,
+    "observations_collected": 0,
+    "real_production_replay_status": "not_implemented",
+    "repository_mutations_attempted": 0,
+    "status": "blocked_real_production_control_replay_not_implemented",
+    "thresholds_passed": false,
+    "treatment_workflows_executed": 0
+  },
+  "forbidden_actions_observed": [],
+  "phase_d_treatment_pass_possible": false,
+  "schema_version": "phase-d-redesign-blocked-protocol/v4",
+  "status": "blocked_protocol_checks_complete"
+}

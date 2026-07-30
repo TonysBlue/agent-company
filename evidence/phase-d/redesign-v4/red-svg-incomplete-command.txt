@@ -1,0 +1,24 @@
+test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) ...
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='moveto_without_coordinates') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='lineto_closed_without_coordinates') ... FAIL
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='moveto_without_coordinates')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 477, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='lineto_closed_without_coordinates')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 477, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=2)

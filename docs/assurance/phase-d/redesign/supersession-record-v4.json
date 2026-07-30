@@ -1,0 +1,24 @@
+{
+  "schema_version": "phase-d-redesign-supersession/v4",
+  "id": "phase-d-d1-d2-redesign-v4-supersession",
+  "reviewed_head": "33bcb6371e18c08b05c49723282db24389b8bc6c",
+  "reviewed_tree": "1447dcf47adc67ee280720a64abaf094743bdd1c",
+  "supersedes": [
+    "docs/assurance/phase-d/redesign/corrected-freeze-v3.json",
+    "docs/assurance/phase-d/redesign/d1/contract-v3.json",
+    "docs/assurance/phase-d/redesign/d2/contract-v3.json",
+    "docs/assurance/phase-d/redesign/d2/mutation-bank-v3.json",
+    "evidence/phase-d/redesign-v3"
+  ],
+  "v3_conclusions_invalid": [
+    "blocked_dry_run_executed_no_treatments",
+    "d2_replayed_real_company_os_controls",
+    "d2_thresholds_passed",
+    "v3_credentials_provided_an_external_trust_root",
+    "v3_freeze_bound_current_head_and_complete_tree"
+  ],
+  "historical_evidence_preservation": "do_not_delete_or_mutate",
+  "v4_treatment_execution_status": "blocked",
+  "v4_treatment_pass_possible": false,
+  "approvals_fabricated": false
+}

@@ -1,0 +1,27 @@
+test_repository_freeze_cannot_embed_a_candidate_target (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_repository_freeze_cannot_embed_a_candidate_target) ... FAIL
+test_governance_decisions_must_bind_the_freeze_identity (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_governance_decisions_must_bind_the_freeze_identity) ... FAIL
+
+======================================================================
+FAIL: test_repository_freeze_cannot_embed_a_candidate_target (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_repository_freeze_cannot_embed_a_candidate_target)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 305, in test_repository_freeze_cannot_embed_a_candidate_target
+    with self.assertRaisesRegex(
+AssertionError: PhaseDRedesignError not raised
+
+======================================================================
+FAIL: test_governance_decisions_must_bind_the_freeze_identity (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_governance_decisions_must_bind_the_freeze_identity)
+----------------------------------------------------------------------
+agent_company.phase_d_redesign.PhaseDRedesignError: Phase D requires a separate signed CEO start decision
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 329, in test_governance_decisions_must_bind_the_freeze_identity
+    with self.assertRaisesRegex(redesign.PhaseDRedesignError, "freeze.*identity"):
+AssertionError: "freeze.*identity" does not match "Phase D requires a separate signed CEO start decision"
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.187s
+
+FAILED (failures=2)

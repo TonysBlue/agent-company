@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate corrected Phase D D1/D2 tooling without executing either treatment."""
+"""Compatibility entrypoint for V4 blocked, non-treatment protocol checks."""
 
 from __future__ import annotations
 
@@ -15,15 +15,10 @@ from agent_company.phase_d_redesign import PhaseDRedesignError, run_redesign_dry
 
 
 def main() -> int:
-    output = ROOT / "evidence" / "phase-d" / "redesign"
-    result = run_redesign_dry_run(ROOT, output)
-    print(json.dumps({
-        "status": result["status"],
-        "corrected_treatments_executed": result["corrected_treatments_executed"],
-        "d1_scenarios": result["d1"]["scenario_count"],
-        "d2_canaries": result["d2"]["canary_count"],
-    }, indent=2, sort_keys=True))
-    return 0
+    raise PhaseDRedesignError(
+        "legacy dry-run output is superseded; use run_phase_d_redesign_v4_protocol.py "
+        "with an explicit empty output directory"
+    )
 
 
 if __name__ == "__main__":

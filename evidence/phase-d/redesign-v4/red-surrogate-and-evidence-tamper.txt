@@ -1,0 +1,23 @@
+test_superseded_treatment_helpers_are_not_callable (tests.test_phase_d_redesign_v4.PhaseDRedesignV4BlockedDryRunTest.test_superseded_treatment_helpers_are_not_callable) ... FAIL
+test_verify_mode_rejects_evidence_tamper_without_rewriting_it (tests.test_phase_d_redesign_v4.PhaseDRedesignV4EvidenceVerificationTest.test_verify_mode_rejects_evidence_tamper_without_rewriting_it) ... FAIL
+
+======================================================================
+FAIL: test_superseded_treatment_helpers_are_not_callable (tests.test_phase_d_redesign_v4.PhaseDRedesignV4BlockedDryRunTest.test_superseded_treatment_helpers_are_not_callable)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 51, in test_superseded_treatment_helpers_are_not_callable
+    with self.assertRaisesRegex(redesign.PhaseDRedesignError, "surrogate|superseded|blocked"):
+AssertionError: PhaseDRedesignError not raised
+
+======================================================================
+FAIL: test_verify_mode_rejects_evidence_tamper_without_rewriting_it (tests.test_phase_d_redesign_v4.PhaseDRedesignV4EvidenceVerificationTest.test_verify_mode_rejects_evidence_tamper_without_rewriting_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 421, in test_verify_mode_rejects_evidence_tamper_without_rewriting_it
+    with self.assertRaisesRegex(redesign.PhaseDRedesignError, "hash|manifest|tamper"):
+AssertionError: PhaseDRedesignError not raised
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.034s
+
+FAILED (failures=2)

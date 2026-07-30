@@ -1,0 +1,214 @@
+test_blocked_dry_run_executes_only_named_non_treatment_protocol_checks (tests.test_phase_d_redesign_v4.PhaseDRedesignV4BlockedDryRunTest.test_blocked_dry_run_executes_only_named_non_treatment_protocol_checks) ... ERROR
+test_arbitrary_caller_keys_cannot_authorize_governance_records (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_arbitrary_caller_keys_cannot_authorize_governance_records) ... ERROR
+test_credentials_load_only_from_freeze_bound_external_hardened_registry (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_credentials_load_only_from_freeze_bound_external_hardened_registry) ... ERROR
+test_registry_and_credentials_reject_symlinks_and_unsafe_permissions (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_registry_and_credentials_reject_symlinks_and_unsafe_permissions) ... ERROR
+test_verify_mode_uses_temporary_output_and_never_mutates_frozen_evidence (tests.test_phase_d_redesign_v4.PhaseDRedesignV4EvidenceVerificationTest.test_verify_mode_uses_temporary_output_and_never_mutates_frozen_evidence) ... ERROR
+test_exact_head_tree_and_entire_clean_worktree_are_required (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ImmutableTargetTest.test_exact_head_tree_and_entire_clean_worktree_are_required) ... ERROR
+test_v4_freeze_has_no_self_referential_file_hash_graph (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ImmutableTargetTest.test_v4_freeze_has_no_self_referential_file_hash_graph) ... ERROR
+test_complete_synthetic_observations_cannot_certify_before_real_replay_exists (tests.test_phase_d_redesign_v4.PhaseDRedesignV4RealReplayTest.test_complete_synthetic_observations_cannot_certify_before_real_replay_exists) ... ERROR
+test_every_d2_case_names_a_distinct_real_company_os_control_probe (tests.test_phase_d_redesign_v4.PhaseDRedesignV4RealReplayTest.test_every_d2_case_names_a_distinct_real_company_os_control_probe) ... ERROR
+test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) ...
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='relative_path') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='stroke_overflow') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='inline_style_transform') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='css_transform') ... FAIL
+  test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='nested_tspan') ... FAIL
+test_thresholds_require_exact_named_contract_and_bank_coverage (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ThresholdContractTest.test_thresholds_require_exact_named_contract_and_bank_coverage) ... ERROR
+
+======================================================================
+ERROR: test_blocked_dry_run_executes_only_named_non_treatment_protocol_checks (tests.test_phase_d_redesign_v4.PhaseDRedesignV4BlockedDryRunTest.test_blocked_dry_run_executes_only_named_non_treatment_protocol_checks)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 66, in test_blocked_dry_run_executes_only_named_non_treatment_protocol_checks
+    result = redesign.run_redesign_dry_run(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: run_redesign_dry_run() got an unexpected keyword argument 'allow_development_overlay'
+
+======================================================================
+ERROR: test_arbitrary_caller_keys_cannot_authorize_governance_records (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_arbitrary_caller_keys_cannot_authorize_governance_records)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 209, in test_arbitrary_caller_keys_cannot_authorize_governance_records
+    redesign.evaluate_v4_authorization(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'evaluate_v4_authorization'
+
+======================================================================
+ERROR: test_credentials_load_only_from_freeze_bound_external_hardened_registry (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_credentials_load_only_from_freeze_bound_external_hardened_registry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 187, in test_credentials_load_only_from_freeze_bound_external_hardened_registry
+    loaded = redesign.load_trusted_governance_credentials(repository, freeze)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'load_trusted_governance_credentials'
+
+======================================================================
+ERROR: test_registry_and_credentials_reject_symlinks_and_unsafe_permissions (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_registry_and_credentials_reject_symlinks_and_unsafe_permissions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 224, in test_registry_and_credentials_reject_symlinks_and_unsafe_permissions
+    redesign.load_trusted_governance_credentials(repository, freeze)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'load_trusted_governance_credentials'
+
+======================================================================
+ERROR: test_verify_mode_uses_temporary_output_and_never_mutates_frozen_evidence (tests.test_phase_d_redesign_v4.PhaseDRedesignV4EvidenceVerificationTest.test_verify_mode_uses_temporary_output_and_never_mutates_frozen_evidence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 358, in test_verify_mode_uses_temporary_output_and_never_mutates_frozen_evidence
+    redesign.run_redesign_dry_run(
+TypeError: run_redesign_dry_run() got an unexpected keyword argument 'allow_development_overlay'
+
+======================================================================
+ERROR: test_exact_head_tree_and_entire_clean_worktree_are_required (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ImmutableTargetTest.test_exact_head_tree_and_entire_clean_worktree_are_required)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 251, in test_exact_head_tree_and_entire_clean_worktree_are_required
+    verified = redesign.verify_immutable_review_target(repository, target)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'verify_immutable_review_target'
+
+======================================================================
+ERROR: test_v4_freeze_has_no_self_referential_file_hash_graph (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ImmutableTargetTest.test_v4_freeze_has_no_self_referential_file_hash_graph)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 44, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v4.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 271, in test_v4_freeze_has_no_self_referential_file_hash_graph
+    freeze = redesign.load_json(V4_FREEZE)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 46, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v4.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/corrected-freeze-v4.json'
+
+======================================================================
+ERROR: test_complete_synthetic_observations_cannot_certify_before_real_replay_exists (tests.test_phase_d_redesign_v4.PhaseDRedesignV4RealReplayTest.test_complete_synthetic_observations_cannot_certify_before_real_replay_exists)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 44, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 116, in test_complete_synthetic_observations_cannot_certify_before_real_replay_exists
+    contract = redesign.load_json(V4_D2_CONTRACT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 46, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json'
+
+======================================================================
+ERROR: test_every_d2_case_names_a_distinct_real_company_os_control_probe (tests.test_phase_d_redesign_v4.PhaseDRedesignV4RealReplayTest.test_every_d2_case_names_a_distinct_real_company_os_control_probe)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 44, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 97, in test_every_d2_case_names_a_distinct_real_company_os_control_probe
+    contract = redesign.load_json(V4_D2_CONTRACT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 46, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json'
+
+======================================================================
+ERROR: test_thresholds_require_exact_named_contract_and_bank_coverage (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ThresholdContractTest.test_thresholds_require_exact_named_contract_and_bank_coverage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 44, in load_json
+    value = json.loads(path.read_text(encoding="utf-8"))
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/.local/share/uv/python/cpython-3.11.15-linux-x86_64-gnu/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 313, in test_thresholds_require_exact_named_contract_and_bank_coverage
+    contract = redesign.load_json(V4_D2_CONTRACT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/tony/agent-company/agent_company/phase_d_redesign.py", line 46, in load_json
+    raise PhaseDRedesignError(f"cannot load JSON input {path}: {exc}") from exc
+agent_company.phase_d_redesign.PhaseDRedesignError: cannot load JSON input /home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json: [Errno 2] No such file or directory: '/home/tony/agent-company/docs/assurance/phase-d/redesign/d2/contract-v4.json'
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='relative_path')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 306, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='stroke_overflow')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 306, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='inline_style_transform')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 306, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='css_transform')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 306, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class (tests.test_phase_d_redesign_v4.PhaseDRedesignV4SvgSubsetTest.test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class) (name='nested_tspan')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 306, in test_svg_validator_rejects_every_unsupported_or_unprovable_bounds_class
+    self.assertFalse(result["bounded"])
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.077s
+
+FAILED (failures=5, errors=10)

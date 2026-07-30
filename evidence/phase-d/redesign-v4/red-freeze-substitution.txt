@@ -1,0 +1,18 @@
+test_caller_cannot_substitute_freeze_registry_and_identities_together (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_caller_cannot_substitute_freeze_registry_and_identities_together) ... FAIL
+
+======================================================================
+FAIL: test_caller_cannot_substitute_freeze_registry_and_identities_together (tests.test_phase_d_redesign_v4.PhaseDRedesignV4CredentialTrustTest.test_caller_cannot_substitute_freeze_registry_and_identities_together)
+----------------------------------------------------------------------
+agent_company.phase_d_redesign.PhaseDRedesignError: unbound changed path or worktree drift: docs/assurance/phase-d/redesign/corrected-freeze-v4.json
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 328, in test_caller_cannot_substitute_freeze_registry_and_identities_together
+    with self.assertRaisesRegex(redesign.PhaseDRedesignError, "authoritative.*freeze|substitution"):
+AssertionError: "authoritative.*freeze|substitution" does not match "unbound changed path or worktree drift: docs/assurance/phase-d/redesign/corrected-freeze-v4.json"
+
+----------------------------------------------------------------------
+Ran 1 test in 0.102s
+
+FAILED (failures=1)

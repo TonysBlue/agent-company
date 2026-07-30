@@ -1,0 +1,15 @@
+test_v4_freeze_has_no_self_referential_file_hash_graph (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ImmutableTargetTest.test_v4_freeze_has_no_self_referential_file_hash_graph) ... ERROR
+
+======================================================================
+ERROR: test_v4_freeze_has_no_self_referential_file_hash_graph (tests.test_phase_d_redesign_v4.PhaseDRedesignV4ImmutableTargetTest.test_v4_freeze_has_no_self_referential_file_hash_graph)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_redesign_v4.py", line 598, in test_v4_freeze_has_no_self_referential_file_hash_graph
+    freeze["author_principals"],
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'author_principals'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (errors=1)

@@ -1,0 +1,35 @@
+RUN 1
+test_concurrent_real_executors_cannot_duplicate_claim (tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_real_executors_cannot_duplicate_claim) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.167s
+
+OK
+RUN 2
+test_concurrent_real_executors_cannot_duplicate_claim (tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_real_executors_cannot_duplicate_claim) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.223s
+
+OK
+RUN 3
+test_concurrent_real_executors_cannot_duplicate_claim (tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_real_executors_cannot_duplicate_claim) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.177s
+
+OK
+RUN 4
+test_concurrent_real_executors_cannot_duplicate_claim (tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_real_executors_cannot_duplicate_claim) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.163s
+
+OK
+RUN 5
+test_concurrent_real_executors_cannot_duplicate_claim (tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_real_executors_cannot_duplicate_claim) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.159s
+
+OK

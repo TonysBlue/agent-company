@@ -1,0 +1,54 @@
+{
+  "schema_version": "phase-d-d2-corrected-contract/v4",
+  "id": "phase-d-d2-corrected-contract-v4",
+  "status": "blocked_real_production_control_replay_not_implemented",
+  "treatment_execution_authorized": false,
+  "treatment_pass_possible": false,
+  "mutation_bank": "docs/assurance/phase-d/redesign/d2/mutation-bank-v4.json",
+  "required_fault_classes": [
+    "stale_or_missing_approved_artifact",
+    "changed_threshold",
+    "changed_profile",
+    "changed_authority",
+    "changed_credential",
+    "changed_generation",
+    "direct_or_cli_completion_bypass",
+    "forged_or_missing_binding_or_trigger",
+    "contaminated_or_quarantined_evaluation",
+    "non_independent_contradictory_or_unbound_review",
+    "dashboard_or_context_leakage",
+    "lifecycle_rollback",
+    "claim_history_asymmetry"
+  ],
+  "required_control_classes": [
+    "never_bound_nonpilot_control",
+    "legitimate_bound_completion_control",
+    "unbound_nonpilot_dispatch_control"
+  ],
+  "real_production_replay": {
+    "status": "not_implemented",
+    "treatment_pass_possible": false,
+    "attestation_path": "docs/assurance/phase-d/redesign/d2/real-replay-attestation-v4.json",
+    "must_initialize": "agent_company.db.Store.init plus AssuranceKernel, TrustedEvaluator and PilotGate real schemas in an isolated temporary workspace",
+    "must_invoke": "the named public production control entrypoint for each frozen case",
+    "must_verify": "an executable repository implementation must independently validate replay evidence; status flags and attestation booleans alone cannot certify treatment",
+    "must_preserve": "before mutation observation rollback after audit and noninterference evidence for every case",
+    "blanket_trigger_or_surrogate_table_replay_allowed": false
+  },
+  "threshold_rule": {
+    "required_observations": "exactly one well-formed observation for each of the 13 named material faults and 3 named controls",
+    "duplicates_incomplete_unknown_or_malformed_allowed": false,
+    "certification_before_real_production_replay": false
+  },
+  "allowed_while_blocked": [
+    "validate_exact_named_bank_coverage",
+    "validate_real_control_mapping",
+    "report_real_replay_blocker"
+  ],
+  "forbidden_while_blocked": [
+    "create_surrogate_harness_fixture",
+    "install_blanket_treatment_triggers",
+    "execute_mutation_pair",
+    "derive_passing_treatment_result"
+  ]
+}

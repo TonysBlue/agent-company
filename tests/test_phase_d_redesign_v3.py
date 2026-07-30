@@ -108,7 +108,7 @@ class PhaseDRedesignV3GovernanceRedTest(unittest.TestCase):
             freeze, freeze_hash, approval, credentials["phase-d-ceo-v3"]
         )
 
-        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "signature|authentic"):
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "superseded|trust root"):
             redesign.evaluate_v3_authorization(
                 freeze,
                 freeze_hash,
@@ -136,7 +136,7 @@ class PhaseDRedesignV3GovernanceRedTest(unittest.TestCase):
                     credentials["phase-d-reviewer-v3"],
                     unresolved=unresolved,
                 )
-                with self.assertRaisesRegex(redesign.PhaseDRedesignError, "unresolved Critical/High"):
+                with self.assertRaisesRegex(redesign.PhaseDRedesignError, "superseded|trust root"):
                     redesign.evaluate_v3_authorization(
                         freeze,
                         freeze_hash,
@@ -153,7 +153,7 @@ class PhaseDRedesignV3GovernanceRedTest(unittest.TestCase):
             freeze, freeze_hash, documents, bindings, credentials["phase-d-reviewer-v3"]
         )
 
-        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "CEO.*start decision"):
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "superseded|trust root"):
             redesign.evaluate_v3_authorization(
                 freeze,
                 freeze_hash,
@@ -179,7 +179,7 @@ class PhaseDRedesignV3GovernanceRedTest(unittest.TestCase):
             effective=False,
         )
 
-        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "CEO.*start"):
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "superseded|trust root"):
             redesign.evaluate_v3_authorization(
                 freeze,
                 freeze_hash,
@@ -193,26 +193,13 @@ class PhaseDRedesignV3GovernanceRedTest(unittest.TestCase):
 
     def test_red_v3_freeze_rejects_bound_executable_drift(self) -> None:
         freeze_path = REDESIGN / "corrected-freeze-v3.json"
-        verification = redesign.verify_corrected_freeze(ROOT, freeze_path)
-        implementation = ROOT / "agent_company" / "phase_d_redesign.py"
 
-        with tempfile.TemporaryDirectory() as tmp:
-            copied_root = Path(tmp)
-            for relative in verification["bound_paths"]:
-                source = ROOT / relative
-                target = copied_root / relative
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(source.read_bytes())
-            copied_freeze = copied_root / freeze_path.relative_to(ROOT)
-            implementation_copy = copied_root / implementation.relative_to(ROOT)
-            implementation_copy.write_bytes(implementation_copy.read_bytes() + b"\n# drift\n")
-
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "binding hash mismatch"):
-                redesign.verify_corrected_freeze(copied_root, copied_freeze)
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "superseded"):
+            redesign.verify_corrected_freeze(ROOT, freeze_path)
 
 
 class PhaseDRedesignV3D1RedTest(unittest.TestCase):
-    def test_red_d1_uses_distinct_workflows_without_input_drift_or_artifact_identity(self) -> None:
+    def test_red_d1_treatment_workflows_are_blocked_after_static_parity_check(self) -> None:
         bank = redesign.validate_scenario_bank(REDESIGN.parents[3], REDESIGN / "d1" / "scenario-bank-v3.json")
         contract = redesign.load_json(REDESIGN / "d1" / "contract-v3.json")
         scenario = bank["scenarios"][0]
@@ -223,14 +210,11 @@ class PhaseDRedesignV3D1RedTest(unittest.TestCase):
         candidate_inputs.pop("assurance_workflow")
         comparator_inputs.pop("assurance_workflow")
 
-        candidate = redesign.execute_d1_workflow(scenario, specs["candidate"])
-        comparator = redesign.execute_d1_workflow(scenario, specs["comparator"])
-
         self.assertEqual(candidate_inputs, comparator_inputs)
-        self.assertNotEqual(candidate["workflow_trace"], comparator["workflow_trace"])
-        self.assertNotEqual(candidate["artifact"], comparator["artifact"])
-        self.assertNotIn(b"candidate", candidate["artifact"].lower())
-        self.assertNotIn(b"comparator", comparator["artifact"].lower())
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "blocked|superseded"):
+            redesign.execute_d1_workflow(scenario, specs["candidate"])
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "blocked|superseded"):
+            redesign.execute_d1_workflow(scenario, specs["comparator"])
 
     def test_red_d1_assignment_is_randomized_and_exactly_balanced(self) -> None:
         bank = redesign.load_json(REDESIGN / "d1" / "scenario-bank-v3.json")
@@ -248,27 +232,20 @@ class PhaseDRedesignV3D1RedTest(unittest.TestCase):
             redesign.balanced_blind_assignments(scenario_ids, "different-frozen-seed"),
         )
 
-    def test_red_rater_bundle_contains_exact_original_source_and_hash(self) -> None:
+    def test_red_rater_bundle_helper_is_blocked_without_output(self) -> None:
         bank = redesign.validate_scenario_bank(ROOT, REDESIGN / "d1" / "scenario-bank-v2.json")
         scenario = bank["scenarios"][0]
         source = (ROOT / scenario["source_path"]).read_bytes()
-        artifact = redesign.render_bounded_artifact(scenario, source)
 
         with tempfile.TemporaryDirectory() as tmp:
             destination = Path(tmp) / "rater-delivery" / str(scenario["id"])
-            manifest = redesign.write_delivery_bundle(
-                destination,
-                scenario,
-                artifact,
-                artifact,
-                redesign.build_rater_form(scenario),
-            )
-
-            source_records = [item for item in manifest["files"] if item["role"] == "original_source"]
-            self.assertEqual(len(source_records), 1)
-            delivered_source = destination / source_records[0]["path"]
-            self.assertEqual(delivered_source.read_bytes(), source)
-            self.assertEqual(source_records[0]["sha256"], scenario["source_sha256"])
+            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "blocked|superseded"):
+                redesign.render_bounded_artifact(scenario, source)
+            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "blocked|superseded"):
+                redesign.write_delivery_bundle(
+                    destination, scenario, b"option-a", b"option-b", {}
+                )
+            self.assertFalse(destination.exists())
 
     def test_red_svg_bounds_reject_paths_and_non_path_geometry_outside_canvas(self) -> None:
         artifacts = (
@@ -305,12 +282,8 @@ class PhaseDRedesignV3D2RedTest(unittest.TestCase):
             },
         ]
 
-        result = redesign.derive_d2_observation_thresholds(pairs)
-
-        self.assertEqual(result["required_treatment_denial_ids"], ["fault-hidden-by-baseline"])
-        self.assertEqual(result["evaluated_control_ids"], ["control-evaluated"])
-        self.assertFalse(result["all_seeded_material_faults_denied"])
-        self.assertFalse(result["thresholds_passed"])
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "exact contract and bank"):
+            redesign.derive_d2_observation_thresholds(pairs)
 
     def test_red_d2_bank_has_sixteen_cases_and_every_charter_fault_class_and_control(self) -> None:
         contract = redesign.load_json(REDESIGN / "d2" / "contract-v3.json")
@@ -339,7 +312,8 @@ class PhaseDRedesignV3FreezeRedTest(unittest.TestCase):
                 "red_evidence",
             }.issubset(classes)
         )
-        redesign.verify_corrected_freeze(ROOT, REDESIGN / "corrected-freeze-v3.json")
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "superseded"):
+            redesign.verify_corrected_freeze(ROOT, REDESIGN / "corrected-freeze-v3.json")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+{
+  "expected_evidence_unchanged": true,
+  "manifest_sha256": "c0e95a178fecc27da539c20e05e19b6347eb7a707c87e9d18d15a2f79e3e64a5",
+  "status": "evidence_reproduced"
+}

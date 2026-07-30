@@ -1,0 +1,50 @@
+{
+  "schema_version": "phase-d-d1-corrected-contract/v4",
+  "id": "phase-d-d1-corrected-contract-v4",
+  "status": "blocked_no_treatment_execution",
+  "treatment_execution_authorized": false,
+  "scenario_bank": "docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json",
+  "blocked_protocol_checks": [
+    "validate_scenario_ids_categories_sources_and_input_contract",
+    "validate_exact_balance_algorithm_without_running_workflows",
+    "validate_renderer_output_only_with_explicit_non_treatment_canaries",
+    "validate_svg_supported_subset_against_adversarial_geometry"
+  ],
+  "treatment_operations_forbidden_while_blocked": [
+    "execute_d1_workflow",
+    "render_scenario_candidate",
+    "render_scenario_comparator",
+    "create_rater_delivery",
+    "create_custody_mapping"
+  ],
+  "svg_supported_subset": {
+    "canvas": "512x512 viewBox 0 0 512 512",
+    "elements": [
+      "svg",
+      "title",
+      "rect",
+      "circle",
+      "ellipse",
+      "line",
+      "polyline",
+      "polygon",
+      "path_absolute_M_L_H_V_Z_only"
+    ],
+    "fail_closed": [
+      "foreign_namespaces",
+      "relative_paths",
+      "path_without_initial_absolute_moveto",
+      "strokes",
+      "inline_or_css_styles",
+      "transforms",
+      "nested_tspan_or_text",
+      "use_defs_symbols_groups",
+      "curves_or_arcs",
+      "external_or_malformed_image_references",
+      "all_image_elements_without_renderer_decoder_validation",
+      "all_text_elements_without_renderer_grade_font_metrics",
+      "paint_server_or_external_paint_references",
+      "malformed_or_unsupported_geometry"
+    ]
+  }
+}

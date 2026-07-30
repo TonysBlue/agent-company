@@ -1,0 +1,77 @@
+{
+  "schema_version": "phase-d-redesign-freeze/v4",
+  "id": "phase-d-corrected-d1-d2-freeze-v4",
+  "status": "blocked_pending_real_replay_committed_review_target_external_credentials_independent_approval_and_ceo_start",
+  "author_principals": [
+    "principal-ceo",
+    "codex-implementer"
+  ],
+  "baseline_review_target": {
+    "commit": "33bcb6371e18c08b05c49723282db24389b8bc6c",
+    "tree": "1447dcf47adc67ee280720a64abaf094743bdd1c",
+    "scope": "entire_git_tree",
+    "require_clean_worktree": true
+  },
+  "candidate_review_target": null,
+  "candidate_review_target_source": {
+    "kind": "hardened_external_signed_manifest",
+    "manifest_path": "/etc/agent-company/phase-d/review-target-v4.json",
+    "repository_file_hashes_forbidden": true,
+    "purpose": "bind a future committed candidate HEAD/tree without a self-referential repository hash graph"
+  },
+  "protocol_inputs": {
+    "d1_contract": "docs/assurance/phase-d/redesign/d1/contract-v4.json",
+    "d1_scenario_bank": "docs/assurance/phase-d/redesign/d1/scenario-bank-v3.json",
+    "d2_contract": "docs/assurance/phase-d/redesign/d2/contract-v4.json",
+    "d2_mutation_bank": "docs/assurance/phase-d/redesign/d2/mutation-bank-v4.json",
+    "supersession_record": "docs/assurance/phase-d/redesign/supersession-record-v4.json"
+  },
+  "real_production_replay": {
+    "status": "not_implemented",
+    "treatment_pass_possible": false,
+    "required_environment": "isolated copies initialized through the real Company OS schema and public control APIs",
+    "surrogate_schema_or_blanket_trigger_results_accepted": false
+  },
+  "execution_gate": {
+    "execution_authorized": false,
+    "trusted_registry_path": "/etc/agent-company/phase-d/governance-registry-v4.json",
+    "trusted_registry_must_be_external_regular_0600_non_symlink": true,
+    "caller_provided_credentials_accepted": false,
+    "reviewer_identity": {
+      "principal_id": "principal-control-review",
+      "role": "Control & Reliability Reviewer",
+      "key_id": "phase-d-reviewer-v4"
+    },
+    "ceo_identity": {
+      "principal_id": "principal-ceo",
+      "role": "CEO",
+      "key_id": "phase-d-ceo-v4"
+    },
+    "independent_approval_path": "docs/assurance/phase-d/redesign/independent-approval-v4.json",
+    "ceo_start_decision_path": "docs/assurance/phase-d/redesign/ceo-start-decision-v4.json",
+    "independent_approval_present": false,
+    "ceo_start_decision_present": false
+  },
+  "allowed_while_blocked": [
+    "static_protocol_validation",
+    "non_treatment_validator_canaries",
+    "strict_tdd",
+    "regression_validation",
+    "temporary_evidence_reproduction",
+    "candidate_commit_and_independent_review"
+  ],
+  "forbidden_while_blocked": [
+    "d1_treatment_workflow_execution",
+    "d2_treatment_workflow_execution",
+    "d1_artifact_generation_or_rater_delivery",
+    "d2_database_or_repository_mutation",
+    "treatment_threshold_certification",
+    "live_database_mutation",
+    "service_restart",
+    "customer_contact",
+    "spend",
+    "publication",
+    "production_action",
+    "pixweave_edit"
+  ]
+}

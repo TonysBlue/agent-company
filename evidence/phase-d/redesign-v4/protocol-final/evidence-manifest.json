@@ -1,0 +1,14 @@
+{
+  "artifacts": [
+    {
+      "bytes": 13093,
+      "path": "protocol-result.json",
+      "sha256": "5ebe9bd4a6e60bd151690e22edd4f04c2fe7390e8e5d3ff3724d179fb8c6f7f8"
+    }
+  ],
+  "corrected_treatments_executed": false,
+  "external_actions_observed": [],
+  "phase_d_treatment_pass_possible": false,
+  "schema_version": "phase-d-redesign-evidence-manifest/v4",
+  "status": "blocked_protocol_checks_complete"
+}

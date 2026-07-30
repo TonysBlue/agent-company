@@ -1,30 +1,37 @@
-# Phase D Corrected D1/D2 Redesign
+# Phase D Corrected D1/D2 Redesign V4
 
-This directory is the corrected design lineage prepared from independent findings at HEAD
-`6626411`. The prior D1/D2 treatment evidence under `evidence/phase-d/d1` and
-`evidence/phase-d/d2` is preserved unchanged and marked invalid/superseded by
-`supersession-record-v1.json`.
+V4 supersedes V3 after review of immutable HEAD
+`33bcb6371e18c08b05c49723282db24389b8bc6c` and tree
+`1447dcf47adc67ee280720a64abaf094743bdd1c`. Historical D1/D2 and V3 evidence is
+preserved but cannot support treatment or threshold conclusions.
 
 ## Approval gate
 
-`corrected-freeze-v2.json` binds the independent findings, CEO start-decision proposal, D1/D2
-contracts, scenario bank and mutation bank by SHA-256. It is deliberately
-`blocked_pending_independent_approval`. A separate reviewer must create
-`independent-approval-v2.json` with a non-author principal, bind the freeze and every document
-hash, and resolve all Critical/High findings before corrected treatment execution can be
-authorized. The CEO proposal is `do_not_start` until that approval exists.
+`corrected-freeze-v4.json` is deliberately blocked. It uses Git commit/tree objects and a future
+hardened external review-target manifest instead of circular repository file hashes. Treatment
+cannot become passable until all sixteen named cases replay the real Company OS C2 schemas and
+public control APIs in isolated copies, a clean committed candidate HEAD/tree is externally
+bound, reviewer and CEO credentials load from the frozen external 0600 registry, an independent
+approval exists, and a separate later CEO start decision exists. None exists now.
 
 ## Allowed validation
 
-Tooling, fixtures, RED tests, dry-run validation and regressions are allowed before approval:
+Only non-treatment protocol checks, RED/GREEN tests and regressions are allowed while blocked:
 
 ```text
-python3.11 scripts/run_phase_d_redesign_dry_run.py
-python3.11 -m unittest tests.test_phase_d_redesign tests.test_phase_d_treatments tests.test_phase_d_d0 -v
+python3.11 scripts/run_phase_d_redesign_v4_protocol.py --development-overlay --output /tmp/phase-d-v4-protocol
+python3.11 scripts/run_phase_d_redesign_v4_protocol.py --development-overlay --verify --output /tmp/phase-d-v4-protocol
+python3.11 -m unittest tests.test_phase_d_redesign tests.test_phase_d_redesign_v3 tests.test_phase_d_redesign_v4 -v
 ```
 
-The dry-run writes only synthetic evidence under `evidence/phase-d/redesign`, emits six D1
-delivery bundles and three D2 mutation canaries, and records
-`corrected_treatments_executed: false`. It never reads customer data, mutates a live database or
-worktree, edits PixWeave source, sends outreach, spends money, publishes or performs production
-actions.
+The protocol runner validates scenario/bank structure, assignment logic, adversarial SVG
+canaries, sixteen distinct production-control mappings, the real-replay blocker, external trust
+requirements and reproducibility. It executes zero D1/D2 workflows, creates zero D1 artifacts,
+attempts zero D2 mutations, collects zero observations and always reports thresholds false. Verify
+mode reproduces into a temporary directory and compares manifests without deleting or mutating
+the expected evidence.
+
+Legacy D1 renderer and rater-delivery helpers, legacy D2 surrogate helpers, V3 authorization and
+the V2/V3 dry-run entrypoints fail closed. A future real-replay implementation must include an
+executable verifier; changing contract status and supplying attestation booleans cannot make D2
+threshold derivation pass.
