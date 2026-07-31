@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -11,8 +10,6 @@ from agent_company.phase_d_d0 import (
     D0Error,
     aggregate_results,
     comparator_commits,
-    render_report,
-    run_case,
     load_json,
     parse_regression_test_count,
     tooling_hashes,
@@ -160,78 +157,6 @@ class PhaseD0BaselineTest(unittest.TestCase):
             "rate": 1.0,
         })
         self.assertEqual(summary["control"]["false_blocks"], {"count": 0, "valid_controls": 1})
-
-    def test_report_labels_host_local_timing_and_records_governance(self) -> None:
-        results = [self.result("product-1", "product", 10, 30, seeded_fault=False)]
-        report = render_report(
-            run={
-                "run_id": "phase-d-d0-baseline-v1",
-                "started_at": "2026-07-29T08:00:00.000000+00:00",
-                "ended_at": "2026-07-29T08:00:01.000000+00:00",
-                "repositories": {"agent-company": "a" * 40, "pixweave": "b" * 40},
-                "regression_test_counts": {"agent-company": 220, "pixweave": 58},
-                "freeze_manifest_sha256": "c" * 64,
-                "timing_scope": "host_local",
-                "governance": {
-                    "independent_review": "approve",
-                    "chairman_confirmation": "confirmed_all_five_items",
-                },
-                "artifact_preparation": {
-                    "started_at": "2026-07-29T08:00:00.000000+00:00",
-                    "ended_at": "2026-07-29T08:00:00.010000+00:00",
-                    "elapsed_ms": 10,
-                },
-            },
-            summary=aggregate_results(results),
-            results=results,
-        )
-
-        self.assertIn("host-local p50/p90 waits", report)
-        self.assertIn("Independent baseline review: `approve`", report)
-        self.assertIn("Chairman confirmation: `confirmed_all_five_items`", report)
-
-    def test_replay_can_run_against_a_frozen_detached_repository_path(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            repository = root / "frozen-pixweave"
-            output = root / "evidence"
-            (repository / "tests").mkdir(parents=True)
-            (repository / "tests" / "__init__.py").write_text("", encoding="utf-8")
-            (repository / "tests" / "test_probe.py").write_text(
-                "import unittest\n\n"
-                "class ProbeTest(unittest.TestCase):\n"
-                "    def test_control(self):\n"
-                "        self.assertTrue(True)\n",
-                encoding="utf-8",
-            )
-            subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
-            subprocess.run(["git", "add", "."], cwd=repository, check=True)
-            subprocess.run(
-                ["git", "-c", "user.name=D0", "-c", "user.email=d0@example.invalid", "commit", "-qm", "fixture"],
-                cwd=repository,
-                check=True,
-            )
-            result = run_case(
-                {
-                    "id": "frozen-path-control",
-                    "domain": "product",
-                    "case_kind": "synthetic_product_replay",
-                    "repository": "pixweave",
-                    "test_target": "tests.test_probe.ProbeTest.test_control",
-                    "seeded_fault": False,
-                    "valid_control": True,
-                    "severity": "low",
-                },
-                output,
-                freeze_sha256="f" * 64,
-                repository_paths={"pixweave": repository},
-            )
-
-            self.assertEqual(result["probe_result"], "pass")
-            self.assertEqual(result["repository_commit"], subprocess.run(
-                ["git", "rev-parse", "HEAD"], cwd=repository, check=True,
-                text=True, stdout=subprocess.PIPE,
-            ).stdout.strip())
 
     @staticmethod
     def result(

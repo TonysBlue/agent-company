@@ -14,7 +14,7 @@
   },
   "candidate_review_target": null,
   "candidate_review_target_source": {
-    "kind": "hardened_external_signed_manifest",
+    "kind": "external_signed_manifest_pending_separate_verifier",
     "manifest_path": "/etc/agent-company/phase-d/review-target-v4.json",
     "repository_file_hashes_forbidden": true,
     "purpose": "bind a future committed candidate HEAD/tree without a self-referential repository hash graph"
@@ -34,8 +34,9 @@
   },
   "execution_gate": {
     "execution_authorized": false,
-    "trusted_registry_path": "/etc/agent-company/phase-d/governance-registry-v4.json",
-    "trusted_registry_must_be_external_regular_0600_non_symlink": true,
+    "production_signature_verifier": "not_implemented",
+    "runtime_credential_loading_enabled": false,
+    "runtime_signing_helper_present": false,
     "caller_provided_credentials_accepted": false,
     "reviewer_identity": {
       "principal_id": "principal-control-review",

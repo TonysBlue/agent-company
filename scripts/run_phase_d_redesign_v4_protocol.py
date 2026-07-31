@@ -30,15 +30,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--development-overlay",
         action="store_true",
-        help="verify the reviewed baseline Git object while local TDD changes remain uncommitted",
+        help="run explicitly unverified, non-candidate diagnostics over the reviewed baseline object",
     )
     args = parser.parse_args(argv)
+    if args.verify and args.development_overlay:
+        raise PhaseDRedesignError(
+            "--development-overlay cannot be combined with --verify; development output "
+            "is unverified diagnostics and is not candidate evidence"
+        )
     if args.verify:
         result = verify_redesign_evidence(
             ROOT,
             args.output,
             freeze_path=FREEZE,
-            require_immutable_head=not args.development_overlay,
         )
     else:
         result = run_redesign_dry_run(

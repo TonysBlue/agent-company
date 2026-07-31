@@ -1,0 +1,98 @@
+test_module_exposes_no_execution_evidence_writer_or_report_helpers (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_module_exposes_no_execution_evidence_writer_or_report_helpers) ... FAIL
+test_runner_fails_before_subprocess_write_or_output (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runner_fails_before_subprocess_write_or_output) ... FAIL
+test_runtime_sources_have_no_positive_d1_d2_authorization_claims (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runtime_sources_have_no_positive_d1_d2_authorization_claims) ...
+  test_runtime_sources_have_no_positive_d1_d2_authorization_claims (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runtime_sources_have_no_positive_d1_d2_authorization_claims) (relative='agent_company/phase_d_d0.py') ... FAIL
+  test_runtime_sources_have_no_positive_d1_d2_authorization_claims (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runtime_sources_have_no_positive_d1_d2_authorization_claims) (relative='scripts/run_phase_d_d0.py') ... FAIL
+test_record_has_exact_denylist_invalid_claims_and_freeze_binding (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_record_has_exact_denylist_invalid_claims_and_freeze_binding) ... ERROR
+test_v4_freeze_verification_invokes_supersession_validation (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_v4_freeze_verification_invokes_supersession_validation) ... ERROR
+test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts) ... ERROR
+
+======================================================================
+ERROR: test_record_has_exact_denylist_invalid_claims_and_freeze_binding (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_record_has_exact_denylist_invalid_claims_and_freeze_binding)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_d0_supersession_review.py", line 137, in test_record_has_exact_denylist_invalid_claims_and_freeze_binding
+    for item in record["denylist"]["artifacts"]
+                ~~~~~~^^^^^^^^^^^^
+KeyError: 'denylist'
+
+======================================================================
+ERROR: test_v4_freeze_verification_invokes_supersession_validation (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_v4_freeze_verification_invokes_supersession_validation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_d0_supersession_review.py", line 186, in test_v4_freeze_verification_invokes_supersession_validation
+    wraps=redesign.validate_v4_supersession_record,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'validate_v4_supersession_record'
+
+======================================================================
+ERROR: test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_d0_supersession_review.py", line 157, in test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts
+    validated = redesign.validate_v4_supersession_record(ROOT, freeze, record)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'agent_company.phase_d_redesign' has no attribute 'validate_v4_supersession_record'
+
+======================================================================
+FAIL: test_module_exposes_no_execution_evidence_writer_or_report_helpers (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_module_exposes_no_execution_evidence_writer_or_report_helpers)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_d0_supersession_review.py", line 89, in test_module_exposes_no_execution_evidence_writer_or_report_helpers
+    self.assertTrue(removed.isdisjoint(vars(legacy_d0)))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_runner_fails_before_subprocess_write_or_output (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runner_fails_before_subprocess_write_or_output)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_d0_supersession_review.py", line 103, in test_runner_fails_before_subprocess_write_or_output
+    self.assertTrue(removed.isdisjoint(vars(runner)))
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_runtime_sources_have_no_positive_d1_d2_authorization_claims (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runtime_sources_have_no_positive_d1_d2_authorization_claims) (relative='agent_company/phase_d_d0.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_d0_supersession_review.py", line 127, in test_runtime_sources_have_no_positive_d1_d2_authorization_claims
+    self.assertFalse(any(claim in source for claim in forbidden))
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_runtime_sources_have_no_positive_d1_d2_authorization_claims (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runtime_sources_have_no_positive_d1_d2_authorization_claims) (relative='scripts/run_phase_d_d0.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_phase_d_d0_supersession_review.py", line 127, in test_runtime_sources_have_no_positive_d1_d2_authorization_claims
+    self.assertFalse(any(claim in source for claim in forbidden))
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.003s
+
+FAILED (failures=4, errors=3)
+
+===== GREEN after minimal implementation =====
+test_module_exposes_no_execution_evidence_writer_or_report_helpers (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_module_exposes_no_execution_evidence_writer_or_report_helpers) ... ok
+test_runner_fails_before_subprocess_write_or_output (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runner_fails_before_subprocess_write_or_output) ... ok
+test_runtime_sources_have_no_positive_d1_d2_authorization_claims (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runtime_sources_have_no_positive_d1_d2_authorization_claims) ... ok
+test_record_has_exact_denylist_invalid_claims_and_freeze_binding (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_record_has_exact_denylist_invalid_claims_and_freeze_binding) ... ok
+test_v4_freeze_verification_invokes_supersession_validation (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_v4_freeze_verification_invokes_supersession_validation) ... ok
+test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.032s
+
+OK
+
+===== FINAL GREEN after exact freeze SHA-256 binding =====
+test_module_exposes_no_execution_evidence_writer_or_report_helpers (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_module_exposes_no_execution_evidence_writer_or_report_helpers) ... ok
+test_runner_fails_before_subprocess_write_or_output (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runner_fails_before_subprocess_write_or_output) ... ok
+test_runtime_sources_have_no_positive_d1_d2_authorization_claims (tests.test_phase_d_d0_supersession_review.PhaseDD0PermanentTombstoneTest.test_runtime_sources_have_no_positive_d1_d2_authorization_claims) ... ok
+test_record_has_exact_denylist_invalid_claims_and_freeze_binding (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_record_has_exact_denylist_invalid_claims_and_freeze_binding) ... ok
+test_v4_freeze_verification_invokes_supersession_validation (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_v4_freeze_verification_invokes_supersession_validation) ... ok
+test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts (tests.test_phase_d_d0_supersession_review.PhaseDV4ExhaustiveSupersessionTest.test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.022s
+
+OK

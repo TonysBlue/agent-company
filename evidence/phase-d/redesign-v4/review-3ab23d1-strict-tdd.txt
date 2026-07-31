@@ -1,0 +1,32 @@
+Strict TDD review regression cycle for candidate
+3ab23d1630457f63aa310a9a206f5429493ed659
+
+RED command:
+python3.11 -m unittest tests.test_phase_d_review_findings -v
+
+RED result before implementation:
+Ran 12 tests in 0.357s
+FAILED (failures=21, including subtests)
+
+Observed failing classes:
+- injectable authoritative_root, attestation, and globals verifier remained in the threshold API
+- frozen target/mutation/replay/protected-path metadata was not compared deeply
+- legacy treatment runner and module still exposed callable execution/pass helpers
+- runtime exposed a signing helper and loaded raw HMAC verification secrets
+- external trust paths were accessed through TOCTOU-prone parent checks
+- skip-worktree and assume-unchanged flags concealed tracked byte drift
+- ignored runtime-sensitive source was omitted from clean-tree verification
+- strict reproduction fell back to the historical baseline instead of requiring a candidate manifest
+- raw XML DOCTYPE, processing instructions, and entities survived preprocessing into ElementTree
+- the verification report described the wrong review target and disposition
+
+GREEN command:
+python3.11 -m unittest tests.test_phase_d_review_findings tests.test_phase_d_treatments tests.test_phase_d_redesign tests.test_phase_d_redesign_v3 tests.test_phase_d_redesign_v4 -v
+
+GREEN result after implementation:
+Ran 48 tests in 2.120s
+OK
+
+No D1/D2 treatment entrypoint was invoked by this cycle. The legacy-runner test imports the
+tombstone and asserts failure before output; the evidence tests snapshot and compare existing
+evidence around blocked verification.

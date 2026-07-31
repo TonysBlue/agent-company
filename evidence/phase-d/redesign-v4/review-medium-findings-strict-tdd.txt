@@ -1,0 +1,262 @@
+Phase D V4 supplied Medium findings - strict TDD review log
+Date: 2026-07-30 Asia/Shanghai
+
+Scope
+- Finding 1: development-overlay verification could return evidence_reproduced on unbound code.
+- Finding 2: ignored paths below broad generated roots bypassed immutable-target validation.
+
+Protected-state baseline before RED
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Historical-evidence inventory SHA-256:
+  a4298fa64a8faab8cc3f939be38f9c6cf9a16662c3b8ce417cd860d4abf3e460
+- The inventory excludes only verification-report.md and this new review log.
+
+RED command
+python3.11 -m unittest tests.test_phase_d_medium_findings -v
+
+RED result
+test_development_overlay_outputs_are_explicitly_unverified_non_candidates ... FAIL
+test_public_runner_rejects_verify_with_development_overlay_before_dispatch ... FAIL
+test_verifier_has_no_caller_selected_unbound_success_mode ... FAIL
+test_ignored_runtime_sensitive_unknown_executable_and_link_content_is_rejected ...
+  python_source ... FAIL
+  shell_hook ... FAIL
+  native_library ... FAIL
+  config ... FAIL
+  named_config_json ... FAIL
+  hook_path ... FAIL
+  venv_sitecustomize ... FAIL
+  pth_injection ... FAIL
+  unknown_extension ... FAIL
+  executable_json ... FAIL
+  symlink_with_allowed_name ... FAIL
+test_only_known_inert_nonexecutable_generated_files_are_allowed ... ok
+
+Exact failure observations
+- Development output schema was phase-d-redesign-blocked-protocol/v4, not development-only.
+- The public runner dispatched verify_redesign_evidence for --verify --development-overlay.
+- verify_redesign_evidence still exposed require_immutable_head in its public signature.
+- Every adversarial ignored path completed without raising PhaseDRedesignError.
+
+----------------------------------------------------------------------
+Ran 5 tests in 1.720s
+
+FAILED (failures=14)
+Process exit: 1
+
+No D0, D1, D2, treatment, or protocol script was run. The RED diagnostics call used only the
+in-process non-treatment development-overlay API with a temporary output directory.
+
+Resumed RED confirmation before implementation
+- Database SHA-256: 9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Historical-evidence inventory SHA-256:
+  a4298fa64a8faab8cc3f939be38f9c6cf9a16662c3b8ce417cd860d4abf3e460
+- The same command reproduced the same 14 failures and allowed inert-data pass.
+- Ran 5 tests in 1.645s; FAILED (failures=14); process exit 1.
+
+GREEN and final verification results are appended below after implementation.
+
+GREEN implementation
+- The public runner rejects --verify + --development-overlay before dispatch or output.
+- verify_redesign_evidence has no caller-selected unbound mode and always blocks before evidence
+  access until an external signed candidate manifest and separate verifier exist.
+- Development-overlay result and manifest documents are explicitly development-only, unverified,
+  and non-candidate; no evidence_reproduced success remains.
+- Immutable review-target validation uses a file-level inert generated-data allowlist rather than
+  ignored-root exemptions. It rejects code, scripts, configs/hooks, executable files, symlinks,
+  .pth files, native libraries, unknown files, and JSON outside justified artifact/manifest paths.
+- Allowed ignored content is limited to non-executable inert SQLite/journal, valid JSON artifact
+  records/archive manifests, logs, numeric PID files, locks, and socket artifacts.
+
+Focused GREEN command
+python3.11 -m unittest tests.test_phase_d_medium_findings -v
+
+Focused GREEN result
+---------------------------------------------------------------------
+Ran 5 tests in 1.977s
+
+OK
+Process exit: 0
+
+Complete Phase D-focused command
+python3.11 -m unittest tests.test_phase_d_d0 tests.test_phase_d_d0_supersession_review tests.test_phase_d_medium_findings tests.test_phase_d_redesign tests.test_phase_d_redesign_v3 tests.test_phase_d_redesign_v4 tests.test_phase_d_review_findings tests.test_phase_d_treatments -v
+
+Complete Phase D-focused result
+---------------------------------------------------------------------
+Ran 66 tests in 2.746s
+
+OK
+Process exit: 0
+
+Full Agent Company command
+python3.11 -m unittest discover -s tests -v
+
+Full Agent Company result
+---------------------------------------------------------------------
+Ran 286 tests in 21.063s
+
+OK
+Process exit: 0
+
+Full PixWeave command
+(cwd /home/tony/products/pixweave) python3.11 -m unittest discover -s tests -v
+
+Full PixWeave result
+---------------------------------------------------------------------
+Ran 58 tests in 0.300s
+
+OK
+Process exit: 0
+
+Other final checks
+- python3.11 -m agent_company.cli validate: exit 0; {"ok": true, "errors": []}
+- Agent Company tracked Python py_compile: exit 0
+- PixWeave tracked Python py_compile: exit 0
+- Agent Company git diff --check: exit 0, no output
+- PixWeave git diff --check: exit 0, no output
+- PixWeave git status --short: exit 0, no output
+
+Protected-state final verification
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Historical-evidence inventory: 630 files, excluding only verification-report.md and this review
+  log.
+- Historical-evidence inventory SHA-256:
+  a4298fa64a8faab8cc3f939be38f9c6cf9a16662c3b8ce417cd860d4abf3e460
+- Both hashes exactly match the protected-state baseline captured before RED.
+
+No D0, D1, D2, treatment, or protocol execution script was run. No historical evidence other
+than verification-report.md and this new review log was mutated. data/company.sqlite3 was not
+mutated. No service, credential, approval, commit, or push was created.
+
+===== Independent-review High follow-up: zero ignored candidate state =====
+Date: 2026-07-31 Asia/Shanghai
+
+Finding
+- verify_immutable_review_target claimed scope entire_git_tree while accepting ignored SQLite,
+  sidecar, JSON, log, PID, lock, and socket runtime state. Strict candidate verification must fail
+  closed on every ignored file and filesystem object, with no inert allowlist.
+
+Protected-state baseline before follow-up RED
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Historical-evidence inventory: 630 files, excluding only verification-report.md and this review
+  log.
+- Historical-evidence inventory SHA-256:
+  a4298fa64a8faab8cc3f939be38f9c6cf9a16662c3b8ce417cd860d4abf3e460
+
+Follow-up RED command
+python3.11 -m unittest tests.test_phase_d_medium_findings -v
+
+Follow-up RED result
+- SQLite, WAL, SHM, journal, JSON, log, PID, lock, and real Unix-domain socket subtests failed
+  because verify_immutable_review_target returned success instead of raising PhaseDRedesignError.
+- Ignored code, symlink, and executable subtests already raised under the prior remediation.
+- Ran 6 tests in 3.091s; FAILED (failures=9); process exit 1.
+
+Expanded RED confirmation before implementation
+- Added an empty ignored directory to cover non-file filesystem objects explicitly.
+- SQLite, WAL, SHM, journal, JSON, log, PID, lock, empty directory, and real Unix-domain socket
+  subtests failed because verification returned success. Code, symlink, and executable passed their
+  fail-closed assertions.
+- Ran 6 tests in 2.966s; FAILED (failures=10); process exit 1.
+
+Historical-record clarification
+- The earlier Medium-cycle statements allowing inert generated data accurately describe that
+  cycle's implementation and GREEN result. They are superseded by this High remediation and are
+  not the current candidate-verification policy.
+
+No D0, D1, D2, treatment, or protocol script was run for this RED capture. No protected data,
+historical evidence other than this review log, service, credential, approval, commit, or push was
+created or mutated.
+
+Follow-up GREEN and final verification results are appended below after implementation.
+
+Follow-up GREEN implementation
+- verify_immutable_review_target asks Git for all ignored, untracked paths with directory entries
+  included and fails on any result. It performs no suffix, content, mode, or object-type allowlist.
+- Tests individually cover SQLite, WAL, SHM, journal, JSON, log, PID, lock, code, an empty
+  directory, a real Unix-domain socket, a symlink, and an executable ignored file.
+- README and verification-report policy now require a strict candidate clone with zero ignored
+  files or filesystem objects. Development-overlay diagnostics remain explicitly unverified and
+  non-candidate.
+
+Focused GREEN command
+python3.11 -m unittest tests.test_phase_d_medium_findings -v
+
+Focused GREEN result
+----------------------------------------------------------------------
+Ran 6 tests in 2.277s
+
+OK
+Process exit: 0
+
+Combined independent-review regression command
+python3.11 -m unittest tests.test_phase_d_medium_findings tests.test_phase_d_review_findings -v
+
+Combined independent-review regression result
+----------------------------------------------------------------------
+Ran 18 tests in 3.802s
+
+OK
+Process exit: 0
+
+Complete Phase D-focused command
+python3.11 -m unittest tests.test_phase_d_d0 tests.test_phase_d_d0_supersession_review tests.test_phase_d_medium_findings tests.test_phase_d_redesign tests.test_phase_d_redesign_v3 tests.test_phase_d_redesign_v4 tests.test_phase_d_review_findings tests.test_phase_d_treatments -v
+
+Complete Phase D-focused result
+----------------------------------------------------------------------
+Ran 67 tests in 3.173s
+
+OK
+Process exit: 0
+
+Full Agent Company command
+python3.11 -m unittest discover -s tests -v
+
+Full Agent Company result
+----------------------------------------------------------------------
+Ran 287 tests in 25.553s
+
+OK
+Process exit: 0
+
+Full PixWeave command
+(cwd /home/tony/products/pixweave) python3.11 -m unittest discover -s tests -v
+
+Full PixWeave result
+----------------------------------------------------------------------
+Ran 58 tests in 0.325s
+
+OK
+Process exit: 0
+
+Other final checks
+- python3.11 -m agent_company.cli validate: exit 0; {"ok": true, "errors": []}
+- Agent Company Python py_compile: exit 0; 95 bytecode outputs in a temporary cache.
+- PixWeave Python py_compile: exit 0; 62 bytecode outputs in a temporary cache.
+- Agent Company git diff --check: exit 0, no output.
+- PixWeave git diff --check: exit 0, no output.
+- PixWeave git status --short: exit 0, no output.
+
+Security scans
+- Bandit 1.9.4 was installed only in temporary virtual environments outside both repositories.
+- Agent Company runtime/scripts: exit 1; 11,087 lines scanned; 0 High, 6 Medium, 27 Low. The
+  Medium reports are existing dashboard all-interface defaults, parameterized SQL construction
+  heuristics, and the guarded ElementTree SVG parser; none arises from the ignored-object change.
+- PixWeave runtime: exit 0; 3,218 lines scanned; 0 High, 0 Medium, 0 Low.
+
+Protected-state final verification
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Historical-evidence inventory: 630 files, excluding only verification-report.md and this review
+  log.
+- Historical-evidence inventory SHA-256:
+  a4298fa64a8faab8cc3f939be38f9c6cf9a16662c3b8ce417cd860d4abf3e460
+- Both hashes exactly match the protected-state baseline captured before follow-up RED.
+- Post-evidence focused recheck: 18 tests in 2.664s; OK; process exit 0.
+
+No D0, D1, D2, treatment, or protocol execution script was run. No historical evidence other
+than verification-report.md and this review log was mutated. data/company.sqlite3 was not
+mutated. No service, credential, approval, commit, or push was created.

@@ -98,7 +98,12 @@ class PhaseDRedesignV4BlockedDryRunTest(unittest.TestCase):
                     allow_development_overlay=True,
                 )
 
-        self.assertEqual(result["status"], "blocked_protocol_checks_complete")
+        self.assertEqual(
+            result["status"], "development_only_unverified_non_candidate"
+        )
+        self.assertTrue(result["development_only"])
+        self.assertFalse(result["verified"])
+        self.assertFalse(result["candidate_evidence"])
         self.assertFalse(result["corrected_treatments_executed"])
         self.assertEqual(result["d1"]["treatment_workflows_executed"], 0)
         self.assertEqual(result["d1"]["artifacts_generated"], 0)
@@ -109,13 +114,12 @@ class PhaseDRedesignV4BlockedDryRunTest(unittest.TestCase):
         self.assertEqual(
             set(result["checks_executed"]),
             {
-                "immutable_review_target_protocol",
-                "external_governance_registry_protocol",
+                "baseline_git_object_diagnostic",
+                "separate_signature_verifier_blocker",
                 "d1_static_input_and_renderer_contract",
                 "d1_svg_adversarial_validator_canaries",
                 "d2_named_production_control_mapping",
                 "d2_real_replay_blocker",
-                "evidence_manifest_reproducibility_protocol",
             },
         )
         self.assertEqual(
@@ -209,337 +213,25 @@ class PhaseDRedesignV4RealReplayTest(unittest.TestCase):
 
 
 class PhaseDRedesignV4CredentialTrustTest(unittest.TestCase):
-    def _trust_fixture(self, root: Path) -> tuple[Path, dict[str, object], dict[str, bytes]]:
-        repository = root / "repository"
-        repository.mkdir(mode=0o700)
-        _git(repository, "init", "-q")
-        _git(repository, "config", "user.name", "Phase D Test")
-        _git(repository, "config", "user.email", "phase-d@example.invalid")
-        (repository / "target.txt").write_text("target\n", encoding="utf-8")
-        _git(repository, "add", "target.txt")
-        _git(repository, "commit", "-qm", "target")
-        target = {
-            "commit": _git(repository, "rev-parse", "HEAD"),
-            "tree": _git(repository, "rev-parse", "HEAD^{tree}"),
-            "scope": "entire_git_tree",
-            "require_clean_worktree": True,
-        }
-        trust = root / "external-trust"
-        trust.mkdir(mode=0o700)
-        secrets = {
-            "phase-d-reviewer-v4": b"trusted reviewer secret",
-            "phase-d-ceo-v4": b"trusted ceo secret",
-        }
-        credential_paths = {}
-        for key_id, secret in secrets.items():
-            path = trust / f"{key_id}.credential"
-            path.write_bytes(secret)
-            path.chmod(0o600)
-            credential_paths[key_id] = str(path)
-        registry = trust / "registry.json"
-        registry.write_text(json.dumps({
-            "schema_version": "phase-d-governance-registry/v4",
-            "freeze_id": "phase-d-v4-test-freeze",
-            "credentials": [
-                {
-                    "principal_id": "principal-control-review",
-                    "role": "Control & Reliability Reviewer",
-                    "key_id": "phase-d-reviewer-v4",
-                    "credential_path": credential_paths["phase-d-reviewer-v4"],
-                },
-                {
-                    "principal_id": "principal-ceo",
-                    "role": "CEO",
-                    "key_id": "phase-d-ceo-v4",
-                    "credential_path": credential_paths["phase-d-ceo-v4"],
-                },
-            ],
-        }), encoding="utf-8")
-        registry.chmod(0o600)
-        freeze = {
-            "schema_version": "phase-d-redesign-freeze/v4",
-            "id": "phase-d-v4-test-freeze",
-            "author_principals": ["principal-ceo", "codex-implementer"],
-            "execution_gate": {
-                "trusted_registry_path": str(registry),
-                "reviewer_identity": {
-                    "principal_id": "principal-control-review",
-                    "role": "Control & Reliability Reviewer",
-                    "key_id": "phase-d-reviewer-v4",
-                },
-                "ceo_identity": {
-                    "principal_id": "principal-ceo",
-                    "role": "CEO",
-                    "key_id": "phase-d-ceo-v4",
-                },
-            },
-            "real_production_replay": {"status": "implemented_and_verified"},
-            "candidate_review_target": None,
-        }
-        manifest_path = trust / "review-target.json"
-        freeze["candidate_review_target_source"] = {
-            "kind": "hardened_external_signed_manifest",
-            "manifest_path": str(manifest_path),
-        }
-        manifest = redesign.sign_governance_record(
-            {
-                "schema_version": "phase-d-review-target/v4",
-                "freeze_id": freeze["id"],
-                "decision_scope": "review_and_verification_only",
-                "target": target,
-            },
-            principal_id="principal-control-review",
-            key_id="phase-d-reviewer-v4",
-            credential=secrets["phase-d-reviewer-v4"],
-        )
-        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        manifest_path.chmod(0o600)
-        freeze_path = repository / "docs" / "assurance" / "phase-d" / "redesign" / "corrected-freeze-v4.json"
-        freeze_path.parent.mkdir(parents=True)
-        freeze_path.write_text(json.dumps(freeze), encoding="utf-8")
-        _git(repository, "add", freeze_path.relative_to(repository).as_posix())
-        _git(repository, "commit", "-qm", "authoritative freeze")
-        target = {
-            "commit": _git(repository, "rev-parse", "HEAD"),
-            "tree": _git(repository, "rev-parse", "HEAD^{tree}"),
-            "scope": "entire_git_tree",
-            "require_clean_worktree": True,
-        }
-        manifest = redesign.sign_governance_record(
-            {
-                "schema_version": "phase-d-review-target/v4",
-                "freeze_id": freeze["id"],
-                "decision_scope": "review_and_verification_only",
-                "target": target,
-            },
-            principal_id="principal-control-review",
-            key_id="phase-d-reviewer-v4",
-            credential=secrets["phase-d-reviewer-v4"],
-        )
-        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-        manifest_path.chmod(0o600)
-        return repository, freeze, secrets
+    def test_runtime_credential_and_manifest_verification_are_fail_closed(self) -> None:
+        freeze = redesign.load_json(V4_FREEZE)
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "credential loading.*disabled"):
+            redesign.load_trusted_governance_credentials(ROOT, freeze)
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "separate signature verifier"):
+            redesign.load_external_review_target(ROOT, freeze)
 
-    def test_credentials_load_only_from_freeze_bound_external_hardened_registry(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repository, freeze, secrets = self._trust_fixture(Path(tmp))
-
-            loaded = redesign.load_trusted_governance_credentials(repository, freeze)
-
-            self.assertEqual(loaded, secrets)
-
-    def test_arbitrary_caller_keys_cannot_authorize_governance_records(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repository, freeze, _ = self._trust_fixture(Path(tmp))
-            approval = redesign.sign_governance_record(
-                {
-                    "schema_version": "phase-d-redesign-independent-approval/v4",
-                    "decision": "approve",
-                    "reviewer_principal": "principal-control-review",
-                    "reviewer_role": "Control & Reliability Reviewer",
-                    "unresolved_findings": [],
-                    "signed_at": "2026-07-30T10:00:00+08:00",
-                },
-                principal_id="principal-control-review",
-                key_id="phase-d-reviewer-v4",
-                credential=b"caller supplied attacker key",
+    def test_v4_has_no_execution_authorization_path(self) -> None:
+        freeze = redesign.load_json(V4_FREEZE)
+        blocked = redesign.evaluate_v4_authorization(ROOT, freeze, None, None)
+        self.assertFalse(blocked["execution_authorized"])
+        with self.assertRaisesRegex(redesign.PhaseDRedesignError, "authorization is unavailable"):
+            redesign.evaluate_v4_authorization(
+                ROOT,
+                freeze,
+                {"decision": "approve"},
+                {"decision": "start"},
+                require_execution_authorization=True,
             )
-
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "forged|authentic|signature"):
-                redesign.evaluate_v4_authorization(
-                    repository,
-                    freeze,
-                    approval,
-                    None,
-                    require_execution_authorization=True,
-                )
-
-    def test_repository_freeze_cannot_embed_a_candidate_target(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repository, freeze, _ = self._trust_fixture(Path(tmp))
-            freeze["candidate_review_target"] = redesign.load_external_review_target(
-                repository, freeze
-            )
-            freeze_path = (
-                repository / "docs" / "assurance" / "phase-d" / "redesign"
-                / "corrected-freeze-v4.json"
-            )
-            freeze_path.write_text(json.dumps(freeze), encoding="utf-8")
-
-            with self.assertRaisesRegex(
-                redesign.PhaseDRedesignError, "external.*manifest|embedded|self-referential"
-            ):
-                redesign.evaluate_v4_authorization(repository, freeze, None, None)
-
-    def test_governance_decisions_must_bind_the_freeze_identity(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            repository, freeze, secrets = self._trust_fixture(Path(tmp))
-            target = redesign.load_external_review_target(repository, freeze)
-            approval = redesign.sign_governance_record(
-                {
-                    "schema_version": "phase-d-redesign-independent-approval/v4",
-                    "decision": "approve",
-                    "reviewer_principal": "principal-control-review",
-                    "reviewer_role": "Control & Reliability Reviewer",
-                    "reviewed_target": target,
-                    "unresolved_findings": [],
-                    "signed_at": "2026-07-30T10:00:00+08:00",
-                },
-                principal_id="principal-control-review",
-                key_id="phase-d-reviewer-v4",
-                credential=secrets["phase-d-reviewer-v4"],
-            )
-
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "freeze.*identity"):
-                redesign.evaluate_v4_authorization(
-                    repository,
-                    freeze,
-                    approval,
-                    None,
-                    require_execution_authorization=True,
-                )
-
-    def test_caller_cannot_substitute_freeze_registry_and_identities_together(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            repository, freeze, _ = self._trust_fixture(root)
-            substituted = copy.deepcopy(freeze)
-            attack_trust = root / "attack-trust"
-            attack_trust.mkdir(mode=0o700)
-            attack_credentials = {
-                "attacker-reviewer": b"attacker reviewer key",
-                "attacker-ceo": b"attacker ceo key",
-            }
-            entries = []
-            identities = (
-                ("reviewer_identity", "attacker-reviewer-principal", "Attacker Reviewer", "attacker-reviewer"),
-                ("ceo_identity", "attacker-ceo-principal", "Attacker CEO", "attacker-ceo"),
-            )
-            for identity_name, principal_id, role, key_id in identities:
-                credential_path = attack_trust / f"{key_id}.credential"
-                credential_path.write_bytes(attack_credentials[key_id])
-                credential_path.chmod(0o600)
-                substituted["execution_gate"][identity_name] = {
-                    "principal_id": principal_id,
-                    "role": role,
-                    "key_id": key_id,
-                }
-                entries.append({
-                    "principal_id": principal_id,
-                    "role": role,
-                    "key_id": key_id,
-                    "credential_path": str(credential_path),
-                })
-            registry = attack_trust / "registry.json"
-            registry.write_text(json.dumps({
-                "schema_version": "phase-d-governance-registry/v4",
-                "freeze_id": substituted["id"],
-                "credentials": entries,
-            }), encoding="utf-8")
-            registry.chmod(0o600)
-            substituted["execution_gate"]["trusted_registry_path"] = str(registry)
-            substituted["author_principals"] = []
-            substituted_target = redesign.load_external_review_target(repository, freeze)
-            approval = redesign.sign_governance_record(
-                {
-                    "schema_version": "phase-d-redesign-independent-approval/v4",
-                    "decision": "approve",
-                    "reviewer_principal": "attacker-reviewer-principal",
-                    "reviewer_role": "Attacker Reviewer",
-                    "reviewed_target": substituted_target,
-                    "unresolved_findings": [],
-                    "signed_at": "2026-07-30T10:00:00+08:00",
-                },
-                principal_id="attacker-reviewer-principal",
-                key_id="attacker-reviewer",
-                credential=attack_credentials["attacker-reviewer"],
-            )
-            ceo = redesign.sign_governance_record(
-                {
-                    "schema_version": "phase-d-redesign-ceo-start-decision/v4",
-                    "decision": "start",
-                    "effective_authorization": True,
-                    "ceo_principal": "attacker-ceo-principal",
-                    "ceo_role": "Attacker CEO",
-                    "approved_target": substituted_target,
-                    "approved_independent_approval_sha256": redesign.sha256_bytes(
-                        redesign.canonical_json(approval).encode("ascii")
-                    ),
-                    "signed_at": "2026-07-30T10:01:00+08:00",
-                },
-                principal_id="attacker-ceo-principal",
-                key_id="attacker-ceo",
-                credential=attack_credentials["attacker-ceo"],
-            )
-
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "authoritative.*freeze|substitution"):
-                redesign.evaluate_v4_authorization(
-                    repository,
-                    substituted,
-                    approval,
-                    ceo,
-                    require_execution_authorization=True,
-                )
-
-    def test_external_review_target_manifest_requires_trusted_reviewer_signature(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            repository, freeze, secrets = self._trust_fixture(root)
-            manifest_path = root / "external-trust" / "review-target.json"
-            freeze["candidate_review_target"] = None
-            freeze["candidate_review_target_source"] = {
-                "kind": "hardened_external_signed_manifest",
-                "manifest_path": str(manifest_path),
-            }
-            manifest = {
-                "schema_version": "phase-d-review-target/v4",
-                "freeze_id": freeze["id"],
-                "decision_scope": "review_and_verification_only",
-                "target": {
-                    "commit": _git(repository, "rev-parse", "HEAD"),
-                    "tree": _git(repository, "rev-parse", "HEAD^{tree}"),
-                    "scope": "entire_git_tree",
-                    "require_clean_worktree": True,
-                },
-            }
-            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-            manifest_path.chmod(0o600)
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "signature|authenticated"):
-                redesign.load_external_review_target(repository, freeze)
-
-            signed = redesign.sign_governance_record(
-                manifest,
-                principal_id="principal-control-review",
-                key_id="phase-d-reviewer-v4",
-                credential=secrets["phase-d-reviewer-v4"],
-            )
-            manifest_path.write_text(json.dumps(signed), encoding="utf-8")
-            manifest_path.chmod(0o600)
-            self.assertEqual(
-                redesign.load_external_review_target(repository, freeze),
-                manifest["target"],
-            )
-
-    def test_registry_and_credentials_reject_symlinks_and_unsafe_permissions(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            repository, freeze, _ = self._trust_fixture(root)
-            registry = Path(freeze["execution_gate"]["trusted_registry_path"])
-            registry.chmod(0o644)
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "0600|permissions"):
-                redesign.load_trusted_governance_credentials(repository, freeze)
-
-            registry.chmod(0o600)
-            registry.parent.chmod(0o777)
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "directory|permissions"):
-                redesign.load_trusted_governance_credentials(repository, freeze)
-
-            registry.parent.chmod(0o700)
-            target = registry.with_name("registry-target.json")
-            registry.rename(target)
-            registry.symlink_to(target)
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "symlink|regular"):
-                redesign.load_trusted_governance_credentials(repository, freeze)
 
 
 class PhaseDRedesignV4ImmutableTargetTest(unittest.TestCase):
@@ -686,7 +378,6 @@ class PhaseDRedesignV4ThresholdContractTest(unittest.TestCase):
                         observations,
                         contract=contract,
                         bank=bank,
-                        authoritative_root=ROOT,
                     )
 
         malformed_bank = copy.deepcopy(bank)
@@ -701,7 +392,6 @@ class PhaseDRedesignV4ThresholdContractTest(unittest.TestCase):
                     "real_production_replay": {"status": "implemented_and_verified"},
                 },
                 bank=malformed_bank,
-                authoritative_root=ROOT,
             )
 
         with self.assertRaisesRegex(redesign.PhaseDRedesignError, "contract.*bank"):
@@ -722,62 +412,7 @@ class PhaseDRedesignV4ThresholdContractTest(unittest.TestCase):
                 pairs,
                 contract=implemented,
                 bank=bank,
-                real_replay_attestation=fabricated_attestation,
-                authoritative_root=ROOT,
             )
-
-        with tempfile.TemporaryDirectory() as tmp:
-            authoritative_root = Path(tmp)
-            d2_root = (
-                authoritative_root / "docs" / "assurance" / "phase-d"
-                / "redesign" / "d2"
-            )
-            d2_root.mkdir(parents=True)
-            (d2_root / "contract-v4.json").write_text(
-                json.dumps(implemented), encoding="utf-8"
-            )
-            (d2_root / "mutation-bank-v4.json").write_text(
-                json.dumps(bank), encoding="utf-8"
-            )
-            verifier_result = {
-                "verified": True,
-                "case_ids": sorted(item["id"] for item in bank["cases"]),
-                "control_ids": sorted(
-                    item["replay"]["control_id"] for item in bank["cases"]
-                ),
-            }
-            for malformed_name in (
-                "extra_top_level_field", "extra_nested_observation_field"
-            ):
-                with self.subTest(malformed_name=malformed_name):
-                    with patch.object(
-                        redesign,
-                        "verify_real_company_os_c2_replay",
-                        return_value=verifier_result,
-                        create=True,
-                    ):
-                        with self.assertRaisesRegex(
-                            redesign.PhaseDRedesignError,
-                            "malformed|fields|schema",
-                        ):
-                            redesign.derive_d2_observation_thresholds(
-                                malformed_sets[malformed_name],
-                                contract=implemented,
-                                bank=bank,
-                                real_replay_attestation=fabricated_attestation,
-                                authoritative_root=authoritative_root,
-                            )
-            with self.assertRaisesRegex(
-                redesign.PhaseDRedesignError,
-                "executable.*replay|real production.*replay|not implemented",
-            ):
-                redesign.derive_d2_observation_thresholds(
-                    pairs,
-                    contract=implemented,
-                    bank=bank,
-                    real_replay_attestation=fabricated_attestation,
-                    authoritative_root=authoritative_root,
-                )
 
         duplicate_control_bank = copy.deepcopy(bank)
         duplicate_control_bank["cases"][1]["replay"]["control_id"] = (
@@ -788,7 +423,6 @@ class PhaseDRedesignV4ThresholdContractTest(unittest.TestCase):
                 _complete_observations(implemented, duplicate_control_bank),
                 contract=implemented,
                 bank=duplicate_control_bank,
-                authoritative_root=ROOT,
             )
 
 
@@ -801,7 +435,7 @@ class PhaseDRedesignV4EvidenceVerificationTest(unittest.TestCase):
             if path.is_file()
         }
 
-    def test_verify_mode_uses_temporary_output_and_never_mutates_frozen_evidence(self) -> None:
+    def test_verify_mode_is_blocked_before_reading_development_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             expected = root / "expected"
@@ -813,18 +447,25 @@ class PhaseDRedesignV4EvidenceVerificationTest(unittest.TestCase):
             )
             before = self._snapshot(expected)
 
-            result = redesign.verify_redesign_evidence(
-                ROOT,
-                expected,
-                freeze_path=V4_FREEZE,
-                require_immutable_head=False,
-            )
+            with patch.object(
+                redesign,
+                "load_json",
+                side_effect=AssertionError("development diagnostics were read"),
+            ) as load:
+                with self.assertRaisesRegex(
+                    redesign.PhaseDRedesignError,
+                    "signed candidate manifest.*required|candidate verification.*blocked",
+                ):
+                    redesign.verify_redesign_evidence(
+                        ROOT,
+                        expected,
+                        freeze_path=V4_FREEZE,
+                    )
 
-            self.assertEqual(result["status"], "evidence_reproduced")
+            load.assert_not_called()
             self.assertEqual(before, self._snapshot(expected))
-            self.assertFalse(any(path.name.startswith("verify-") for path in expected.rglob("*")))
 
-    def test_verify_mode_rejects_evidence_tamper_without_rewriting_it(self) -> None:
+    def test_verify_mode_does_not_inspect_or_rewrite_development_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             expected = Path(tmp) / "expected"
             redesign.run_redesign_dry_run(
@@ -837,12 +478,14 @@ class PhaseDRedesignV4EvidenceVerificationTest(unittest.TestCase):
             result_path.write_bytes(result_path.read_bytes() + b"\n")
             before = self._snapshot(expected)
 
-            with self.assertRaisesRegex(redesign.PhaseDRedesignError, "hash|manifest|tamper"):
+            with self.assertRaisesRegex(
+                redesign.PhaseDRedesignError,
+                "signed candidate manifest.*required|candidate verification.*blocked",
+            ):
                 redesign.verify_redesign_evidence(
                     ROOT,
                     expected,
                     freeze_path=V4_FREEZE,
-                    require_immutable_head=False,
                 )
 
             self.assertEqual(before, self._snapshot(expected))

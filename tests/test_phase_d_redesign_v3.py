@@ -62,12 +62,8 @@ def _signed_approval(
         "unresolved_findings": [] if unresolved is None else unresolved,
         "signed_at": "2026-07-30T10:00:00+08:00",
     }
-    return redesign.sign_governance_record(
-        record,
-        principal_id="principal-control-review",
-        key_id="phase-d-reviewer-v3",
-        credential=secret,
-    )
+    del secret
+    return record
 
 
 def _signed_ceo_decision(
@@ -92,12 +88,8 @@ def _signed_ceo_decision(
         "approved_source_revision": copy.deepcopy(freeze["source_revision"]),
         "signed_at": "2026-07-30T10:01:00+08:00",
     }
-    return redesign.sign_governance_record(
-        record,
-        principal_id="principal-ceo",
-        key_id="phase-d-ceo-v3",
-        credential=secret,
-    )
+    del secret
+    return record
 
 
 class PhaseDRedesignV3GovernanceRedTest(unittest.TestCase):

@@ -3,22 +3,156 @@
   "id": "phase-d-d1-d2-redesign-v4-supersession",
   "reviewed_head": "33bcb6371e18c08b05c49723282db24389b8bc6c",
   "reviewed_tree": "1447dcf47adc67ee280720a64abaf094743bdd1c",
-  "supersedes": [
-    "docs/assurance/phase-d/redesign/corrected-freeze-v3.json",
-    "docs/assurance/phase-d/redesign/d1/contract-v3.json",
-    "docs/assurance/phase-d/redesign/d2/contract-v3.json",
-    "docs/assurance/phase-d/redesign/d2/mutation-bank-v3.json",
-    "evidence/phase-d/redesign-v3"
-  ],
-  "v3_conclusions_invalid": [
-    "blocked_dry_run_executed_no_treatments",
-    "d2_replayed_real_company_os_controls",
-    "d2_thresholds_passed",
-    "v3_credentials_provided_an_external_trust_root",
-    "v3_freeze_bound_current_head_and_complete_tree"
-  ],
+  "v4_freeze_binding": {
+    "path": "docs/assurance/phase-d/redesign/corrected-freeze-v4.json",
+    "sha256": "173db9e8f7dc652ad6ec499a8379346564abc57aabf5926845f4268ff93bd293",
+    "schema_version": "phase-d-redesign-freeze/v4",
+    "id": "phase-d-corrected-d1-d2-freeze-v4",
+    "baseline_review_target": {
+      "commit": "33bcb6371e18c08b05c49723282db24389b8bc6c",
+      "tree": "1447dcf47adc67ee280720a64abaf094743bdd1c",
+      "scope": "entire_git_tree",
+      "require_clean_worktree": true
+    },
+    "supersession_protocol_input": "docs/assurance/phase-d/redesign/supersession-record-v4.json"
+  },
+  "denylist": {
+    "artifacts": [
+      {
+        "path": "docs/assurance/phase-d/d0",
+        "scope": "tree"
+      },
+      {
+        "path": "docs/assurance/phase-d/start-freeze-manifest-v1.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/d1/start-contract-v1.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/d2/start-contract-v1.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/ceo-start-decision-proposal-v2.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/ceo-start-decision-proposal-v3.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/corrected-freeze-v2.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/corrected-freeze-v3.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/independent-findings-at-6626411-v1.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/independent-findings-v3.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/supersession-record-v1.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/supersession-record-v3.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/d1/contract-v2.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/d1/contract-v3.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/d1/scenario-bank-v2.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/d2/contract-v2.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/d2/contract-v3.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/d2/mutation-bank-v2.json",
+        "scope": "file"
+      },
+      {
+        "path": "docs/assurance/phase-d/redesign/d2/mutation-bank-v3.json",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/d0",
+        "scope": "tree"
+      },
+      {
+        "path": "evidence/phase-d/d1",
+        "scope": "tree"
+      },
+      {
+        "path": "evidence/phase-d/d2",
+        "scope": "tree"
+      },
+      {
+        "path": "evidence/phase-d/redesign",
+        "scope": "tree"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v3",
+        "scope": "tree"
+      },
+      {
+        "path": "evidence/phase-d/full-agent-company-regression.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/full-pixweave-regression.txt",
+        "scope": "file"
+      }
+    ],
+    "invalid_claims": [
+      "d0_execution_authorized",
+      "d0_baseline_current_or_authoritative",
+      "d1_start_authorized",
+      "d2_start_authorized",
+      "d1_started_awaiting_two_human_ratings",
+      "d2_started_isolated_treatment",
+      "start_bounded_internal_treatment",
+      "d1_treatment_execution_authorized",
+      "d2_treatment_execution_authorized",
+      "d1_treatment_quality_or_preference",
+      "d1_candidate_or_comparator_effect",
+      "d2_treatment_detection_rate",
+      "d2_false_pass_or_false_block_rate",
+      "d2_threshold_attainment",
+      "d1_or_d2_adoption_or_phase_progression",
+      "blocked_dry_run_executed_no_treatments",
+      "d2_replayed_real_company_os_controls",
+      "d2_thresholds_passed",
+      "v3_credentials_provided_an_external_trust_root",
+      "v3_freeze_bound_current_head_and_complete_tree"
+    ],
+    "consumer_behavior": "reject_as_superseded_and_non_authorizing"
+  },
   "historical_evidence_preservation": "do_not_delete_or_mutate",
-  "v4_treatment_execution_status": "blocked",
-  "v4_treatment_pass_possible": false,
+  "historical_files_must_not_be_deleted_or_rewritten": true,
+  "v4_status": {
+    "execution_authorized": false,
+    "treatment_execution_status": "blocked",
+    "treatment_pass_possible": false
+  },
   "approvals_fabricated": false
 }

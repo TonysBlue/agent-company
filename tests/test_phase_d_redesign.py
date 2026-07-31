@@ -216,7 +216,12 @@ class PhaseDRedesignDryRunTest(unittest.TestCase):
                 allow_development_overlay=True,
             )
 
-            self.assertEqual(result["status"], "blocked_protocol_checks_complete")
+            self.assertEqual(
+                result["status"], "development_only_unverified_non_candidate"
+            )
+            self.assertTrue(result["development_only"])
+            self.assertFalse(result["verified"])
+            self.assertFalse(result["candidate_evidence"])
             self.assertFalse(result["corrected_treatments_executed"])
             self.assertEqual(result["d1"]["scenario_contracts_checked"], 6)
             self.assertEqual(result["d1"]["treatment_workflows_executed"], 0)

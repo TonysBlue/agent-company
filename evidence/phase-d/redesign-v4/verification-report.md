@@ -1,105 +1,93 @@
 # Phase D Redesign V4 Verification
 
-## Review target and disposition
+## Review disposition
 
-- Reviewed baseline HEAD: `33bcb6371e18c08b05c49723282db24389b8bc6c`
-- Reviewed baseline tree: `1447dcf47adc67ee280720a64abaf094743bdd1c`
-- Current checkout HEAD/tree: unchanged from the reviewed baseline; V4 changes remain uncommitted
-- V4 execution authorization: blocked
-- D1 treatment workflows executed: 0
-- D1 treatment artifacts generated: 0
-- D2 treatment workflows executed: 0
-- D2 database/repository mutations attempted: 0
-- D2 observations collected: 0
-- D2 thresholds passed: false
-- Phase D treatment pass possible: false
-- Approvals or credentials fabricated: no
+Commit `3ab23d1630457f63aa310a9a206f5429493ed659` was the candidate independently
+reviewed. The review found 2 Critical, 6 High, and 2 Medium issues. The candidate remains rejected
+and is not a verified Phase D treatment design or execution authorization.
 
-V4 supersedes V2/V3 authorization, runners and treatment helpers. The V3 result that described
-sixteen synthetic surrogate mutations as a blocked dry run is invalid and retained only as
-historical evidence. The V4 runner performs seven explicit non-treatment checks and has no
-treatment execution path.
+The older baseline `33bcb6371e18c08b05c49723282db24389b8bc6c` is historical context only. It is
+not a fallback candidate verification target. Repository-default candidate verification is
+explicitly blocked until an external signed candidate manifest and a separate production
+signature verifier exist.
 
-## Implemented findings
+## Fail-closed state
 
-- Blocked protocol execution performs only seven named static/canary checks. Legacy D1 render,
-  workflow and delivery helpers and legacy D2 surrogate helpers fail before writing output.
-- The V4 D2 bank maps the exact thirteen material fault classes and three controls to sixteen
-  distinct, importable Company OS modules/entrypoints and resolvable one-test regressions. No
-  surrogate schema, blanket treatment trigger or replay result remains in executable V4 code.
-- Threshold derivation requires the exact authoritative V4 contract/bank, exact 13+3 case and
-  role/severity coverage, exact observation schemas, and an executable real-replay verifier. A
-  status flip plus attestation booleans cannot certify treatment.
-- Governance reads only freeze-bound reviewer/CEO credentials from external regular 0600 files
-  through an external hardened registry. Caller credentials, registry/freeze substitution,
-  symlinks, unsafe parent permissions and missing freeze identity bindings are rejected.
-- A candidate review target can come only from the trusted reviewer-signed external manifest.
-  Exact Git commit/tree binding and a clean entire worktree are mandatory; embedded candidate
-  targets, HEAD/tree drift and any tracked or untracked path drift fail closed.
-- SVG validation is an explicit geometry-only supported subset. It rejects foreign namespaces,
-  relative/unsupported/malformed/incomplete paths, malformed points, strokes, transforms/styles,
-  nested SVG/text, text and image elements, external/paint references, use/defs/groups, curves and
-  arcs. Text/image bounds require future renderer-grade validation and are therefore unsupported.
-- Evidence verification validates the stored exact manifest first, reproduces into a temporary
-  directory and compares manifests/hashes without deleting or rewriting expected evidence.
+- Treatment certification is unavailable until a concrete internal real Company OS C2 replay
+  verifier exists. Caller-selected roots, injected verifiers, attestations, mocks, and status
+  flips cannot create a pass.
+- The legacy treatment runner and helper module are tombstones. They expose no D1/D2 runner,
+  payload, subprocess, evidence-writing, or partial-threshold helper.
+- The legacy D0 runner is also a permanent tombstone: it cannot parse execution arguments, invoke
+  subprocesses, create directories, write evidence, or print a status. The D0 module retains only
+  read-only historical parsing/validation/aggregation utilities; `run_case`, repository execution
+  helpers, report rendering, and JSON writers are absent.
+- D0 runtime source contains no positive D1/D2 start claim. Historical positive authorization,
+  started-state, treatment, and threshold claims are explicitly invalid under V4; current status is
+  superseded/blocked with `execution_authorized: false`.
+- `supersession-record-v4.json` is an exact machine-readable denylist for the D0 input tree, start
+  freeze and D1/D2 start contracts, V2/V3 redesign documents, legacy D0/D1/D2 evidence, prior
+  redesign evidence, and old aggregate regression evidence. It binds the exact V4 freeze path,
+  SHA-256, schema/id, reviewed baseline commit/tree, and supersession protocol input. V4 freeze
+  verification validates this record, and the consumer guard rejects every denied file or tree.
+- Runtime governance verification exposes no signer and loads no HMAC secret. Authorization is
+  unavailable until verification and signing are separated outside this runtime.
+- External trust-path access is disabled pending a descriptor-anchored implementation or a
+  separate verifier service, so the former parent-path TOCTOU surface is not reachable.
+- Immutable-tree checks compare tracked content with the target Git tree, reject index concealment
+  flags, and detect ordinary untracked files. A strict candidate clone must contain zero ignored
+  files or filesystem objects: SQLite and WAL/SHM/journal state, JSON, logs, PID and lock files,
+  sockets, code, executables, symlinks, directories, and all other ignored objects fail closed.
+  There is no inert ignored-content allowlist. Development-only diagnostics remain separately
+  labeled unverified/non-candidate and claim no immutable candidate binding.
+- SVG validation rejects raw DOCTYPE, XML processing instructions, declarations, and entity
+  references before ElementTree parsing.
 
-## Strict TDD evidence
+## Evidence status
 
-Initial and incremental RED failures are preserved in `red-tests.txt`,
-`red-treatment-helper-guards.txt`, `red-surrogate-and-evidence-tamper.txt`,
-`red-threshold-bank-role.txt`, `red-caller-replay-and-parent-path.txt`,
-`red-freeze-substitution.txt`, `red-signed-target-and-authoritative-replay.txt`,
-`red-svg-supported-subset.txt`, `red-svg-incomplete-command.txt`,
-`red-fabricated-replay-attestation.txt`, `red-d1-artifact-helper-guards.txt`,
-`red-final-fail-closed-audit.txt`, `red-external-target-and-freeze-identity.txt`,
-`red-protocol-control-resolution.txt`, `red-malformed-observation-extra-fields.txt`,
-`red-unprovable-svg-text-image.txt`, `red-clean-worktree-required.txt` and
-`red-freeze-author-principals.txt`.
+All previously checked-in V4 test logs and protocol artifacts are preserved as historical
+evidence. They do not verify candidate `3ab23d1`: they were bound to the older baseline or were
+produced through development-overlay checks. Strict reproduction is blocked before output until
+an externally signed candidate manifest can be verified.
 
-Definitive GREEN results:
+Development-overlay output is diagnostics only. Its result and manifest are explicitly
+`development_only_unverified_non_candidate`, `development_only: true`, `verified: false`, and
+`candidate_evidence: false`. The verifier exposes no unbound-success argument or
+`evidence_reproduced` return. `--verify --development-overlay` is rejected before dispatch,
+evidence access, output creation, or result output.
 
-- `focused-phase-d-tests-handoff.txt`: 53 tests passed.
-- `full-agent-company-tests-handoff.txt`: 273 tests passed.
-- `pixweave-tests-final-definitive.txt`: 58 tests passed without PixWeave edits.
-- `isolated-validation-final-definitive.txt`: copied Company OS validation returned
-  `{"ok": true, "errors": []}`.
-- Python compilation and `git diff --check`: passed.
+`review-3ab23d1-strict-tdd.txt` preserves the 12-test RED run with 21 failures/subtest failures and
+the first 48-test GREEN focused run for these review findings.
 
-One earlier full run in `full-agent-company-tests-final-definitive.txt` hit the pre-existing
-concurrent schema-initialization race (`trigger ... already exists`) in
-`test_concurrent_real_executors_cannot_duplicate_claim`. The exact test then passed 5/5 in
-`concurrency-regression-reruns.txt`, and the two subsequent full suites passed 273/273. No change
-to that unrelated concurrency path was made.
+`review-d0-supersession-strict-tdd.txt` preserves this review's genuine RED run (6 tests, 4
+failures and 3 errors) and the subsequent 6-test GREEN run.
 
-## Reproducibility and nonmutation
+`review-medium-findings-strict-tdd.txt` preserves the supplied Medium-finding RED run (5 test
+methods with 14 failures), its original GREEN record, and the later independent-review High
+follow-up RED/GREEN cycle that supersedes the former inert ignored-content exception.
 
-`protocol-handoff/protocol-result.json` reports `blocked_protocol_checks_complete`, seven allowed
-checks, 21 SVG validator canaries, sixteen resolved production-control mappings, zero
-workflows/artifacts/mutations/observations, and false threshold/pass status.
-`protocol-verify-handoff.txt` reports `evidence_reproduced`, manifest SHA-256
-`c0e95a178fecc27da539c20e05e19b6347eb7a707c87e9d18d15a2f79e3e64a5`, and
-`expected_evidence_unchanged: true`. The path-local protocol aggregate was identical before and
-after verification: `06b309896a7e73c79e82f6379b73ff050575d630597db410c395ec5ff41dff3b`.
+Current local checks passed: 67 focused Phase D tests, 287 Agent Company tests, 58 PixWeave tests,
+repository-wide Python compilation, `git diff --check`, and live read-only validation with
+`{"ok": true, "errors": []}`. Bandit 1.9.4 found no High issues: the Agent Company broad scan
+reported 6 Medium and 27 Low existing issues and exited 1, while PixWeave reported zero issues and
+exited 0. The live `data/company.sqlite3` SHA-256 remained
+`9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70`. The 630-file preserved
+evidence hash inventory excluded only this report and the Medium-finding review log; its aggregate
+SHA-256 remained `a4298fa64a8faab8cc3f939be38f9c6cf9a16662c3b8ce417cd860d4abf3e460`.
+Every inventoried file retained its pre-change SHA-256, and PixWeave remained clean.
+No protocol reproduction was run for the independent-review High remediation.
 
-The live `data/company.sqlite3` pre/post SHA-256 is
-`9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70`.
-The preserved V3 evidence aggregate pre/post SHA-256 is
-`9e1e36be9ff456b0a8e2341638d1ea874ccaab4db88eef2bb39d486b625585a6`.
-PixWeave remained at `d78094f26eb697c810899a40771a8af6dec7ce19` with a clean worktree.
+No D0, D1, D2, treatment, or protocol execution script was run for this remediation. No service,
+credential, approval, commit, or push was created.
 
-No D1/D2 treatment, live database mutation, service restart, customer contact, spend,
-publication, production action, PixWeave edit, commit or push occurred.
+No D1/D2 treatment result, execution authorization, threshold pass, candidate verification, or
+approval is claimed by this report.
 
 ## Remaining blockers
 
-1. Real Company OS C2 replay for all thirteen named material faults and three named controls is
-   not implemented. Mapping and existing regressions are not a Phase D paired replay result.
-2. No executable V4 real-replay verifier or authenticated replay attestation exists, so threshold
-   derivation and treatment pass remain impossible.
-3. No clean committed V4 candidate HEAD/tree or trusted reviewer-signed external target manifest
-   exists. The current uncommitted development checkout cannot authorize execution.
-4. The external hardened governance registry and reviewer/CEO credential files are absent.
-5. No authenticated independent approval or later separately authenticated CEO start decision
-   exists.
-
-Authorization remains blocked. No commit or push was performed.
+1. A concrete internal real Company OS C2 replay implementation and non-injectable verifier do
+   not exist.
+2. A separate production signature verifier/signing service does not exist; runtime credential
+   loading and governance authorization remain disabled.
+3. No externally signed candidate manifest is available or verifiable.
+4. No independently authenticated approval or later CEO start decision has been verified.

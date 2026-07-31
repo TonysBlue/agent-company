@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import hmac
 import importlib
 import json
 import math
@@ -12,16 +11,67 @@ import os
 import re
 import stat
 import subprocess
-import tempfile
 import unittest
 import xml.etree.ElementTree as ET
-from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 
 class PhaseDRedesignError(ValueError):
     """Raised when corrected Phase D inputs or evidence violate their freeze."""
+
+
+_V4_EXPECTED_DENIED_ARTIFACTS = {
+    "docs/assurance/phase-d/d0": "tree",
+    "docs/assurance/phase-d/start-freeze-manifest-v1.json": "file",
+    "docs/assurance/phase-d/d1/start-contract-v1.json": "file",
+    "docs/assurance/phase-d/d2/start-contract-v1.json": "file",
+    "docs/assurance/phase-d/redesign/ceo-start-decision-proposal-v2.json": "file",
+    "docs/assurance/phase-d/redesign/ceo-start-decision-proposal-v3.json": "file",
+    "docs/assurance/phase-d/redesign/corrected-freeze-v2.json": "file",
+    "docs/assurance/phase-d/redesign/corrected-freeze-v3.json": "file",
+    "docs/assurance/phase-d/redesign/independent-findings-at-6626411-v1.json": "file",
+    "docs/assurance/phase-d/redesign/independent-findings-v3.json": "file",
+    "docs/assurance/phase-d/redesign/supersession-record-v1.json": "file",
+    "docs/assurance/phase-d/redesign/supersession-record-v3.json": "file",
+    "docs/assurance/phase-d/redesign/d1/contract-v2.json": "file",
+    "docs/assurance/phase-d/redesign/d1/contract-v3.json": "file",
+    "docs/assurance/phase-d/redesign/d1/scenario-bank-v2.json": "file",
+    "docs/assurance/phase-d/redesign/d2/contract-v2.json": "file",
+    "docs/assurance/phase-d/redesign/d2/contract-v3.json": "file",
+    "docs/assurance/phase-d/redesign/d2/mutation-bank-v2.json": "file",
+    "docs/assurance/phase-d/redesign/d2/mutation-bank-v3.json": "file",
+    "evidence/phase-d/d0": "tree",
+    "evidence/phase-d/d1": "tree",
+    "evidence/phase-d/d2": "tree",
+    "evidence/phase-d/redesign": "tree",
+    "evidence/phase-d/redesign-v3": "tree",
+    "evidence/phase-d/full-agent-company-regression.txt": "file",
+    "evidence/phase-d/full-pixweave-regression.txt": "file",
+}
+
+_V4_EXPECTED_INVALID_CLAIMS = {
+    "d0_execution_authorized",
+    "d0_baseline_current_or_authoritative",
+    "d1_start_authorized",
+    "d2_start_authorized",
+    "d1_started_awaiting_two_human_ratings",
+    "d2_started_isolated_treatment",
+    "start_bounded_internal_treatment",
+    "d1_treatment_execution_authorized",
+    "d2_treatment_execution_authorized",
+    "d1_treatment_quality_or_preference",
+    "d1_candidate_or_comparator_effect",
+    "d2_treatment_detection_rate",
+    "d2_false_pass_or_false_block_rate",
+    "d2_threshold_attainment",
+    "d1_or_d2_adoption_or_phase_progression",
+    "blocked_dry_run_executed_no_treatments",
+    "d2_replayed_real_company_os_controls",
+    "d2_thresholds_passed",
+    "v3_credentials_provided_an_external_trust_root",
+    "v3_freeze_bound_current_head_and_complete_tree",
+}
 
 
 def canonical_json(value: object) -> str:
@@ -48,6 +98,107 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise PhaseDRedesignError(f"JSON input must be an object: {path}")
     return value
+
+
+def _supersession_artifacts(record: dict[str, Any]) -> dict[str, str]:
+    denylist = record.get("denylist")
+    artifacts = denylist.get("artifacts") if isinstance(denylist, dict) else None
+    if not isinstance(artifacts, list):
+        raise PhaseDRedesignError("V4 supersession denylist artifacts are malformed")
+    denied: dict[str, str] = {}
+    for item in artifacts:
+        if not isinstance(item, dict):
+            raise PhaseDRedesignError("V4 supersession denylist artifact is malformed")
+        path = item.get("path")
+        scope = item.get("scope")
+        if (
+            not isinstance(path, str)
+            or not path
+            or Path(path).is_absolute()
+            or ".." in Path(path).parts
+            or path in denied
+            or scope not in {"file", "tree"}
+        ):
+            raise PhaseDRedesignError("V4 supersession denylist artifact is malformed")
+        denied[path] = str(scope)
+    return denied
+
+
+def assert_phase_d_artifact_current(path: str | Path, record: dict[str, Any]) -> None:
+    """Reject a file or descendant of a tree explicitly denied by V4."""
+    relative = Path(path).as_posix()
+    if Path(relative).is_absolute() or ".." in Path(relative).parts:
+        raise PhaseDRedesignError("Phase D artifact path is invalid")
+    for denied, scope in _supersession_artifacts(record).items():
+        if relative == denied or (
+            scope == "tree" and relative.startswith(f"{denied.rstrip('/')}/")
+        ):
+            raise PhaseDRedesignError(
+                f"Phase D artifact is superseded and denied by V4: {relative}"
+            )
+
+
+def validate_v4_supersession_record(
+    root: Path,
+    freeze: dict[str, Any],
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    """Validate exhaustive historical denial and its exact V4 freeze binding."""
+    if record.get("schema_version") != "phase-d-redesign-supersession/v4":
+        raise PhaseDRedesignError("V4 supersession schema_version is invalid")
+    denied = _supersession_artifacts(record)
+    if denied != _V4_EXPECTED_DENIED_ARTIFACTS:
+        raise PhaseDRedesignError("V4 supersession denylist coverage is not exhaustive")
+    invalid_claims = record.get("denylist", {}).get("invalid_claims")
+    if (
+        not isinstance(invalid_claims, list)
+        or len(invalid_claims) != len(set(invalid_claims))
+        or set(invalid_claims) != _V4_EXPECTED_INVALID_CLAIMS
+    ):
+        raise PhaseDRedesignError("V4 supersession invalid-claim coverage is not exhaustive")
+    expected_binding = {
+        "path": "docs/assurance/phase-d/redesign/corrected-freeze-v4.json",
+        "sha256": sha256_file(
+            root / "docs/assurance/phase-d/redesign/corrected-freeze-v4.json"
+        ),
+        "schema_version": freeze.get("schema_version"),
+        "id": freeze.get("id"),
+        "baseline_review_target": freeze.get("baseline_review_target"),
+        "supersession_protocol_input": freeze.get("protocol_inputs", {}).get(
+            "supersession_record"
+        ),
+    }
+    if record.get("v4_freeze_binding") != expected_binding:
+        raise PhaseDRedesignError("V4 supersession freeze binding is invalid")
+    baseline = freeze.get("baseline_review_target")
+    if (
+        not isinstance(baseline, dict)
+        or record.get("reviewed_head") != baseline.get("commit")
+        or record.get("reviewed_tree") != baseline.get("tree")
+    ):
+        raise PhaseDRedesignError("V4 supersession reviewed target binding is invalid")
+    status = record.get("v4_status")
+    if (
+        not isinstance(status, dict)
+        or status.get("execution_authorized") is not False
+        or status.get("treatment_execution_status") != "blocked"
+        or status.get("treatment_pass_possible") is not False
+        or record.get("historical_evidence_preservation") != "do_not_delete_or_mutate"
+        or record.get("historical_files_must_not_be_deleted_or_rewritten") is not True
+    ):
+        raise PhaseDRedesignError("V4 supersession status or preservation policy is invalid")
+    for relative, scope in denied.items():
+        resolved = root / relative
+        exists = resolved.is_file() if scope == "file" else resolved.is_dir()
+        if resolved.is_symlink() or not exists:
+            raise PhaseDRedesignError(
+                f"V4 supersession denied artifact is missing or unsafe: {relative}"
+            )
+    return {
+        "denied_artifacts": denied,
+        "invalid_claims": sorted(_V4_EXPECTED_INVALID_CLAIMS),
+        "execution_authorized": False,
+    }
 
 
 def write_json(path: Path, value: object) -> None:
@@ -100,192 +251,14 @@ def _verify_corrected_freeze_v2(
     )
 
 
-def _signature_payload(record: dict[str, Any]) -> bytes:
-    unsigned = {key: value for key, value in record.items() if key != "authentication"}
-    return canonical_json(unsigned).encode("ascii")
-
-
-def sign_governance_record(
-    record: dict[str, Any],
-    *,
-    principal_id: str,
-    key_id: str,
-    credential: bytes,
-) -> dict[str, Any]:
-    """Authenticate a governance record without placing the credential in the record."""
-    if not credential:
-        raise PhaseDRedesignError("governance signing credential is empty")
-    signed = copy.deepcopy(record)
-    signed["authentication"] = {
-        "algorithm": "hmac-sha256",
-        "principal_id": principal_id,
-        "key_id": key_id,
-        "signature": hmac.new(credential, _signature_payload(signed), hashlib.sha256).hexdigest(),
-    }
-    return signed
-
-
-def _read_hardened_external_file(root: Path, path: Path, label: str) -> bytes:
-    """Read an external trust file without following links or accepting weak modes."""
-    if not path.is_absolute():
-        raise PhaseDRedesignError(f"{label} path must be absolute and external")
-    try:
-        path.relative_to(root.resolve())
-    except ValueError:
-        pass
-    else:
-        raise PhaseDRedesignError(f"{label} path must be outside the repository")
-    parent_chain = [path.parent, *path.parent.parents]
-    for parent in parent_chain:
-        if parent == parent.parent:
-            continue
-        if parent.is_symlink():
-            raise PhaseDRedesignError(f"{label} parent directory must not be a symlink: {parent}")
-        try:
-            metadata = parent.stat()
-        except OSError as exc:
-            raise PhaseDRedesignError(f"cannot inspect {label} parent directory: {exc}") from exc
-        if not stat.S_ISDIR(metadata.st_mode):
-            raise PhaseDRedesignError(f"{label} parent must be a directory: {parent}")
-        mode = stat.S_IMODE(metadata.st_mode)
-        if mode & 0o022 and not mode & stat.S_ISVTX:
-            raise PhaseDRedesignError(
-                f"{label} parent directory permissions are unsafe: {parent}"
-            )
-    if path.is_symlink():
-        raise PhaseDRedesignError(f"{label} must be a regular file, not a symlink")
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        descriptor = os.open(path, flags)
-    except OSError as exc:
-        raise PhaseDRedesignError(f"cannot open hardened {label}: {exc}") from exc
-    try:
-        metadata = os.fstat(descriptor)
-        if not stat.S_ISREG(metadata.st_mode):
-            raise PhaseDRedesignError(f"{label} must be a regular file")
-        if stat.S_IMODE(metadata.st_mode) != 0o600:
-            raise PhaseDRedesignError(f"{label} permissions must be exactly 0600")
-        if metadata.st_uid not in {os.geteuid(), 0}:
-            raise PhaseDRedesignError(f"{label} owner is not trusted")
-        with os.fdopen(descriptor, "rb", closefd=False) as handle:
-            return handle.read()
-    finally:
-        os.close(descriptor)
-
-
 def load_trusted_governance_credentials(
     root: Path, freeze: dict[str, Any]
 ) -> dict[str, bytes]:
-    """Load the two freeze-bound credentials only from a hardened external registry."""
-    gate = freeze.get("execution_gate")
-    if not isinstance(gate, dict):
-        raise PhaseDRedesignError("v4 execution gate is invalid")
-    registry_value = gate.get("trusted_registry_path")
-    if not isinstance(registry_value, str) or not registry_value:
-        raise PhaseDRedesignError("v4 trusted governance registry path is missing")
-    raw = _read_hardened_external_file(
-        root, Path(registry_value), "governance registry"
+    """Reject in-process credential access until an isolated verifier exists."""
+    del (root, freeze)
+    raise PhaseDRedesignError(
+        "production credential loading is disabled until a separate verifier/signing service exists"
     )
-    try:
-        registry = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise PhaseDRedesignError(f"governance registry is malformed: {exc}") from exc
-    if not isinstance(registry, dict) or registry.get("schema_version") != "phase-d-governance-registry/v4":
-        raise PhaseDRedesignError("governance registry schema_version is invalid")
-    if registry.get("freeze_id") != freeze.get("id"):
-        raise PhaseDRedesignError("governance registry is not bound to the freeze identity")
-    entries = registry.get("credentials")
-    if not isinstance(entries, list) or len(entries) != 2:
-        raise PhaseDRedesignError("governance registry must contain exactly two credentials")
-    expected_identities = {}
-    for identity_name in ("reviewer_identity", "ceo_identity"):
-        identity = gate.get(identity_name)
-        if not isinstance(identity, dict):
-            raise PhaseDRedesignError("v4 governance identities are not frozen")
-        key_id = identity.get("key_id")
-        if not isinstance(key_id, str) or not key_id or key_id in expected_identities:
-            raise PhaseDRedesignError("v4 governance key identities are invalid")
-        expected_identities[key_id] = {
-            "principal_id": identity.get("principal_id"),
-            "role": identity.get("role"),
-            "key_id": key_id,
-        }
-    credentials: dict[str, bytes] = {}
-    for entry in entries:
-        if not isinstance(entry, dict):
-            raise PhaseDRedesignError("governance registry credential entry is invalid")
-        key_id = entry.get("key_id")
-        expected = expected_identities.get(str(key_id))
-        if expected is None or any(entry.get(field) != value for field, value in expected.items()):
-            raise PhaseDRedesignError("governance registry identity does not match the freeze")
-        credential_value = entry.get("credential_path")
-        if not isinstance(credential_value, str) or not credential_value:
-            raise PhaseDRedesignError("governance credential path is invalid")
-        credential = _read_hardened_external_file(
-            root, Path(credential_value), f"governance credential {key_id}"
-        ).strip()
-        if not credential:
-            raise PhaseDRedesignError("trusted governance credential is empty")
-        if str(key_id) in credentials:
-            raise PhaseDRedesignError("governance registry repeats a credential")
-        credentials[str(key_id)] = credential
-    if set(credentials) != set(expected_identities):
-        raise PhaseDRedesignError("governance registry omits a freeze-bound credential")
-    return credentials
-
-
-def _verify_governance_signature(
-    record: dict[str, Any],
-    identity: dict[str, Any],
-    credentials: dict[str, bytes],
-) -> None:
-    authentication = record.get("authentication")
-    if not isinstance(authentication, dict):
-        raise PhaseDRedesignError("governance record lacks an authenticated signature")
-    principal_id = identity.get("principal_id")
-    key_id = identity.get("key_id")
-    if (
-        authentication.get("algorithm") != "hmac-sha256"
-        or authentication.get("principal_id") != principal_id
-        or authentication.get("key_id") != key_id
-    ):
-        raise PhaseDRedesignError("governance signature identity does not match the freeze")
-    credential = credentials.get(str(key_id))
-    if not isinstance(credential, bytes) or not credential:
-        raise PhaseDRedesignError("trusted credential is unavailable for governance authentication")
-    signature = authentication.get("signature")
-    expected = hmac.new(credential, _signature_payload(record), hashlib.sha256).hexdigest()
-    if not isinstance(signature, str) or not hmac.compare_digest(signature, expected):
-        raise PhaseDRedesignError("governance signature is forged or not authentic")
-
-
-def _contains_unresolved_material_finding(value: object) -> bool:
-    if isinstance(value, str):
-        return re.search(r"(?i)(?:^|\W)(critical|high)(?:\W|$)", value) is not None
-    if isinstance(value, dict):
-        severity = value.get("severity")
-        if isinstance(severity, str) and severity.strip().lower() in {"critical", "high"}:
-            return True
-        return any(
-            _contains_unresolved_material_finding(item)
-            for pair in value.items()
-            for item in pair
-        )
-    if isinstance(value, (list, tuple, set)):
-        return any(_contains_unresolved_material_finding(item) for item in value)
-    return False
-
-
-def _parse_signed_at(value: object, label: str) -> datetime:
-    if not isinstance(value, str):
-        raise PhaseDRedesignError(f"{label} signed_at is missing")
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError as exc:
-        raise PhaseDRedesignError(f"{label} signed_at is invalid") from exc
-    if parsed.tzinfo is None:
-        raise PhaseDRedesignError(f"{label} signed_at must include a timezone")
-    return parsed
 
 
 def evaluate_v3_authorization(
@@ -328,7 +301,7 @@ def _run_git(root: Path, *args: str) -> str:
 def verify_immutable_review_target(
     root: Path, target: dict[str, Any]
 ) -> dict[str, str]:
-    """Require the current clean checkout to be the exact reviewed commit and tree."""
+    """Compare the checkout directly with the reviewed tree, bypassing index concealment."""
     commit = target.get("commit")
     tree = target.get("tree")
     if (
@@ -349,6 +322,52 @@ def verify_immutable_review_target(
     current_tree = _run_git(root, "rev-parse", "HEAD^{tree}")
     if current_head != commit or current_tree != tree:
         raise PhaseDRedesignError("current HEAD/tree drifted from the immutable review target")
+    flagged = [
+        line
+        for line in _run_git(root, "ls-files", "-v").splitlines()
+        if line and line[0] != "H"
+    ]
+    if flagged:
+        raise PhaseDRedesignError(
+            "tracked index flag (skip-worktree or assume-unchanged) is forbidden: "
+            + ", ".join(line[2:] for line in flagged)
+        )
+
+    object_format = _run_git(root, "rev-parse", "--show-object-format")
+    if object_format not in {"sha1", "sha256"}:
+        raise PhaseDRedesignError("unsupported Git object format for exact content verification")
+    tree_listing = _run_git(root, "ls-tree", "-r", commit)
+    for line in tree_listing.splitlines():
+        metadata, relative = line.split("\t", 1)
+        mode, object_kind, expected_object = metadata.split()
+        if object_kind != "blob":
+            raise PhaseDRedesignError(
+                f"tracked content kind cannot be verified exactly: {relative}"
+            )
+        path = root / relative
+        try:
+            worktree_metadata = path.lstat()
+        except OSError as exc:
+            raise PhaseDRedesignError(
+                f"tracked content drift or missing path: {relative}: {exc}"
+            ) from exc
+        expected_executable = mode == "100755"
+        if mode == "120000":
+            if not stat.S_ISLNK(worktree_metadata.st_mode):
+                raise PhaseDRedesignError(f"tracked content mode drift: {relative}")
+        elif not stat.S_ISREG(worktree_metadata.st_mode) or (
+            bool(worktree_metadata.st_mode & 0o111) != expected_executable
+        ):
+            raise PhaseDRedesignError(f"tracked content mode drift: {relative}")
+        if mode == "120000":
+            content = os.fsencode(os.readlink(path))
+        else:
+            content = path.read_bytes()
+        header = f"blob {len(content)}\0".encode("ascii")
+        observed_object = hashlib.new(object_format, header + content).hexdigest()
+        if observed_object != expected_object:
+            raise PhaseDRedesignError(f"tracked content or worktree drift: {relative}")
+
     status = _run_git(root, "status", "--porcelain=v1", "--untracked-files=all")
     if status:
         changed_paths = []
@@ -359,6 +378,19 @@ def verify_immutable_review_target(
             changed_paths.append(path)
         raise PhaseDRedesignError(
             "unbound changed path or worktree drift: " + ", ".join(changed_paths)
+        )
+    ignored = _run_git(
+        root,
+        "ls-files",
+        "--others",
+        "--ignored",
+        "--exclude-standard",
+        "--directory",
+    )
+    if ignored:
+        raise PhaseDRedesignError(
+            "ignored files or filesystem objects are forbidden in a strict candidate clone: "
+            + ", ".join(ignored.splitlines())
         )
     return {"commit": commit, "tree": tree, "scope": "entire_git_tree"}
 
@@ -381,41 +413,11 @@ def _verify_git_object_target(root: Path, target: dict[str, Any]) -> dict[str, s
 
 
 def load_external_review_target(root: Path, freeze: dict[str, Any]) -> dict[str, Any]:
-    source = freeze.get("candidate_review_target_source")
-    if not isinstance(source, dict) or source.get("kind") != "hardened_external_signed_manifest":
-        raise PhaseDRedesignError("external candidate review target source is invalid")
-    manifest_value = source.get("manifest_path")
-    if not isinstance(manifest_value, str) or not manifest_value:
-        raise PhaseDRedesignError("external candidate review target manifest is absent")
-    raw = _read_hardened_external_file(
-        root, Path(manifest_value), "candidate review target manifest"
+    del (root, freeze)
+    raise PhaseDRedesignError(
+        "external signed candidate manifest verification is not implemented; "
+        "a separate signature verifier is required"
     )
-    try:
-        manifest = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise PhaseDRedesignError(f"candidate review target manifest is malformed: {exc}") from exc
-    if (
-        not isinstance(manifest, dict)
-        or manifest.get("schema_version") != "phase-d-review-target/v4"
-        or manifest.get("freeze_id") != freeze.get("id")
-        or manifest.get("decision_scope") != "review_and_verification_only"
-    ):
-        raise PhaseDRedesignError("candidate review target manifest is not freeze-bound")
-    gate = freeze.get("execution_gate")
-    reviewer_identity = gate.get("reviewer_identity") if isinstance(gate, dict) else None
-    if not isinstance(reviewer_identity, dict):
-        raise PhaseDRedesignError("candidate review target reviewer identity is not frozen")
-    credentials = load_trusted_governance_credentials(root, freeze)
-    try:
-        _verify_governance_signature(manifest, reviewer_identity, credentials)
-    except PhaseDRedesignError as exc:
-        raise PhaseDRedesignError(
-            f"candidate review target manifest is not authenticated by a trusted signature: {exc}"
-        ) from exc
-    target = manifest.get("target")
-    if not isinstance(target, dict):
-        raise PhaseDRedesignError("candidate review target manifest lacks a target")
-    return target
 
 
 def evaluate_v4_authorization(
@@ -426,104 +428,24 @@ def evaluate_v4_authorization(
     *,
     require_execution_authorization: bool = False,
 ) -> dict[str, Any]:
-    """Authorize only an immutable candidate with real replay and external credentials."""
-    authoritative_path = (
-        root / "docs" / "assurance" / "phase-d" / "redesign" / "corrected-freeze-v4.json"
-    )
-    authoritative = load_json(authoritative_path)
-    if canonical_json(freeze) != canonical_json(authoritative):
+    """Keep execution structurally unavailable until isolated trust services exist."""
+    del (root, freeze, approval, ceo_decision)
+    blockers = [
+        "external_signed_candidate_manifest_verifier_not_implemented",
+        "real_company_os_c2_replay_verifier_not_implemented",
+        "separate_governance_signature_verifier_not_implemented",
+        "execution_authorization_path_intentionally_absent",
+    ]
+    if require_execution_authorization:
         raise PhaseDRedesignError(
-            "caller freeze substitution does not match the authoritative repository freeze"
+            "Phase D execution authorization is unavailable until a separate verifier "
+            "and a concrete internal real Company OS C2 replay verifier exist"
         )
-    if freeze.get("candidate_review_target") is not None:
-        raise PhaseDRedesignError(
-            "candidate review target must come from the external signed manifest, not an embedded repository freeze"
-        )
-    try:
-        candidate_target = load_external_review_target(root, freeze)
-    except PhaseDRedesignError:
-        candidate_target = None
-    replay = freeze.get("real_production_replay")
-    blocked_reasons = []
-    if not isinstance(candidate_target, dict):
-        blocked_reasons.append("immutable_committed_candidate_review_target_absent")
-    if not isinstance(replay, dict) or replay.get("status") != "implemented_and_verified":
-        blocked_reasons.append("real_company_os_c2_replay_not_implemented")
-    if blocked_reasons:
-        if require_execution_authorization:
-            raise PhaseDRedesignError(
-                "Phase D execution remains blocked: " + ", ".join(blocked_reasons)
-            )
-        return {
-            "status": "blocked_pending_immutable_review_target_and_real_replay",
-            "execution_authorized": False,
-            "blockers": blocked_reasons,
-        }
-    verify_immutable_review_target(root, candidate_target)
-    credentials = load_trusted_governance_credentials(root, freeze)
-    gate = freeze.get("execution_gate")
-    if not isinstance(gate, dict):
-        raise PhaseDRedesignError("v4 execution gate is invalid")
-    reviewer_identity = gate.get("reviewer_identity")
-    ceo_identity = gate.get("ceo_identity")
-    if not isinstance(reviewer_identity, dict) or not isinstance(ceo_identity, dict):
-        raise PhaseDRedesignError("v4 governance identities are not frozen")
-    if approval is None:
-        if require_execution_authorization:
-            raise PhaseDRedesignError("Phase D requires authenticated independent approval")
-        return {"status": "blocked_pending_authenticated_independent_approval", "execution_authorized": False}
-    if approval.get("schema_version") != "phase-d-redesign-independent-approval/v4":
-        raise PhaseDRedesignError("independent approval schema_version is invalid")
-    _verify_governance_signature(approval, reviewer_identity, credentials)
-    if (
-        approval.get("decision") != "approve"
-        or approval.get("freeze_id") != freeze.get("id")
-        or approval.get("reviewer_principal") != reviewer_identity.get("principal_id")
-        or approval.get("reviewer_role") != reviewer_identity.get("role")
-    ):
-        raise PhaseDRedesignError(
-            "independent approval freeze identity, reviewer identity or decision is invalid"
-        )
-    author_principals = freeze.get("author_principals")
-    if (
-        not isinstance(author_principals, list)
-        or not author_principals
-        or not all(isinstance(item, str) and item for item in author_principals)
-        or len(set(author_principals)) != len(author_principals)
-        or approval.get("reviewer_principal") in author_principals
-        or approval.get("reviewer_principal") == ceo_identity.get("principal_id")
-    ):
-        raise PhaseDRedesignError("independent approval reviewer is not independent")
-    if _contains_unresolved_material_finding(approval.get("unresolved_findings")):
-        raise PhaseDRedesignError("independent approval has unresolved Critical/High findings")
-    if not isinstance(approval.get("unresolved_findings"), list):
-        raise PhaseDRedesignError("independent approval unresolved findings must be a list")
-    if approval.get("reviewed_target") != candidate_target:
-        raise PhaseDRedesignError("independent approval does not bind the immutable candidate")
-    approval_time = _parse_signed_at(approval.get("signed_at"), "independent approval")
-    if ceo_decision is None:
-        if require_execution_authorization:
-            raise PhaseDRedesignError("Phase D requires a separate signed CEO start decision")
-        return {"status": "blocked_pending_signed_ceo_start_decision", "execution_authorized": False}
-    if ceo_decision.get("schema_version") != "phase-d-redesign-ceo-start-decision/v4":
-        raise PhaseDRedesignError("CEO start decision schema_version is invalid")
-    _verify_governance_signature(ceo_decision, ceo_identity, credentials)
-    approval_hash = sha256_bytes(canonical_json(approval).encode("ascii"))
-    if (
-        ceo_decision.get("decision") != "start"
-        or ceo_decision.get("effective_authorization") is not True
-        or ceo_decision.get("freeze_id") != freeze.get("id")
-        or ceo_decision.get("ceo_principal") != ceo_identity.get("principal_id")
-        or ceo_decision.get("ceo_role") != ceo_identity.get("role")
-        or ceo_decision.get("approved_target") != candidate_target
-        or ceo_decision.get("approved_independent_approval_sha256") != approval_hash
-    ):
-        raise PhaseDRedesignError(
-            "CEO start decision freeze identity is invalid or the decision is not fully bound"
-        )
-    if _parse_signed_at(ceo_decision.get("signed_at"), "CEO start decision") <= approval_time:
-        raise PhaseDRedesignError("CEO start decision must be signed after independent approval")
-    return {"status": "authorized_v4", "execution_authorized": True, "blockers": []}
+    return {
+        "status": "blocked_no_production_verifier_or_authorization_path",
+        "execution_authorized": False,
+        "blockers": blockers,
+    }
 
 
 def _verify_corrected_freeze_v3(
@@ -562,11 +484,15 @@ def _verify_corrected_freeze_v4(
         candidate_target = load_external_review_target(root, freeze)
     except PhaseDRedesignError:
         candidate_target = None
-    active_target = candidate_target if isinstance(candidate_target, dict) else baseline_target
     if allow_development_overlay:
-        target_verification = _verify_git_object_target(root, active_target)
+        target_verification = _verify_git_object_target(root, baseline_target)
     else:
-        target_verification = verify_immutable_review_target(root, active_target)
+        if not isinstance(candidate_target, dict):
+            raise PhaseDRedesignError(
+                "repository default verification is blocked until an externally signed "
+                "candidate manifest can be verified by a separate signature verifier"
+            )
+        target_verification = verify_immutable_review_target(root, candidate_target)
 
     protocol_inputs = freeze.get("protocol_inputs")
     expected_inputs = {
@@ -584,6 +510,12 @@ def _verify_corrected_freeze_v4(
         if path.is_symlink() or not path.is_file():
             raise PhaseDRedesignError(f"v4 protocol input is not a regular file: {kind}")
         documents[kind] = load_json(path)
+    supersession = validate_v4_supersession_record(
+        root, freeze, documents["supersession_record"]
+    )
+    for kind, relative in expected_inputs.items():
+        if kind != "supersession_record":
+            assert_phase_d_artifact_current(relative, documents["supersession_record"])
     if (
         documents["d1_contract"].get("schema_version") != "phase-d-d1-corrected-contract/v4"
         or documents["d2_contract"].get("schema_version") != "phase-d-d2-corrected-contract/v4"
@@ -605,6 +537,7 @@ def _verify_corrected_freeze_v4(
     return {
         **authorization,
         "documents": documents,
+        "supersession": supersession,
         "target_verification": target_verification,
         "development_overlay": allow_development_overlay,
         "bound_paths": sorted(
@@ -773,6 +706,17 @@ def execute_d1_workflow(
 
 def validate_bounded_svg(artifact: bytes) -> dict[str, Any]:
     svg_namespace = "http://www.w3.org/2000/svg"
+    raw_xml_controls = (
+        (rb"(?i)<!DOCTYPE", "DOCTYPE"),
+        (rb"(?i)<\?", "processing instruction"),
+        (rb"(?i)<!ENTITY", "entity declaration"),
+        (rb"&(?:#\d+|#x[0-9a-fA-F]+|[A-Za-z_:][\w:.-]*);", "entity reference"),
+    )
+    for pattern, label in raw_xml_controls:
+        if re.search(pattern, artifact):
+            raise PhaseDRedesignError(
+                f"D1 artifact contains forbidden raw XML {label} syntax"
+            )
     try:
         root = ET.fromstring(artifact)
     except ET.ParseError as exc:
@@ -1252,233 +1196,103 @@ def derive_d2_observation_thresholds(
     *,
     contract: dict[str, Any] | None = None,
     bank: dict[str, Any] | None = None,
-    real_replay_attestation: dict[str, Any] | None = None,
-    authoritative_root: Path | None = None,
 ) -> dict[str, Any]:
-    """Require every material fault denial independent of the baseline comparison."""
-    real_replay_verifier = None
+    """Validate frozen observations, then refuse certification until replay exists."""
     if not pairs:
         raise PhaseDRedesignError("D2 threshold derivation requires paired observations")
     if contract is None or bank is None:
         raise PhaseDRedesignError(
             "D2 threshold derivation requires the exact contract and bank"
         )
-    if contract is not None and bank is not None:
-        if authoritative_root is None:
-            raise PhaseDRedesignError(
-                "D2 real production replay certification requires authoritative repository inputs"
+    required_faults = contract.get("required_fault_classes")
+    required_controls = contract.get("required_control_classes")
+    cases = bank.get("cases")
+    if (
+        contract.get("schema_version") != "phase-d-d2-corrected-contract/v4"
+        or bank.get("schema_version") != "phase-d-d2-mutation-bank/v4"
+        or not isinstance(required_faults, list)
+        or len(required_faults) != 13
+        or len(set(required_faults)) != 13
+        or not isinstance(required_controls, list)
+        or len(required_controls) != 3
+        or len(set(required_controls)) != 3
+        or set(required_faults) & set(required_controls)
+        or not isinstance(cases, list)
+        or len(cases) != 16
+    ):
+        raise PhaseDRedesignError("D2 contract/bank must define exact V4 13+3 named classes")
+    bank_by_id = {
+        str(case.get("id")): case for case in cases if isinstance(case, dict)
+    }
+    if len(bank_by_id) != 16:
+        raise PhaseDRedesignError("D2 contract/bank case ids are incomplete or duplicate")
+    for case_id, frozen_case in bank_by_id.items():
+        fault_class = frozen_case.get("fault_class")
+        if fault_class in required_faults:
+            valid_role = (
+                frozen_case.get("seeded_fault") is True
+                and frozen_case.get("valid_control") is False
+                and str(frozen_case.get("severity", "")).lower() in {"critical", "high"}
             )
-        authoritative_contract = load_json(
-            authoritative_root / "docs" / "assurance" / "phase-d" / "redesign" / "d2" / "contract-v4.json"
-        )
-        authoritative_bank = load_json(
-            authoritative_root / "docs" / "assurance" / "phase-d" / "redesign" / "d2" / "mutation-bank-v4.json"
-        )
-        if (
-            canonical_json(contract) != canonical_json(authoritative_contract)
-            or canonical_json(bank) != canonical_json(authoritative_bank)
-        ):
-            raise PhaseDRedesignError(
-                "D2 real production replay contract or bank is not authoritative"
+        elif fault_class in required_controls:
+            valid_role = (
+                frozen_case.get("seeded_fault") is False
+                and frozen_case.get("valid_control") is True
             )
-        required_faults = contract.get("required_fault_classes")
-        required_controls = contract.get("required_control_classes")
-        cases = bank.get("cases")
-        attestation_path = contract.get("real_production_replay", {}).get("attestation_path")
-        if real_replay_attestation is None and isinstance(attestation_path, str) and attestation_path:
-            attestation_file = authoritative_root / attestation_path
-            if attestation_file.exists():
-                real_replay_attestation = load_json(attestation_file)
-        if (
-            not isinstance(required_faults, list)
-            or len(required_faults) != 13
-            or len(set(required_faults)) != 13
-            or not all(isinstance(item, str) and item for item in required_faults)
-            or not isinstance(required_controls, list)
-            or len(required_controls) != 3
-            or len(set(required_controls)) != 3
-            or not all(isinstance(item, str) and item for item in required_controls)
-            or set(required_faults) & set(required_controls)
-            or not isinstance(cases, list)
-            or len(cases) != 16
-        ):
-            raise PhaseDRedesignError("D2 contract/bank must define exact 13+3 named classes")
-        bank_by_id = {
-            str(case.get("id")): case for case in cases if isinstance(case, dict)
+        else:
+            valid_role = False
+        if not valid_role:
+            raise PhaseDRedesignError(
+                f"D2 frozen case has unknown class or wrong role/severity: {case_id}"
+            )
+
+    pair_by_id: dict[str, dict[str, Any]] = {}
+    for pair in pairs:
+        if not isinstance(pair, dict):
+            raise PhaseDRedesignError("D2 observation is malformed")
+        case_id = pair.get("case_id")
+        if not isinstance(case_id, str) or case_id not in bank_by_id or case_id in pair_by_id:
+            raise PhaseDRedesignError("D2 observations are incomplete, duplicate, or unknown")
+        frozen_case = bank_by_id[case_id]
+        expected_fields = (set(frozen_case) - {"id"}) | {"case_id", "baseline", "treatment"}
+        if set(pair) != expected_fields:
+            raise PhaseDRedesignError(
+                f"D2 observation fields do not match the frozen schema: {case_id}"
+            )
+        observed_metadata = {
+            key: value
+            for key, value in pair.items()
+            if key not in {"case_id", "baseline", "treatment"}
         }
-        if len(bank_by_id) != 16:
-            raise PhaseDRedesignError("D2 contract/bank case ids are incomplete or duplicate")
-        for case_id, frozen_case in bank_by_id.items():
-            fault_class = frozen_case.get("fault_class")
-            if fault_class in required_faults:
-                if (
-                    frozen_case.get("seeded_fault") is not True
-                    or frozen_case.get("valid_control") is not False
-                    or str(frozen_case.get("severity", "")).lower() not in {"critical", "high"}
-                ):
-                    raise PhaseDRedesignError(
-                        f"D2 required material fault has the wrong role or severity: {case_id}"
-                    )
-            elif fault_class in required_controls:
-                if (
-                    frozen_case.get("seeded_fault") is not False
-                    or frozen_case.get("valid_control") is not True
-                ):
-                    raise PhaseDRedesignError(
-                        f"D2 required control has the wrong role: {case_id}"
-                    )
-            else:
-                raise PhaseDRedesignError(f"D2 bank contains an unknown class: {case_id}")
-        pair_by_id: dict[str, dict[str, Any]] = {}
-        for pair in pairs:
-            if not isinstance(pair, dict):
-                raise PhaseDRedesignError("D2 observation is malformed")
-            case_id = pair.get("case_id")
-            if not isinstance(case_id, str) or case_id not in bank_by_id or case_id in pair_by_id:
-                raise PhaseDRedesignError("D2 observations are incomplete, duplicate, or unknown")
-            frozen_case = bank_by_id[case_id]
-            expected_pair_fields = (set(frozen_case) - {"id"}) | {
-                "case_id", "baseline", "treatment"
-            }
-            if set(pair) != expected_pair_fields:
+        frozen_metadata = {
+            key: value for key, value in frozen_case.items() if key != "id"
+        }
+        if observed_metadata != frozen_metadata:
+            raise PhaseDRedesignError(
+                f"D2 frozen observation metadata does not match deeply: {case_id}"
+            )
+        for side in ("baseline", "treatment"):
+            side_record = pair.get(side)
+            observation = side_record.get("observation") if isinstance(side_record, dict) else None
+            if (
+                not isinstance(side_record, dict)
+                or set(side_record) != {"observation"}
+                or not isinstance(observation, dict)
+                or set(observation) != {"outcome"}
+                or observation.get("outcome") not in {"allowed", "denied"}
+            ):
                 raise PhaseDRedesignError(
-                    f"D2 observation fields do not match the frozen schema: {case_id}"
+                    f"D2 observation fields or outcome are malformed: {case_id} {side}"
                 )
-            for field in ("fault_class", "severity", "seeded_fault", "valid_control"):
-                if pair.get(field) != frozen_case.get(field):
-                    raise PhaseDRedesignError(f"D2 observation does not match frozen case: {case_id}")
-            for side in ("baseline", "treatment"):
-                side_record = pair.get(side)
-                observation = (
-                    side_record.get("observation")
-                    if isinstance(side_record, dict)
-                    else None
-                )
-                if (
-                    not isinstance(side_record, dict)
-                    or set(side_record) != {"observation"}
-                    or not isinstance(observation, dict)
-                    or set(observation) != {"outcome"}
-                ):
-                    raise PhaseDRedesignError(
-                        f"D2 observation fields are malformed: {case_id} {side}"
-                    )
-                outcome = observation.get("outcome")
-                if outcome not in {"allowed", "denied"}:
-                    raise PhaseDRedesignError(f"D2 observation outcome is malformed: {case_id} {side}")
-            pair_by_id[case_id] = pair
-        if set(pair_by_id) != set(bank_by_id):
-            raise PhaseDRedesignError("D2 observations do not exactly cover the frozen bank")
-        observed_classes = {str(pair["fault_class"]) for pair in pairs}
-        if observed_classes != set(required_faults) | set(required_controls):
-            raise PhaseDRedesignError("D2 observations do not cover the exact named classes")
-        replay = contract.get("real_production_replay")
-        if (
-            not isinstance(replay, dict)
-            or replay.get("status") != "implemented_and_verified"
-            or not isinstance(real_replay_attestation, dict)
-            or real_replay_attestation.get("schema_version") != "phase-d-d2-real-replay-attestation/v4"
-            or real_replay_attestation.get("contract_id") != contract.get("id")
-            or real_replay_attestation.get("bank_id") != bank.get("id")
-            or real_replay_attestation.get("isolated_real_schema") is not True
-            or real_replay_attestation.get("named_public_controls_invoked") is not True
-            or real_replay_attestation.get("case_ids") != sorted(bank_by_id)
-        ):
-            raise PhaseDRedesignError(
-                "D2 real production Company OS control replay is not implemented"
-            )
-        real_replay_verifier = globals().get("verify_real_company_os_c2_replay")
-        if not callable(real_replay_verifier):
-            raise PhaseDRedesignError(
-                "D2 executable real production replay verifier is not implemented"
-            )
-        control_ids = [
-            case.get("replay", {}).get("control_id") for case in cases
-            if isinstance(case, dict)
-        ]
-        if (
-            len(control_ids) != 16
-            or not all(isinstance(item, str) and item for item in control_ids)
-            or len(set(control_ids)) != 16
-        ):
-            raise PhaseDRedesignError("D2 real control replay mappings are incomplete or duplicate")
-        replay_verification = real_replay_verifier(
-            authoritative_root,
-            contract,
-            bank,
-            real_replay_attestation,
-            pairs,
-        )
-        if (
-            not isinstance(replay_verification, dict)
-            or replay_verification.get("verified") is not True
-            or replay_verification.get("case_ids") != sorted(bank_by_id)
-            or replay_verification.get("control_ids") != sorted(control_ids)
-        ):
-            raise PhaseDRedesignError(
-                "D2 executable real production replay verification failed"
-            )
-    baseline_escapes = sorted(
-        str(pair["case_id"])
-        for pair in pairs
-        if pair.get("seeded_fault") is True and pair["baseline"]["observation"]["outcome"] == "allowed"
+        pair_by_id[case_id] = pair
+    if set(pair_by_id) != set(bank_by_id):
+        raise PhaseDRedesignError("D2 observations do not exactly cover the frozen bank")
+    if {str(pair["fault_class"]) for pair in pairs} != set(required_faults) | set(required_controls):
+        raise PhaseDRedesignError("D2 observations do not cover the exact named classes")
+    raise PhaseDRedesignError(
+        "D2 treatment certification is unavailable: the concrete internal real production "
+        "Company OS C2 replay verifier is not implemented"
     )
-    baseline_allowed_controls = sorted(
-        str(pair["case_id"])
-        for pair in pairs
-        if pair.get("valid_control") is True and pair["baseline"]["observation"]["outcome"] == "allowed"
-    )
-    material_faults = sorted(
-        str(pair["case_id"])
-        for pair in pairs
-        if pair.get("seeded_fault") is True
-        and str(pair.get("severity", "")).strip().lower() in {"critical", "high"}
-    )
-    required_denials = sorted(set(baseline_escapes) | set(material_faults))
-    evaluated_controls = sorted(
-        str(pair["case_id"])
-        for pair in pairs
-        if pair.get("valid_control") is True
-        and pair.get("treatment", {}).get("observation", {}).get("outcome") in {"allowed", "denied"}
-    )
-    all_control_ids = sorted(
-        str(pair["case_id"]) for pair in pairs if pair.get("valid_control") is True
-    )
-    treatment_denied = {
-        str(pair["case_id"])
-        for pair in pairs
-        if pair["treatment"]["observation"]["outcome"] == "denied"
-    }
-    treatment_allowed = {
-        str(pair["case_id"])
-        for pair in pairs
-        if pair["treatment"]["observation"]["outcome"] == "allowed"
-    }
-    return {
-        "threshold_source": "paired_baseline_observations",
-        "observed_baseline_escape_ids": baseline_escapes,
-        "seeded_material_fault_ids": material_faults,
-        "required_treatment_denial_ids": required_denials,
-        "observed_baseline_allowed_control_ids": baseline_allowed_controls,
-        "evaluated_control_ids": evaluated_controls,
-        "required_treatment_allow_ids": all_control_ids,
-        "treatment_denied_required_ids": sorted(set(required_denials) & treatment_denied),
-        "treatment_allowed_required_control_ids": sorted(set(all_control_ids) & treatment_allowed),
-        "all_seeded_material_faults_denied": set(material_faults).issubset(treatment_denied),
-        "all_controls_evaluated": set(all_control_ids) == set(evaluated_controls),
-        "all_valid_controls_allowed": set(all_control_ids).issubset(treatment_allowed),
-        "observation_derived_comparison_passed": (
-            bool(baseline_escapes)
-            and set(baseline_escapes).issubset(treatment_denied)
-            and set(baseline_allowed_controls).issubset(treatment_allowed)
-        ),
-        "thresholds_passed": (
-            bool(required_denials)
-            and set(required_denials).issubset(treatment_denied)
-            and set(all_control_ids) == set(evaluated_controls)
-            and set(all_control_ids).issubset(treatment_allowed)
-        ),
-    }
 
 
 def _artifact_manifest(output: Path) -> dict[str, Any]:
@@ -1491,8 +1305,11 @@ def _artifact_manifest(output: Path) -> dict[str, Any]:
                 "sha256": sha256_file(path),
             })
     return {
-        "schema_version": "phase-d-redesign-evidence-manifest/v1",
-        "status": "dry_run_complete_treatments_blocked",
+        "schema_version": "phase-d-redesign-development-only-evidence-manifest/v1",
+        "status": "development_only_unverified_non_candidate",
+        "development_only": True,
+        "verified": False,
+        "candidate_evidence": False,
         "corrected_treatments_executed": False,
         "artifacts": records,
         "external_actions_observed": [],
@@ -1615,17 +1432,19 @@ def run_redesign_dry_run(
         for case in mutation_bank["cases"]
     ]
     checks = [
-        "immutable_review_target_protocol",
-        "external_governance_registry_protocol",
+        "baseline_git_object_diagnostic",
+        "separate_signature_verifier_blocker",
         "d1_static_input_and_renderer_contract",
         "d1_svg_adversarial_validator_canaries",
         "d2_named_production_control_mapping",
         "d2_real_replay_blocker",
-        "evidence_manifest_reproducibility_protocol",
     ]
     result = {
-        "schema_version": "phase-d-redesign-blocked-protocol/v4",
-        "status": "blocked_protocol_checks_complete",
+        "schema_version": "phase-d-redesign-development-only-protocol/v4",
+        "status": "development_only_unverified_non_candidate",
+        "development_only": True,
+        "verified": False,
+        "candidate_evidence": False,
         "corrected_treatments_executed": False,
         "phase_d_treatment_pass_possible": False,
         "authorization": {
@@ -1635,7 +1454,7 @@ def run_redesign_dry_run(
         },
         "checks_executed": checks,
         "d1": {
-            "status": "blocked_static_protocol_verified",
+            "status": "development_only_static_protocol_diagnostics_complete",
             "scenario_contracts_checked": len(scenario_ids),
             "assignment_protocol_checked": True,
             "svg_validator_canaries": svg_canaries,
@@ -1659,8 +1478,11 @@ def run_redesign_dry_run(
     output.mkdir(parents=True, exist_ok=False)
     write_json(output / "protocol-result.json", result)
     write_json(output / "evidence-manifest.json", {
-        "schema_version": "phase-d-redesign-evidence-manifest/v4",
-        "status": "blocked_protocol_checks_complete",
+        "schema_version": "phase-d-redesign-development-only-evidence-manifest/v4",
+        "status": "development_only_unverified_non_candidate",
+        "development_only": True,
+        "verified": False,
+        "candidate_evidence": False,
         "corrected_treatments_executed": False,
         "phase_d_treatment_pass_possible": False,
         "artifacts": [{
@@ -1678,73 +1500,10 @@ def verify_redesign_evidence(
     expected_output: Path,
     *,
     freeze_path: Path | None = None,
-    require_immutable_head: bool = True,
 ) -> dict[str, Any]:
-    """Reproduce evidence in a temporary directory and compare without touching expected files."""
-    expected_manifest = load_json(expected_output / "evidence-manifest.json")
-    records = expected_manifest.get("artifacts")
-    if not isinstance(records, list):
-        raise PhaseDRedesignError("expected evidence manifest is malformed")
-    manifest_paths: set[str] = set()
-    for record in records:
-        if not isinstance(record, dict):
-            raise PhaseDRedesignError("expected evidence manifest record is malformed")
-        relative = record.get("path")
-        expected_hash = record.get("sha256")
-        expected_bytes = record.get("bytes")
-        if (
-            not isinstance(relative, str)
-            or not relative
-            or Path(relative).is_absolute()
-            or ".." in Path(relative).parts
-            or relative in manifest_paths
-            or not isinstance(expected_hash, str)
-            or not re.fullmatch(r"[0-9a-f]{64}", expected_hash)
-            or not isinstance(expected_bytes, int)
-            or expected_bytes < 0
-        ):
-            raise PhaseDRedesignError("expected evidence manifest record is malformed")
-        artifact = expected_output / relative
-        if (
-            artifact.is_symlink()
-            or not artifact.is_file()
-            or artifact.stat().st_size != expected_bytes
-            or sha256_file(artifact) != expected_hash
-        ):
-            raise PhaseDRedesignError(f"expected evidence hash mismatch or tamper: {relative}")
-        manifest_paths.add(relative)
-    observed_paths = {
-        path.relative_to(expected_output).as_posix()
-        for path in expected_output.rglob("*")
-        if path.is_file() and path.name != "evidence-manifest.json"
-    }
-    if observed_paths != manifest_paths:
-        raise PhaseDRedesignError("expected evidence manifest does not cover exact files")
-    before = {
-        path.relative_to(expected_output).as_posix(): sha256_file(path)
-        for path in expected_output.rglob("*")
-        if path.is_file()
-    }
-    with tempfile.TemporaryDirectory(prefix="phase-d-v4-verify-") as temporary:
-        reproduced = Path(temporary) / "evidence"
-        run_redesign_dry_run(
-            root,
-            reproduced,
-            freeze_path=freeze_path,
-            allow_development_overlay=not require_immutable_head,
-        )
-        reproduced_manifest = load_json(reproduced / "evidence-manifest.json")
-    after = {
-        path.relative_to(expected_output).as_posix(): sha256_file(path)
-        for path in expected_output.rglob("*")
-        if path.is_file()
-    }
-    if before != after:
-        raise PhaseDRedesignError("frozen evidence changed during verification")
-    if expected_manifest != reproduced_manifest:
-        raise PhaseDRedesignError("reproduced evidence manifest or hashes do not match")
-    return {
-        "status": "evidence_reproduced",
-        "manifest_sha256": sha256_file(expected_output / "evidence-manifest.json"),
-        "expected_evidence_unchanged": True,
-    }
+    """Fail closed until candidate identity can be verified outside this process."""
+    del (root, expected_output, freeze_path)
+    raise PhaseDRedesignError(
+        "strict candidate verification is blocked: an externally signed candidate manifest "
+        "and separate signature verifier are required"
+    )
