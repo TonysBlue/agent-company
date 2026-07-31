@@ -13,8 +13,9 @@ import stat
 import subprocess
 import unittest
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 
 class PhaseDRedesignError(ValueError):
@@ -48,7 +49,34 @@ _V4_EXPECTED_DENIED_ARTIFACTS = {
     "evidence/phase-d/redesign-v3": "tree",
     "evidence/phase-d/full-agent-company-regression.txt": "file",
     "evidence/phase-d/full-pixweave-regression.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-candidate-path-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-candidate-verify-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-default-verify-handoff.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-final-aggregate-after-verify.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-final-aggregate-before-verify.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-final/evidence-manifest.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-final/protocol-result.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff/evidence-manifest.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff/protocol-result.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff-aggregate-after.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff-aggregate-before.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run-final-definitive.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run-handoff.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-definitive.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-final-definitive.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-handoff.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-svg-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol/evidence-manifest.json": "file",
+    "evidence/phase-d/redesign-v4/protocol/protocol-result.json": "file",
 }
+
+_V4_FREEZE_PATH = Path(
+    "docs/assurance/phase-d/redesign/corrected-freeze-v4.json"
+)
 
 _V4_EXPECTED_INVALID_CLAIMS = {
     "d0_execution_authorized",
@@ -71,6 +99,8 @@ _V4_EXPECTED_INVALID_CLAIMS = {
     "d2_thresholds_passed",
     "v3_credentials_provided_an_external_trust_root",
     "v3_freeze_bound_current_head_and_complete_tree",
+    "blocked_protocol_checks_complete",
+    "evidence_reproduced",
 }
 
 
@@ -98,6 +128,171 @@ def load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise PhaseDRedesignError(f"JSON input must be an object: {path}")
     return value
+
+
+@dataclass(frozen=True)
+class _BoundRegularFile:
+    root: Path
+    relative: Path
+    directory_fds: tuple[int, ...]
+    directory_metadata: tuple[os.stat_result, ...]
+    file_descriptor: int
+    file_metadata: os.stat_result
+    content: bytes
+
+
+def _safe_open_flags(*, directory: bool) -> int:
+    flags = os.O_RDONLY | os.O_NONBLOCK
+    if directory:
+        flags |= os.O_DIRECTORY
+    if hasattr(os, "O_CLOEXEC"):
+        flags |= os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    return flags
+
+
+def _read_open_descriptor(file_descriptor: int) -> bytes:
+    os.lseek(file_descriptor, 0, os.SEEK_SET)
+    chunks: list[bytes] = []
+    while True:
+        chunk = os.read(file_descriptor, 1024 * 1024)
+        if not chunk:
+            return b"".join(chunks)
+        chunks.append(chunk)
+
+
+def _open_bound_regular_file(
+    root: Path,
+    path: Path,
+    expected_relative: Path,
+) -> _BoundRegularFile:
+    absolute_root = Path(os.path.abspath(os.fspath(root)))
+    absolute_path = Path(os.path.abspath(os.fspath(path)))
+    expected_path = absolute_root / expected_relative
+    if root != absolute_root or path != absolute_path or absolute_path != expected_path:
+        raise PhaseDRedesignError(
+            f"V4 supplied freeze path is not the exact frozen path: {path}"
+        )
+    try:
+        if absolute_root.resolve(strict=True) != absolute_root:
+            raise PhaseDRedesignError("V4 freeze root contains symlink indirection")
+        root_metadata = absolute_root.lstat()
+        root_fd = os.open(absolute_root, _safe_open_flags(directory=True))
+    except OSError as exc:
+        raise PhaseDRedesignError(f"cannot bind V4 freeze root safely: {exc}") from exc
+    directory_fds = [root_fd]
+    directory_metadata = [root_metadata]
+    file_descriptor: int | None = None
+    try:
+        opened_root = os.fstat(root_fd)
+        if not stat.S_ISDIR(root_metadata.st_mode) or not _same_filesystem_identity(
+            root_metadata, opened_root
+        ):
+            raise PhaseDRedesignError("V4 freeze root identity changed before open")
+        current_fd = root_fd
+        for component in expected_relative.parts[:-1]:
+            before = os.stat(component, dir_fd=current_fd, follow_symlinks=False)
+            if not stat.S_ISDIR(before.st_mode):
+                raise PhaseDRedesignError("V4 freeze parent path uses unsafe indirection")
+            child_fd = os.open(
+                component,
+                _safe_open_flags(directory=True),
+                dir_fd=current_fd,
+            )
+            opened = os.fstat(child_fd)
+            if not _same_filesystem_identity(before, opened):
+                os.close(child_fd)
+                raise PhaseDRedesignError("V4 freeze parent identity changed before open")
+            directory_fds.append(child_fd)
+            directory_metadata.append(before)
+            current_fd = child_fd
+
+        filename = expected_relative.name
+        file_metadata = os.stat(filename, dir_fd=current_fd, follow_symlinks=False)
+        if not stat.S_ISREG(file_metadata.st_mode) or file_metadata.st_nlink != 1:
+            raise PhaseDRedesignError(
+                "V4 supplied freeze must be a non-symlink, non-hardlinked regular file"
+            )
+        file_descriptor = os.open(
+            filename,
+            _safe_open_flags(directory=False),
+            dir_fd=current_fd,
+        )
+        opened_file = os.fstat(file_descriptor)
+        if not _same_filesystem_identity(file_metadata, opened_file):
+            raise PhaseDRedesignError("V4 freeze identity changed before descriptor open")
+        content = _read_open_descriptor(file_descriptor)
+        final_opened = os.fstat(file_descriptor)
+        if (
+            len(content) != file_metadata.st_size
+            or not _same_filesystem_identity(file_metadata, final_opened)
+        ):
+            raise PhaseDRedesignError("V4 freeze changed while reading exact bytes")
+        return _BoundRegularFile(
+            root=absolute_root,
+            relative=expected_relative,
+            directory_fds=tuple(directory_fds),
+            directory_metadata=tuple(directory_metadata),
+            file_descriptor=file_descriptor,
+            file_metadata=file_metadata,
+            content=content,
+        )
+    except (OSError, PhaseDRedesignError) as exc:
+        if file_descriptor is not None:
+            os.close(file_descriptor)
+        for directory_fd in reversed(directory_fds):
+            os.close(directory_fd)
+        if isinstance(exc, PhaseDRedesignError):
+            raise
+        raise PhaseDRedesignError(f"cannot bind exact V4 freeze bytes safely: {exc}") from exc
+
+
+def _assert_bound_regular_file_unchanged(binding: _BoundRegularFile) -> None:
+    try:
+        root_now = binding.root.lstat()
+        if not _same_filesystem_identity(binding.directory_metadata[0], root_now):
+            raise PhaseDRedesignError("V4 freeze root identity changed at final boundary")
+        for index, component in enumerate(binding.relative.parts[:-1], start=1):
+            parent_fd = binding.directory_fds[index - 1]
+            path_now = os.stat(component, dir_fd=parent_fd, follow_symlinks=False)
+            opened_now = os.fstat(binding.directory_fds[index])
+            if not _same_filesystem_identity(
+                binding.directory_metadata[index], path_now
+            ) or not _same_filesystem_identity(
+                binding.directory_metadata[index], opened_now
+            ):
+                raise PhaseDRedesignError(
+                    "V4 freeze parent identity changed at final boundary"
+                )
+        current_file = os.stat(
+            binding.relative.name,
+            dir_fd=binding.directory_fds[-1],
+            follow_symlinks=False,
+        )
+        opened_file = os.fstat(binding.file_descriptor)
+        if not _same_filesystem_identity(
+            binding.file_metadata, current_file
+        ) or not _same_filesystem_identity(binding.file_metadata, opened_file):
+            raise PhaseDRedesignError(
+                "V4 freeze path was replaced or changed at final boundary"
+            )
+        if _read_open_descriptor(binding.file_descriptor) != binding.content or not (
+            _same_filesystem_identity(
+                binding.file_metadata, os.fstat(binding.file_descriptor)
+            )
+        ):
+            raise PhaseDRedesignError("V4 freeze exact bytes changed at final boundary")
+    except OSError as exc:
+        raise PhaseDRedesignError(
+            f"cannot recheck V4 freeze at final boundary: {exc}"
+        ) from exc
+
+
+def _close_bound_regular_file(binding: _BoundRegularFile) -> None:
+    os.close(binding.file_descriptor)
+    for directory_fd in reversed(binding.directory_fds):
+        os.close(directory_fd)
 
 
 def _supersession_artifacts(record: dict[str, Any]) -> dict[str, str]:
@@ -140,6 +335,7 @@ def assert_phase_d_artifact_current(path: str | Path, record: dict[str, Any]) ->
 
 def validate_v4_supersession_record(
     root: Path,
+    freeze_path: Path,
     freeze: dict[str, Any],
     record: dict[str, Any],
 ) -> dict[str, Any]:
@@ -156,49 +352,60 @@ def validate_v4_supersession_record(
         or set(invalid_claims) != _V4_EXPECTED_INVALID_CLAIMS
     ):
         raise PhaseDRedesignError("V4 supersession invalid-claim coverage is not exhaustive")
-    expected_binding = {
-        "path": "docs/assurance/phase-d/redesign/corrected-freeze-v4.json",
-        "sha256": sha256_file(
-            root / "docs/assurance/phase-d/redesign/corrected-freeze-v4.json"
-        ),
-        "schema_version": freeze.get("schema_version"),
-        "id": freeze.get("id"),
-        "baseline_review_target": freeze.get("baseline_review_target"),
-        "supersession_protocol_input": freeze.get("protocol_inputs", {}).get(
-            "supersession_record"
-        ),
-    }
-    if record.get("v4_freeze_binding") != expected_binding:
-        raise PhaseDRedesignError("V4 supersession freeze binding is invalid")
-    baseline = freeze.get("baseline_review_target")
-    if (
-        not isinstance(baseline, dict)
-        or record.get("reviewed_head") != baseline.get("commit")
-        or record.get("reviewed_tree") != baseline.get("tree")
-    ):
-        raise PhaseDRedesignError("V4 supersession reviewed target binding is invalid")
-    status = record.get("v4_status")
-    if (
-        not isinstance(status, dict)
-        or status.get("execution_authorized") is not False
-        or status.get("treatment_execution_status") != "blocked"
-        or status.get("treatment_pass_possible") is not False
-        or record.get("historical_evidence_preservation") != "do_not_delete_or_mutate"
-        or record.get("historical_files_must_not_be_deleted_or_rewritten") is not True
-    ):
-        raise PhaseDRedesignError("V4 supersession status or preservation policy is invalid")
-    for relative, scope in denied.items():
-        resolved = root / relative
-        exists = resolved.is_file() if scope == "file" else resolved.is_dir()
-        if resolved.is_symlink() or not exists:
+    binding = _open_bound_regular_file(root, freeze_path, _V4_FREEZE_PATH)
+    try:
+        try:
+            supplied_freeze = json.loads(binding.content.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
             raise PhaseDRedesignError(
-                f"V4 supersession denied artifact is missing or unsafe: {relative}"
-            )
-    return {
-        "denied_artifacts": denied,
-        "invalid_claims": sorted(_V4_EXPECTED_INVALID_CLAIMS),
-        "execution_authorized": False,
-    }
+                f"V4 supplied freeze bytes are invalid: {freeze_path}: {exc}"
+            ) from exc
+        if supplied_freeze != freeze:
+            raise PhaseDRedesignError("V4 supplied freeze object does not match its exact bytes")
+        expected_binding = {
+            "path": _V4_FREEZE_PATH.as_posix(),
+            "sha256": sha256_bytes(binding.content),
+            "schema_version": freeze.get("schema_version"),
+            "id": freeze.get("id"),
+            "baseline_review_target": freeze.get("baseline_review_target"),
+            "supersession_protocol_input": freeze.get("protocol_inputs", {}).get(
+                "supersession_record"
+            ),
+        }
+        if record.get("v4_freeze_binding") != expected_binding:
+            raise PhaseDRedesignError("V4 supersession freeze binding is invalid")
+        baseline = freeze.get("baseline_review_target")
+        if (
+            not isinstance(baseline, dict)
+            or record.get("reviewed_head") != baseline.get("commit")
+            or record.get("reviewed_tree") != baseline.get("tree")
+        ):
+            raise PhaseDRedesignError("V4 supersession reviewed target binding is invalid")
+        status = record.get("v4_status")
+        if (
+            not isinstance(status, dict)
+            or status.get("execution_authorized") is not False
+            or status.get("treatment_execution_status") != "blocked"
+            or status.get("treatment_pass_possible") is not False
+            or record.get("historical_evidence_preservation") != "do_not_delete_or_mutate"
+            or record.get("historical_files_must_not_be_deleted_or_rewritten") is not True
+        ):
+            raise PhaseDRedesignError("V4 supersession status or preservation policy is invalid")
+        for relative, scope in denied.items():
+            resolved = root / relative
+            exists = resolved.is_file() if scope == "file" else resolved.is_dir()
+            if resolved.is_symlink() or not exists:
+                raise PhaseDRedesignError(
+                    f"V4 supersession denied artifact is missing or unsafe: {relative}"
+                )
+        _assert_bound_regular_file_unchanged(binding)
+        return {
+            "denied_artifacts": denied,
+            "invalid_claims": sorted(_V4_EXPECTED_INVALID_CLAIMS),
+            "execution_authorized": False,
+        }
+    finally:
+        _close_bound_regular_file(binding)
 
 
 def write_json(path: Path, value: object) -> None:
@@ -281,14 +488,54 @@ def evaluate_v3_authorization(
         "V3 authorization is superseded because caller-provided credentials are not a trust root"
     )
 
+_FORBIDDEN_GIT_ENVIRONMENT = {
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_CEILING_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_CONFIG_GLOBAL",
+    "GIT_CONFIG_NOSYSTEM",
+    "GIT_CONFIG_SYSTEM",
+    "GIT_CONFIG_USER",
+    "GIT_DIR",
+    "GIT_DISCOVERY_ACROSS_FILESYSTEM",
+    "GIT_GRAFT_FILE",
+    "GIT_INDEX_FILE",
+    "GIT_NAMESPACE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_QUARANTINE_PATH",
+    "GIT_REPLACE_REF_BASE",
+    "GIT_SHALLOW_FILE",
+    "GIT_WORK_TREE",
+}
+
+
+def _git_command_environment() -> dict[str, str]:
+    forbidden = sorted(
+        name
+        for name in os.environ
+        if name in _FORBIDDEN_GIT_ENVIRONMENT or name.startswith("GIT_CONFIG_")
+    )
+    if forbidden:
+        raise PhaseDRedesignError(
+            "semantic Git environment is forbidden during immutable verification: "
+            + ", ".join(forbidden)
+        )
+    environment = os.environ.copy()
+    environment["GIT_NO_REPLACE_OBJECTS"] = "1"
+    environment["GIT_CONFIG_NOSYSTEM"] = "1"
+    environment["GIT_CONFIG_GLOBAL"] = os.devnull
+    return environment
+
+
 def _run_git(root: Path, *args: str) -> str:
     completed = subprocess.run(
-        ["git", *args],
+        ["git", "--no-replace-objects", *args],
         cwd=root,
         check=False,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
+        env=_git_command_environment(),
     )
     if completed.returncode:
         raise PhaseDRedesignError(
@@ -298,118 +545,833 @@ def _run_git(root: Path, *args: str) -> str:
     return completed.stdout.rstrip("\r\n")
 
 
+def _run_git_bytes(root: Path, *args: str) -> bytes:
+    completed = subprocess.run(
+        ["git", "--no-replace-objects", *args],
+        cwd=root,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=_git_command_environment(),
+    )
+    if completed.returncode:
+        raise PhaseDRedesignError(
+            f"cannot verify immutable Git review target ({' '.join(args)}): "
+            f"{os.fsdecode(completed.stderr).strip()}"
+        )
+    return completed.stdout
+
+
+def _assert_no_replace_refs(root: Path) -> None:
+    replace_refs = _run_git(
+        root,
+        "for-each-ref",
+        "--format=%(refname)",
+        "refs/replace/",
+    ).splitlines()
+    if replace_refs:
+        raise PhaseDRedesignError(
+            "replace refs are forbidden during immutable verification: "
+            + ", ".join(replace_refs)
+        )
+
+
+def _git_metadata_paths(root: Path) -> dict[str, Path]:
+    paths: dict[str, Path] = {}
+    for name in ("objects", "objects/info/alternates", "info/grafts", "shallow"):
+        raw_path = _run_git(root, "rev-parse", "--path-format=absolute", "--git-path", name)
+        paths[name] = Path(raw_path)
+    return paths
+
+
+@dataclass(frozen=True)
+class _GitRepositoryBinding:
+    root: Path
+    root_descriptor: int
+    root_metadata: os.stat_result
+    git_directory: Path
+    git_directory_metadata: os.stat_result
+    common_directory: Path
+    object_directory: Path
+    object_directory_metadata: os.stat_result
+
+
+def _bind_exact_git_worktree_root(root: Path) -> _GitRepositoryBinding:
+    absolute_root = Path(os.path.abspath(os.fspath(root)))
+    if root != absolute_root:
+        raise PhaseDRedesignError("supplied root must be an exact absolute Git worktree top-level")
+    try:
+        if absolute_root.resolve(strict=True) != absolute_root:
+            raise PhaseDRedesignError(
+                "supplied root must not use symlink or canonical path indirection"
+            )
+        root_metadata = absolute_root.lstat()
+        root_descriptor = os.open(absolute_root, _safe_open_flags(directory=True))
+    except OSError as exc:
+        raise PhaseDRedesignError(f"cannot bind immutable worktree root: {exc}") from exc
+    try:
+        opened_root = os.fstat(root_descriptor)
+        if not stat.S_ISDIR(root_metadata.st_mode) or not _same_filesystem_identity(
+            root_metadata, opened_root
+        ):
+            raise PhaseDRedesignError("immutable worktree root identity changed before open")
+        top_level = Path(
+            _run_git(root, "rev-parse", "--path-format=absolute", "--show-toplevel")
+        )
+        git_directory = Path(_run_git(root, "rev-parse", "--absolute-git-dir"))
+        common_raw = _run_git(
+            root, "rev-parse", "--path-format=absolute", "--git-common-dir"
+        )
+        common_directory = Path(common_raw)
+        if not common_directory.is_absolute():
+            common_directory = root / common_directory
+        if top_level != absolute_root:
+            raise PhaseDRedesignError(
+                "supplied root is not the exact canonical Git worktree top-level"
+            )
+        expected_git_directory = absolute_root / ".git"
+        if git_directory != expected_git_directory or common_directory != git_directory:
+            raise PhaseDRedesignError(
+                "linked worktree or ambiguous Git common-directory roots are forbidden"
+            )
+        git_directory_metadata = git_directory.lstat()
+        if not stat.S_ISDIR(git_directory_metadata.st_mode):
+            raise PhaseDRedesignError(
+                "Git metadata must be a non-symlink directory inside the exact root"
+            )
+        object_directory, object_directory_metadata = _assert_safe_git_metadata(root)
+        if object_directory != git_directory / "objects":
+            raise PhaseDRedesignError("Git object directory is not bound inside the exact root")
+        return _GitRepositoryBinding(
+            root=absolute_root,
+            root_descriptor=root_descriptor,
+            root_metadata=root_metadata,
+            git_directory=git_directory,
+            git_directory_metadata=git_directory_metadata,
+            common_directory=common_directory,
+            object_directory=object_directory,
+            object_directory_metadata=object_directory_metadata,
+        )
+    except Exception:
+        os.close(root_descriptor)
+        raise
+
+
+def _assert_git_root_unchanged(binding: _GitRepositoryBinding) -> None:
+    try:
+        root_now = binding.root.lstat()
+        root_opened = os.fstat(binding.root_descriptor)
+        git_directory_now = binding.git_directory.lstat()
+    except OSError as exc:
+        raise PhaseDRedesignError(f"immutable Git root changed or disappeared: {exc}") from exc
+    if not _same_inode_identity(
+        binding.root_metadata, root_now
+    ) or not _same_inode_identity(binding.root_metadata, root_opened):
+        raise PhaseDRedesignError("immutable Git root identity changed during verification")
+    if not _same_inode_identity(
+        binding.git_directory_metadata, git_directory_now
+    ):
+        raise PhaseDRedesignError("immutable Git metadata root identity changed")
+
+
+def _close_git_repository_binding(binding: _GitRepositoryBinding) -> None:
+    os.close(binding.root_descriptor)
+
+
+def _metadata_identity(path: Path) -> tuple[int, int, int, int, int, int] | None:
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise PhaseDRedesignError(f"cannot inspect immutable Git metadata {path}: {exc}") from exc
+    return (
+        metadata.st_dev,
+        metadata.st_ino,
+        stat.S_IFMT(metadata.st_mode),
+        metadata.st_size,
+        metadata.st_mtime_ns,
+        metadata.st_ctime_ns,
+    )
+
+
+def _metadata_tree_snapshot(
+    root: Path,
+) -> dict[Path, tuple[int, int, int, int, int, int]]:
+    snapshot: dict[Path, tuple[int, int, int, int, int, int]] = {}
+
+    def walk(path: Path) -> None:
+        identity = _metadata_identity(path)
+        if identity is None:
+            raise PhaseDRedesignError(f"immutable Git metadata disappeared: {path}")
+        mode = identity[2]
+        if mode not in {stat.S_IFDIR, stat.S_IFREG}:
+            raise PhaseDRedesignError(
+                f"immutable Git object metadata uses unsafe indirection or type: {path}"
+            )
+        snapshot[path] = identity
+        if mode != stat.S_IFDIR:
+            return
+        try:
+            names_before = sorted(entry.name for entry in os.scandir(path))
+            for name in names_before:
+                walk(path / name)
+            names_after = sorted(entry.name for entry in os.scandir(path))
+        except OSError as exc:
+            raise PhaseDRedesignError(
+                f"cannot enumerate immutable Git object metadata: {path}: {exc}"
+            ) from exc
+        if names_after != names_before or _metadata_identity(path) != identity:
+            raise PhaseDRedesignError(
+                f"immutable Git object metadata changed while snapshotting: {path}"
+            )
+
+    walk(root)
+    return snapshot
+
+
+def _git_read_metadata_snapshot(
+    binding: _GitRepositoryBinding,
+) -> dict[Path, tuple[int, int, int, int, int, int] | None]:
+    _assert_git_root_unchanged(binding)
+    paths = {
+        binding.git_directory,
+        binding.git_directory / "config",
+        binding.git_directory / "config.worktree",
+        binding.object_directory,
+        binding.object_directory / "info",
+        binding.object_directory / "info" / "alternates",
+        binding.git_directory / "info",
+        binding.git_directory / "info" / "grafts",
+        binding.git_directory / "shallow",
+        binding.common_directory / "refs",
+        binding.common_directory / "refs" / "replace",
+        binding.common_directory / "packed-refs",
+    }
+    forbidden = {
+        path
+        for path in (
+            binding.object_directory / "info" / "alternates",
+            binding.git_directory / "info" / "grafts",
+            binding.git_directory / "shallow",
+        )
+        if _metadata_identity(path) is not None
+    }
+    if forbidden:
+        raise PhaseDRedesignError(
+            "alternate, graft, shallow, or object metadata is forbidden during immutable reads: "
+            + ", ".join(str(path) for path in sorted(forbidden))
+        )
+    current_object = binding.object_directory.lstat()
+    if not stat.S_ISDIR(current_object.st_mode) or not _same_filesystem_identity(
+        binding.object_directory_metadata, current_object
+    ):
+        raise PhaseDRedesignError("Git object directory identity or indirection changed")
+    snapshot = {path: _metadata_identity(path) for path in paths}
+    snapshot.update(_metadata_tree_snapshot(binding.object_directory))
+    return snapshot
+
+
+def _assert_git_read_boundary_unchanged(
+    binding: _GitRepositoryBinding,
+    before: dict[Path, tuple[int, int, int, int, int, int] | None],
+) -> None:
+    after = _git_read_metadata_snapshot(binding)
+    if after != before:
+        raise PhaseDRedesignError(
+            "Git replace refs, alternates, grafts, shallow, or object metadata changed around an immutable object read"
+        )
+
+
+def _assert_safe_git_metadata(root: Path) -> tuple[Path, os.stat_result]:
+    paths = _git_metadata_paths(root)
+    object_directory = paths["objects"]
+    try:
+        object_metadata = object_directory.lstat()
+    except OSError as exc:
+        raise PhaseDRedesignError(f"cannot bind Git object directory: {exc}") from exc
+    if not stat.S_ISDIR(object_metadata.st_mode):
+        raise PhaseDRedesignError("Git object directory must be a local non-symlink directory")
+    forbidden = [
+        name
+        for name in ("objects/info/alternates", "info/grafts", "shallow")
+        if paths[name].exists() or paths[name].is_symlink()
+    ]
+    if forbidden:
+        raise PhaseDRedesignError(
+            "alternate, graft, or shallow Git metadata is forbidden during immutable verification: "
+            + ", ".join(forbidden)
+        )
+    return object_directory, object_metadata
+
+
+def _assert_git_metadata_unchanged(
+    root: Path, object_directory: Path, object_metadata: os.stat_result
+) -> None:
+    final_directory, final_metadata = _assert_safe_git_metadata(root)
+    if final_directory != object_directory or not _same_filesystem_identity(
+        object_metadata, final_metadata
+    ):
+        raise PhaseDRedesignError("Git object directory changed during immutable verification")
+
+
+def _assert_exact_git_repository_binding(
+    binding: _GitRepositoryBinding,
+) -> None:
+    _assert_git_root_unchanged(binding)
+    rebound = _bind_exact_git_worktree_root(binding.root)
+    try:
+        if (
+            rebound.root != binding.root
+            or rebound.git_directory != binding.git_directory
+            or rebound.common_directory != binding.common_directory
+            or rebound.object_directory != binding.object_directory
+            or not _same_inode_identity(binding.root_metadata, rebound.root_metadata)
+            or not _same_inode_identity(
+                binding.git_directory_metadata,
+                rebound.git_directory_metadata,
+            )
+            or not _same_filesystem_identity(
+                binding.object_directory_metadata,
+                rebound.object_directory_metadata,
+            )
+        ):
+            raise PhaseDRedesignError(
+                "exact canonical Git root or repository binding changed"
+            )
+    finally:
+        _close_git_repository_binding(rebound)
+    _assert_git_root_unchanged(binding)
+
+
+def _assert_git_repository_snapshot_unchanged(
+    binding: _GitRepositoryBinding,
+    expected: dict[Path, tuple[int, int, int, int, int, int] | None],
+) -> None:
+    if _git_read_metadata_snapshot(binding) != expected:
+        raise PhaseDRedesignError(
+            "Git repository metadata changed before the static inspection boundary"
+        )
+
+
+def _read_bound_head(
+    binding: _GitRepositoryBinding,
+    expected_repository_snapshot: dict[
+        Path, tuple[int, int, int, int, int, int] | None
+    ],
+) -> str:
+    _assert_git_repository_snapshot_unchanged(
+        binding,
+        expected_repository_snapshot,
+    )
+    head = _run_git(binding.root, "rev-parse", "HEAD")
+    _assert_git_repository_snapshot_unchanged(
+        binding,
+        expected_repository_snapshot,
+    )
+    return head
+
+
+def _git_object_id(object_format: str, object_kind: str, content: bytes) -> str:
+    header = f"{object_kind} {len(content)}\0".encode("ascii")
+    return hashlib.new(object_format, header + content).hexdigest()
+
+
+def _read_bound_git_object(
+    root: Path,
+    object_id: str,
+    object_kind: str,
+    object_format: str,
+    repository_binding: _GitRepositoryBinding | None = None,
+) -> bytes:
+    owned_binding = repository_binding is None
+    binding = repository_binding or _bind_exact_git_worktree_root(root)
+    try:
+        _assert_no_replace_refs(root)
+        before = _git_read_metadata_snapshot(binding)
+        content = _run_git_bytes(root, "cat-file", object_kind, object_id)
+        _assert_git_read_boundary_unchanged(binding, before)
+        _assert_no_replace_refs(root)
+    finally:
+        if owned_binding:
+            _close_git_repository_binding(binding)
+    if _git_object_id(object_format, object_kind, content) != object_id:
+        raise PhaseDRedesignError(
+            f"immutable {object_kind} object bytes do not match object id {object_id}"
+        )
+    return content
+
+
+def _commit_tree_from_bytes(commit: bytes, object_format: str) -> str:
+    first_line, separator, _ = commit.partition(b"\n")
+    expected_length = hashlib.new(object_format).digest_size * 2
+    match = re.fullmatch(rb"tree ([0-9a-f]+)", first_line)
+    if separator != b"\n" or match is None or len(match.group(1)) != expected_length:
+        raise PhaseDRedesignError("immutable commit object has an invalid tree binding")
+    return match.group(1).decode("ascii")
+
+
+def _read_bound_tree_inventory(
+    root: Path,
+    tree: str,
+    object_format: str,
+    repository_binding: _GitRepositoryBinding | None = None,
+) -> tuple[dict[str, tuple[str, str]], set[str], dict[str, bytes]]:
+    tracked: dict[str, tuple[str, str]] = {}
+    tracked_directories: set[str] = set()
+    tree_bytes: dict[str, bytes] = {}
+    object_id_bytes = hashlib.new(object_format).digest_size
+    active_trees: set[str] = set()
+
+    def read_tree(tree_id: str, relative_directory: str) -> bytes:
+        if tree_id in active_trees:
+            raise PhaseDRedesignError("immutable Git tree contains a recursive object cycle")
+        active_trees.add(tree_id)
+        try:
+            content = _read_bound_git_object(
+                root,
+                tree_id,
+                "tree",
+                object_format,
+                repository_binding,
+            )
+            tree_bytes[tree_id] = content
+            cursor = 0
+            names: set[bytes] = set()
+            while cursor < len(content):
+                mode_end = content.find(b" ", cursor)
+                name_end = content.find(b"\0", mode_end + 1)
+                if mode_end <= cursor or name_end <= mode_end + 1:
+                    raise PhaseDRedesignError("immutable Git tree bytes are malformed")
+                mode_bytes = content[cursor:mode_end]
+                raw_name = content[mode_end + 1:name_end]
+                object_end = name_end + 1 + object_id_bytes
+                if object_end > len(content):
+                    raise PhaseDRedesignError("immutable Git tree object id is truncated")
+                raw_object_id = content[name_end + 1:object_end]
+                cursor = object_end
+                if raw_name in names or raw_name in {b".", b".."} or b"/" in raw_name:
+                    raise PhaseDRedesignError("immutable Git tree contains an unsafe path name")
+                names.add(raw_name)
+                relative_name = os.fsdecode(raw_name)
+                relative = (
+                    f"{relative_directory}/{relative_name}"
+                    if relative_directory
+                    else relative_name
+                )
+                try:
+                    mode = mode_bytes.decode("ascii")
+                except UnicodeDecodeError as exc:
+                    raise PhaseDRedesignError("immutable Git tree mode is malformed") from exc
+                object_id = raw_object_id.hex()
+                if mode == "40000":
+                    tracked_directories.add(relative)
+                    read_tree(object_id, relative)
+                elif mode in {"100644", "100755", "120000"}:
+                    tracked[relative] = (mode, object_id)
+                else:
+                    raise PhaseDRedesignError(
+                        f"tracked content kind cannot be verified exactly: {relative}"
+                    )
+            return content
+        finally:
+            active_trees.remove(tree_id)
+
+    read_tree(tree, "")
+    return tracked, tracked_directories, tree_bytes
+
+
+def _same_filesystem_identity(left: os.stat_result, right: os.stat_result) -> bool:
+    return (
+        left.st_dev,
+        left.st_ino,
+        stat.S_IFMT(left.st_mode),
+        left.st_size,
+        left.st_mtime_ns,
+        left.st_ctime_ns,
+    ) == (
+        right.st_dev,
+        right.st_ino,
+        stat.S_IFMT(right.st_mode),
+        right.st_size,
+        right.st_mtime_ns,
+        right.st_ctime_ns,
+    )
+
+
+def _same_inode_identity(left: os.stat_result, right: os.stat_result) -> bool:
+    return (
+        left.st_dev,
+        left.st_ino,
+        stat.S_IFMT(left.st_mode),
+    ) == (
+        right.st_dev,
+        right.st_ino,
+        stat.S_IFMT(right.st_mode),
+    )
+
+
+def _git_object_for_open_file(
+    file_descriptor: int,
+    object_format: str,
+    size: int,
+) -> tuple[str, os.stat_result]:
+    digest = hashlib.new(object_format)
+    digest.update(f"blob {size}\0".encode("ascii"))
+    observed_size = 0
+    while True:
+        chunk = os.read(file_descriptor, 1024 * 1024)
+        if not chunk:
+            break
+        observed_size += len(chunk)
+        digest.update(chunk)
+    final_metadata = os.fstat(file_descriptor)
+    if observed_size != size:
+        raise PhaseDRedesignError("tracked content changed while it was being read")
+    return digest.hexdigest(), final_metadata
+
+
+def _verify_complete_worktree(
+    root: Path,
+    tracked: dict[str, tuple[str, str]],
+    tracked_directories: set[str],
+    object_format: str,
+) -> None:
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY
+    file_flags = os.O_RDONLY | os.O_NONBLOCK
+    if hasattr(os, "O_CLOEXEC"):
+        directory_flags |= os.O_CLOEXEC
+        file_flags |= os.O_CLOEXEC
+    if hasattr(os, "O_NOFOLLOW"):
+        directory_flags |= os.O_NOFOLLOW
+        file_flags |= os.O_NOFOLLOW
+
+    try:
+        root_before = root.lstat()
+        root_fd = os.open(root, directory_flags)
+    except OSError as exc:
+        raise PhaseDRedesignError(f"cannot open immutable worktree root safely: {exc}") from exc
+    try:
+        root_opened = os.fstat(root_fd)
+        if not stat.S_ISDIR(root_opened.st_mode) or not _same_filesystem_identity(
+            root_before, root_opened
+        ):
+            raise PhaseDRedesignError("immutable worktree root changed during verification")
+
+        def walk(directory_fd: int, relative_directory: str) -> None:
+            before = os.fstat(directory_fd)
+            try:
+                names_before = sorted(entry.name for entry in os.scandir(directory_fd))
+            except OSError as exc:
+                raise PhaseDRedesignError(
+                    f"cannot enumerate immutable worktree directory: {relative_directory or '.'}: {exc}"
+                ) from exc
+            for name in names_before:
+                if not relative_directory and name == ".git":
+                    continue
+                relative = f"{relative_directory}/{name}" if relative_directory else name
+                try:
+                    metadata = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+                except OSError as exc:
+                    raise PhaseDRedesignError(
+                        f"filesystem path changed during immutable verification: {relative}: {exc}"
+                    ) from exc
+
+                if relative in tracked_directories:
+                    if not stat.S_ISDIR(metadata.st_mode):
+                        raise PhaseDRedesignError(
+                            f"tracked tree directory mode drift: {relative}"
+                        )
+                    try:
+                        child_fd = os.open(name, directory_flags, dir_fd=directory_fd)
+                    except OSError as exc:
+                        raise PhaseDRedesignError(
+                            f"tracked directory changed before open: {relative}: {exc}"
+                        ) from exc
+                    try:
+                        opened = os.fstat(child_fd)
+                        if not _same_filesystem_identity(metadata, opened):
+                            raise PhaseDRedesignError(
+                                f"tracked directory identity changed before open: {relative}"
+                            )
+                        walk(child_fd, relative)
+                    finally:
+                        os.close(child_fd)
+                    after = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+                    if not _same_filesystem_identity(metadata, after):
+                        raise PhaseDRedesignError(
+                            f"tracked directory changed during verification: {relative}"
+                        )
+                    continue
+
+                expected = tracked.get(relative)
+                if expected is None:
+                    raise PhaseDRedesignError(
+                        "ignored or unbound filesystem path is forbidden in a strict candidate "
+                        f"clone (worktree drift): {relative}"
+                    )
+                mode, expected_object = expected
+                if mode == "120000":
+                    if not stat.S_ISLNK(metadata.st_mode):
+                        raise PhaseDRedesignError(f"tracked content mode drift: {relative}")
+                    try:
+                        content = os.fsencode(os.readlink(name, dir_fd=directory_fd))
+                        after = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+                    except OSError as exc:
+                        raise PhaseDRedesignError(
+                            f"tracked symlink changed while reading: {relative}: {exc}"
+                        ) from exc
+                    if not _same_filesystem_identity(metadata, after):
+                        raise PhaseDRedesignError(
+                            f"tracked symlink identity changed while reading: {relative}"
+                        )
+                    header = f"blob {len(content)}\0".encode("ascii")
+                    observed_object = hashlib.new(object_format, header + content).hexdigest()
+                else:
+                    expected_executable = mode == "100755"
+                    if mode not in {"100644", "100755"} or not stat.S_ISREG(
+                        metadata.st_mode
+                    ) or bool(metadata.st_mode & 0o111) != expected_executable:
+                        raise PhaseDRedesignError(f"tracked content mode drift: {relative}")
+                    try:
+                        file_fd = os.open(name, file_flags, dir_fd=directory_fd)
+                    except OSError as exc:
+                        raise PhaseDRedesignError(
+                            f"tracked file changed before open: {relative}: {exc}"
+                        ) from exc
+                    try:
+                        opened = os.fstat(file_fd)
+                        if not _same_filesystem_identity(metadata, opened):
+                            raise PhaseDRedesignError(
+                                f"tracked file identity changed before open: {relative}"
+                            )
+                        observed_object, final_opened = _git_object_for_open_file(
+                            file_fd, object_format, metadata.st_size
+                        )
+                    finally:
+                        os.close(file_fd)
+                    after = os.stat(name, dir_fd=directory_fd, follow_symlinks=False)
+                    if not _same_filesystem_identity(metadata, final_opened) or not (
+                        _same_filesystem_identity(metadata, after)
+                    ):
+                        raise PhaseDRedesignError(
+                            f"tracked file changed during verification: {relative}"
+                        )
+                if observed_object != expected_object:
+                    raise PhaseDRedesignError(f"tracked content or worktree drift: {relative}")
+
+            names_after = sorted(entry.name for entry in os.scandir(directory_fd))
+            after = os.fstat(directory_fd)
+            if names_after != names_before or not _same_filesystem_identity(before, after):
+                raise PhaseDRedesignError(
+                    f"filesystem directory changed during immutable verification: "
+                    f"{relative_directory or '.'}"
+                )
+
+        walk(root_fd, "")
+        root_after = root.lstat()
+        if not _same_filesystem_identity(root_before, root_after):
+            raise PhaseDRedesignError("immutable worktree root changed during verification")
+    finally:
+        os.close(root_fd)
+
+
+def _assert_static_worktree_inspection_boundary(
+    root: Path,
+    repository_binding: _GitRepositoryBinding,
+    repository_snapshot: dict[
+        Path, tuple[int, int, int, int, int, int] | None
+    ],
+    commit: str,
+    tree: str,
+    object_format: str,
+    commit_bytes: bytes,
+    tree_objects: dict[str, bytes],
+    tracked: dict[str, tuple[str, str]],
+    tracked_directories: set[str],
+) -> None:
+    final_commit_bytes = _read_bound_git_object(
+        root, commit, "commit", object_format, repository_binding
+    )
+    final_tracked, final_directories, final_tree_objects = _read_bound_tree_inventory(
+        root, tree, object_format, repository_binding
+    )
+    if (
+        final_commit_bytes != commit_bytes
+        or final_tree_objects != tree_objects
+        or final_tracked != tracked
+        or final_directories != tracked_directories
+    ):
+        raise PhaseDRedesignError("immutable commit/tree bytes changed during verification")
+    if _commit_tree_from_bytes(final_commit_bytes, object_format) != tree:
+        raise PhaseDRedesignError("immutable commit/tree binding changed during verification")
+
+    _assert_exact_git_repository_binding(repository_binding)
+    _assert_no_replace_refs(root)
+    _assert_git_repository_snapshot_unchanged(
+        repository_binding,
+        repository_snapshot,
+    )
+    if _read_bound_head(repository_binding, repository_snapshot) != commit:
+        raise PhaseDRedesignError(
+            "current HEAD changed before the static worktree inspection boundary"
+        )
+    _verify_complete_worktree(root, tracked, tracked_directories, object_format)
+
+
 def verify_immutable_review_target(
     root: Path, target: dict[str, Any]
-) -> dict[str, str]:
-    """Compare the checkout directly with the reviewed tree, bypassing index concealment."""
+) -> NoReturn:
+    """Inspect a mutable checkout, then block because the inspection is not atomic."""
     commit = target.get("commit")
     tree = target.get("tree")
     if (
         not isinstance(commit, str)
-        or not re.fullmatch(r"[0-9a-f]{40}", commit)
+        or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", commit)
         or not isinstance(tree, str)
-        or not re.fullmatch(r"[0-9a-f]{40}", tree)
+        or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", tree)
         or target.get("scope") != "entire_git_tree"
         or target.get("require_clean_worktree") is not True
     ):
         raise PhaseDRedesignError(
             "immutable review target commit/tree/scope and clean worktree requirement are invalid"
         )
-    resolved_tree = _run_git(root, "rev-parse", f"{commit}^{{tree}}")
-    if resolved_tree != tree:
-        raise PhaseDRedesignError("immutable review target commit/tree binding is invalid")
-    current_head = _run_git(root, "rev-parse", "HEAD")
-    current_tree = _run_git(root, "rev-parse", "HEAD^{tree}")
-    if current_head != commit or current_tree != tree:
-        raise PhaseDRedesignError("current HEAD/tree drifted from the immutable review target")
-    flagged = [
-        line
-        for line in _run_git(root, "ls-files", "-v").splitlines()
-        if line and line[0] != "H"
-    ]
-    if flagged:
-        raise PhaseDRedesignError(
-            "tracked index flag (skip-worktree or assume-unchanged) is forbidden: "
-            + ", ".join(line[2:] for line in flagged)
-        )
 
-    object_format = _run_git(root, "rev-parse", "--show-object-format")
-    if object_format not in {"sha1", "sha256"}:
-        raise PhaseDRedesignError("unsupported Git object format for exact content verification")
-    tree_listing = _run_git(root, "ls-tree", "-r", commit)
-    for line in tree_listing.splitlines():
-        metadata, relative = line.split("\t", 1)
-        mode, object_kind, expected_object = metadata.split()
-        if object_kind != "blob":
+    _git_command_environment()
+    _assert_no_replace_refs(root)
+    repository_binding = _bind_exact_git_worktree_root(root)
+    try:
+        repository_snapshot = _git_read_metadata_snapshot(repository_binding)
+        object_format = _run_git(root, "rev-parse", "--show-object-format")
+        if object_format not in {"sha1", "sha256"}:
+            raise PhaseDRedesignError("unsupported Git object format for exact content verification")
+        expected_hex_length = hashlib.new(object_format).digest_size * 2
+        if len(commit) != expected_hex_length or len(tree) != expected_hex_length:
+            raise PhaseDRedesignError("immutable review target object ids have the wrong format")
+
+        commit_bytes = _read_bound_git_object(
+            root, commit, "commit", object_format, repository_binding
+        )
+        if _commit_tree_from_bytes(commit_bytes, object_format) != tree:
+            raise PhaseDRedesignError("immutable review target commit/tree binding is invalid")
+        tracked, tracked_directories, tree_objects = _read_bound_tree_inventory(
+            root, tree, object_format, repository_binding
+        )
+        current_head = _run_git(root, "rev-parse", "HEAD")
+        if current_head != commit:
+            raise PhaseDRedesignError("current HEAD/tree drifted from the immutable review target")
+        flagged = [
+            os.fsdecode(item[2:])
+            for item in _run_git_bytes(root, "ls-files", "-v", "-z").split(b"\0")
+            if item and item[:1] != b"H"
+        ]
+        if flagged:
             raise PhaseDRedesignError(
-                f"tracked content kind cannot be verified exactly: {relative}"
+                "tracked index flag (skip-worktree or assume-unchanged) is forbidden: "
+                + ", ".join(flagged)
             )
-        path = root / relative
-        try:
-            worktree_metadata = path.lstat()
-        except OSError as exc:
-            raise PhaseDRedesignError(
-                f"tracked content drift or missing path: {relative}: {exc}"
-            ) from exc
-        expected_executable = mode == "100755"
-        if mode == "120000":
-            if not stat.S_ISLNK(worktree_metadata.st_mode):
-                raise PhaseDRedesignError(f"tracked content mode drift: {relative}")
-        elif not stat.S_ISREG(worktree_metadata.st_mode) or (
-            bool(worktree_metadata.st_mode & 0o111) != expected_executable
-        ):
-            raise PhaseDRedesignError(f"tracked content mode drift: {relative}")
-        if mode == "120000":
-            content = os.fsencode(os.readlink(path))
-        else:
-            content = path.read_bytes()
-        header = f"blob {len(content)}\0".encode("ascii")
-        observed_object = hashlib.new(object_format, header + content).hexdigest()
-        if observed_object != expected_object:
-            raise PhaseDRedesignError(f"tracked content or worktree drift: {relative}")
 
-    status = _run_git(root, "status", "--porcelain=v1", "--untracked-files=all")
-    if status:
-        changed_paths = []
-        for line in status.splitlines():
-            path = line[3:] if len(line) > 3 else line
-            if " -> " in path:
-                path = path.split(" -> ", 1)[1]
-            changed_paths.append(path)
-        raise PhaseDRedesignError(
-            "unbound changed path or worktree drift: " + ", ".join(changed_paths)
+        _verify_complete_worktree(root, tracked, tracked_directories, object_format)
+
+        _assert_git_metadata_unchanged(
+            root,
+            repository_binding.object_directory,
+            repository_binding.object_directory_metadata,
         )
-    ignored = _run_git(
-        root,
-        "ls-files",
-        "--others",
-        "--ignored",
-        "--exclude-standard",
-        "--directory",
-    )
-    if ignored:
-        raise PhaseDRedesignError(
-            "ignored files or filesystem objects are forbidden in a strict candidate clone: "
-            + ", ".join(ignored.splitlines())
+        _assert_no_replace_refs(root)
+        _assert_git_root_unchanged(repository_binding)
+        _assert_static_worktree_inspection_boundary(
+            root,
+            repository_binding,
+            repository_snapshot,
+            commit,
+            tree,
+            object_format,
+            commit_bytes,
+            tree_objects,
+            tracked,
+            tracked_directories,
         )
-    return {"commit": commit, "tree": tree, "scope": "entire_git_tree"}
+        raise PhaseDRedesignError(
+            "blocked_unavailable_atomic_snapshot: mutable Git checkout static inspection "
+            "cannot produce acceptance evidence without an atomic read-only filesystem "
+            "snapshot or OS-enforced immutability primitive"
+        )
+    finally:
+        _close_git_repository_binding(repository_binding)
 
 
-def _verify_git_object_target(root: Path, target: dict[str, Any]) -> dict[str, str]:
+def _inspect_development_git_object_target(
+    root: Path, target: dict[str, Any]
+) -> dict[str, Any]:
     commit = target.get("commit")
     tree = target.get("tree")
     if (
         not isinstance(commit, str)
-        or not re.fullmatch(r"[0-9a-f]{40}", commit)
+        or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", commit)
         or not isinstance(tree, str)
-        or not re.fullmatch(r"[0-9a-f]{40}", tree)
+        or not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", tree)
         or target.get("scope") != "entire_git_tree"
         or target.get("require_clean_worktree") is not True
     ):
         raise PhaseDRedesignError("Git object review target is invalid")
-    if _run_git(root, "rev-parse", f"{commit}^{{tree}}") != tree:
-        raise PhaseDRedesignError("Git object review target commit/tree binding is invalid")
-    return {"commit": commit, "tree": tree, "scope": "entire_git_tree"}
+
+    _git_command_environment()
+    _assert_no_replace_refs(root)
+    repository_binding = _bind_exact_git_worktree_root(root)
+    try:
+        repository_snapshot = _git_read_metadata_snapshot(repository_binding)
+        initial_head = _run_git(root, "rev-parse", "HEAD")
+        object_format = _run_git(root, "rev-parse", "--show-object-format")
+        if object_format not in {"sha1", "sha256"}:
+            raise PhaseDRedesignError("unsupported Git object format for exact content verification")
+        expected_hex_length = hashlib.new(object_format).digest_size * 2
+        if len(commit) != expected_hex_length or len(tree) != expected_hex_length:
+            raise PhaseDRedesignError("Git object review target object ids have the wrong format")
+        commit_bytes = _read_bound_git_object(
+            root, commit, "commit", object_format, repository_binding
+        )
+        if _commit_tree_from_bytes(commit_bytes, object_format) != tree:
+            raise PhaseDRedesignError("Git object review target commit/tree binding is invalid")
+        tree_bytes = _read_bound_git_object(
+            root, tree, "tree", object_format, repository_binding
+        )
+        if _read_bound_git_object(
+            root, commit, "commit", object_format, repository_binding
+        ) != commit_bytes or (
+            _read_bound_git_object(
+                root, tree, "tree", object_format, repository_binding
+            )
+            != tree_bytes
+        ):
+            raise PhaseDRedesignError("Git object review target changed during verification")
+        _assert_git_metadata_unchanged(
+            root,
+            repository_binding.object_directory,
+            repository_binding.object_directory_metadata,
+        )
+        _assert_no_replace_refs(root)
+        _assert_exact_git_repository_binding(repository_binding)
+        _assert_git_repository_snapshot_unchanged(
+            repository_binding,
+            repository_snapshot,
+        )
+        if _read_bound_head(repository_binding, repository_snapshot) != initial_head:
+            raise PhaseDRedesignError(
+                "development Git object target HEAD changed before its return boundary"
+            )
+        return {
+            "status": "development_only_unverified_git_object_diagnostic",
+            "development_only": True,
+            "verified": False,
+            "candidate_evidence": False,
+            "authorization_eligible": False,
+            "diagnostic_scope": "git_objects_only_not_worktree",
+            "observed_commit_object": commit,
+            "observed_tree_object": tree,
+        }
+    finally:
+        _close_git_repository_binding(repository_binding)
 
 
 def load_external_review_target(root: Path, freeze: dict[str, Any]) -> dict[str, Any]:
@@ -467,8 +1429,9 @@ def _verify_corrected_freeze_v4(
     *,
     require_execution_approval: bool,
     allow_development_overlay: bool,
+    freeze: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    freeze = load_json(freeze_path)
+    freeze = load_json(freeze_path) if freeze is None else freeze
     if freeze.get("schema_version") != "phase-d-redesign-freeze/v4":
         raise PhaseDRedesignError("v4 corrected freeze schema_version is invalid")
     if freeze.get("execution_gate", {}).get("execution_authorized") is not False:
@@ -485,14 +1448,16 @@ def _verify_corrected_freeze_v4(
     except PhaseDRedesignError:
         candidate_target = None
     if allow_development_overlay:
-        target_verification = _verify_git_object_target(root, baseline_target)
+        development_git_object_diagnostic = _inspect_development_git_object_target(
+            root, baseline_target
+        )
     else:
         if not isinstance(candidate_target, dict):
             raise PhaseDRedesignError(
                 "repository default verification is blocked until an externally signed "
                 "candidate manifest can be verified by a separate signature verifier"
             )
-        target_verification = verify_immutable_review_target(root, candidate_target)
+        verify_immutable_review_target(root, candidate_target)
 
     protocol_inputs = freeze.get("protocol_inputs")
     expected_inputs = {
@@ -511,7 +1476,7 @@ def _verify_corrected_freeze_v4(
             raise PhaseDRedesignError(f"v4 protocol input is not a regular file: {kind}")
         documents[kind] = load_json(path)
     supersession = validate_v4_supersession_record(
-        root, freeze, documents["supersession_record"]
+        root, freeze_path, freeze, documents["supersession_record"]
     )
     for kind, relative in expected_inputs.items():
         if kind != "supersession_record":
@@ -538,7 +1503,7 @@ def _verify_corrected_freeze_v4(
         **authorization,
         "documents": documents,
         "supersession": supersession,
-        "target_verification": target_verification,
+        "development_git_object_diagnostic": development_git_object_diagnostic,
         "development_overlay": allow_development_overlay,
         "bound_paths": sorted(
             [freeze_path.relative_to(root).as_posix(), *expected_inputs.values()]
@@ -554,6 +1519,35 @@ def verify_corrected_freeze(
     governance_credentials: dict[str, bytes] | None = None,
     allow_development_overlay: bool = False,
 ) -> dict[str, Any]:
+    expected_v4_path = Path(os.path.abspath(os.fspath(root))) / _V4_FREEZE_PATH
+    if Path(os.path.abspath(os.fspath(freeze_path))) == expected_v4_path:
+        binding = _open_bound_regular_file(root, freeze_path, _V4_FREEZE_PATH)
+        try:
+            try:
+                freeze = json.loads(binding.content.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise PhaseDRedesignError(
+                    f"V4 supplied freeze bytes are invalid: {freeze_path}: {exc}"
+                ) from exc
+            if not isinstance(freeze, dict):
+                raise PhaseDRedesignError("V4 supplied freeze JSON must be an object")
+            schema_version = freeze.get("schema_version")
+            if schema_version != "phase-d-redesign-freeze/v4":
+                raise PhaseDRedesignError("v4 corrected freeze schema_version is invalid")
+            if governance_credentials is not None:
+                raise PhaseDRedesignError("v4 rejects caller-provided governance credentials")
+            result = _verify_corrected_freeze_v4(
+                root,
+                freeze_path,
+                require_execution_approval=require_execution_approval,
+                allow_development_overlay=allow_development_overlay,
+                freeze=freeze,
+            )
+            _assert_bound_regular_file_unchanged(binding)
+            return result
+        finally:
+            _close_bound_regular_file(binding)
+
     schema_version = load_json(freeze_path).get("schema_version")
     if schema_version == "phase-d-redesign-freeze/v2":
         return _verify_corrected_freeze_v2(
@@ -567,14 +1561,7 @@ def verify_corrected_freeze(
             governance_credentials=governance_credentials,
         )
     if schema_version == "phase-d-redesign-freeze/v4":
-        if governance_credentials is not None:
-            raise PhaseDRedesignError("v4 rejects caller-provided governance credentials")
-        return _verify_corrected_freeze_v4(
-            root,
-            freeze_path,
-            require_execution_approval=require_execution_approval,
-            allow_development_overlay=allow_development_overlay,
-        )
+        raise PhaseDRedesignError("V4 supplied freeze path is not the exact frozen path")
     raise PhaseDRedesignError("corrected freeze schema_version is invalid")
 
 
@@ -614,6 +1601,7 @@ def validate_scenario_bank(root: Path, bank_path: Path) -> dict[str, Any]:
         for required in ("brief", "messages", "channel", "aspect_ratio"):
             if required not in scenario:
                 raise PhaseDRedesignError(f"D1 scenario omits {required}: {scenario_id}")
+        _validate_svg_interpolated_fields(scenario)
         seen_ids.add(scenario_id)
         seen_categories.add(category)
     return bank
@@ -704,21 +1692,53 @@ def execute_d1_workflow(
         "D1 treatment workflow execution is blocked and the V3 helper is superseded"
     )
 
+
+def _validate_svg_interpolated_fields(value: object, field: str = "scenario") -> None:
+    if isinstance(value, dict):
+        for key, item in value.items():
+            _validate_svg_interpolated_fields(item, f"{field}.{key}")
+        return
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            _validate_svg_interpolated_fields(item, f"{field}[{index}]")
+        return
+    if not isinstance(value, str):
+        return
+    controls = (
+        (r"(?i)<\?xml(?:\s|\?)", "XML declaration"),
+        (r"<\?", "XML processing instruction"),
+        (r"(?i)<!DOCTYPE", "XML DOCTYPE"),
+        (r"(?i)<!ENTITY", "XML entity declaration"),
+        (r"&(?:#\d+|#x[0-9a-fA-F]+|[A-Za-z_:][\w:.-]*);", "XML entity reference"),
+        (r"[<>&\"']", "raw XML markup"),
+    )
+    for pattern, label in controls:
+        if re.search(pattern, value):
+            raise PhaseDRedesignError(
+                f"D1 interpolated field {field} contains forbidden {label} syntax"
+            )
+
 def validate_bounded_svg(artifact: bytes) -> dict[str, Any]:
     svg_namespace = "http://www.w3.org/2000/svg"
+    try:
+        xml_text = artifact.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise PhaseDRedesignError("D1 artifact XML must be strict UTF-8") from exc
+    if "\x00" in xml_text:
+        raise PhaseDRedesignError("D1 artifact XML must be strict UTF-8 without encoded NULs")
     raw_xml_controls = (
-        (rb"(?i)<!DOCTYPE", "DOCTYPE"),
-        (rb"(?i)<\?", "processing instruction"),
-        (rb"(?i)<!ENTITY", "entity declaration"),
-        (rb"&(?:#\d+|#x[0-9a-fA-F]+|[A-Za-z_:][\w:.-]*);", "entity reference"),
+        (r"(?i)<!DOCTYPE", "DOCTYPE"),
+        (r"(?i)<\?", "processing instruction"),
+        (r"(?i)<!ENTITY", "entity declaration"),
+        (r"&(?:#\d+|#x[0-9a-fA-F]+|[A-Za-z_:][\w:.-]*);", "entity reference"),
     )
     for pattern, label in raw_xml_controls:
-        if re.search(pattern, artifact):
+        if re.search(pattern, xml_text):
             raise PhaseDRedesignError(
                 f"D1 artifact contains forbidden raw XML {label} syntax"
             )
     try:
-        root = ET.fromstring(artifact)
+        root = ET.fromstring(xml_text)
     except ET.ParseError as exc:
         raise PhaseDRedesignError(f"D1 artifact is not valid SVG: {exc}") from exc
     if root.tag != f"{{{svg_namespace}}}svg":
@@ -1155,7 +2175,9 @@ def validate_mutation_bank(bank_path: Path, contract: dict[str, Any]) -> dict[st
 
     required_faults = contract.get("required_fault_classes")
     required_controls = contract.get("required_control_classes")
-    if required_faults is not None or required_controls is not None:
+    if bank.get("schema_version") == "phase-d-d2-mutation-bank/v4" or (
+        required_faults is not None or required_controls is not None
+    ):
         if (
             not isinstance(required_faults, list)
             or not isinstance(required_controls, list)
@@ -1164,6 +2186,10 @@ def validate_mutation_bank(bank_path: Path, contract: dict[str, Any]) -> dict[st
             or not all(isinstance(item, str) for item in required_faults + required_controls)
         ):
             raise PhaseDRedesignError("D2 contract required class lists are invalid")
+        if bank.get("schema_version") == "phase-d-d2-mutation-bank/v4" and (
+            len(required_faults) != 13 or len(required_controls) != 3
+        ):
+            raise PhaseDRedesignError("D2 V4 contract requires exact 13+3 named classes")
         required = set(required_faults) | set(required_controls)
         if len(required) != len(required_faults) + len(required_controls):
             raise PhaseDRedesignError("D2 fault and control classes must be distinct")

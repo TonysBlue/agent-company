@@ -1,0 +1,691 @@
+Phase D V4 final independent review findings - strict TDD log
+Date: 2026-07-31 Asia/Shanghai
+Fixed reviewed commit: 153b11f2faf4939adc0e66dc51e6602534efd745
+
+Scope and constraints
+- HIGH1: replace Git-inventory-only immutable-target coverage with a complete, race-aware
+  filesystem walk excluding only .git internals.
+- HIGH2: supersede every preserved V4 positive evidence artifact and its positive status claims.
+- MEDIUM1: bind supersession validation to the exact supplied freeze path and bytes.
+- MEDIUM2: require exactly 13 fault classes and 3 control classes in the V4 mutation contract.
+- MEDIUM3: reject non-UTF-8 XML and encoded XML control syntax before ElementTree.
+- MEDIUM4: describe the pushed fixed commit accurately and reject semantic no-commit/no-push
+  equivalents while retaining the non-execution and non-authority statements.
+- No D0, D1, D2, treatment, or protocol execution script is used by this review.
+
+Protected-state baseline before RED
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Preserved evidence inventory: 631 files, excluding only verification-report.md and this new
+  review log.
+- Preserved evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+
+RED command
+python3.11 -m unittest tests.test_phase_d_final_review_findings -v
+
+RED result
+- Freeze binding: ERROR because validate_v4_supersession_record accepted only the old three-arg
+  API and could not receive the exact supplied freeze path.
+- Filesystem walk: five failures; a regular file, empty directory, FIFO, Unix-domain socket, and
+  symlink all passed when Git status/other-file inventory was hidden.
+- Race handling: same-byte tracked-file inode replacement between lstat and open passed.
+- Mutation contract: both 12+4 and 14+2 required-class reallocations passed.
+- Report: failed because it omitted fixed pushed commit
+  153b11f2faf4939adc0e66dc51e6602534efd745 and retained a stale semantic no-commit/no-push claim.
+- Supersession: failed because all 18 observed V4 artifacts claiming
+  blocked_protocol_checks_complete or evidence_reproduced were missing from the denylist.
+- SVG/XML: UTF-16 input reached ElementTree; the parser-call guard failed.
+- Ran 7 tests in 0.765s; FAILED (failures=12, errors=1); process exit 1.
+
+No implementation change preceded this RED run. No protected data or pre-existing evidence byte
+was changed. The repository baseline remained the already pushed fixed commit
+153b11f2faf4939adc0e66dc51e6602534efd745. No service, credential, or approval was created, and no
+treatment or protocol execution occurred.
+
+GREEN and final independent-review results will be appended after implementation and verification.
+
+===== Later independent-review follow-up RED =====
+
+Confirmed findings
+- A V4 bank was still accepted when both required_fault_classes and required_control_classes were
+  omitted, because class validation was conditional on either field being present.
+- A tracked regular file was opened without O_NONBLOCK after lstat, so replacement with a FIFO or
+  device could block verification before fstat rejected its type.
+
+Follow-up RED command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_tracked_regular_files_are_opened_nonblocking_against_special_object_races \
+  tests.test_phase_d_final_review_findings.PhaseDFinalMutationBankFindingTest.test_v4_contract_cannot_omit_both_required_class_lists -v
+
+Follow-up RED result
+- The tracked-file flags did not contain O_NONBLOCK.
+- Omitting both required class lists returned success instead of PhaseDRedesignError.
+- Ran 2 tests in 0.096s; FAILED (failures=2); process exit 1.
+
+Minimal follow-up implementation
+- V4 class validation now always executes and therefore requires the exact 13+3 lists even when
+  both fields are absent.
+- Descriptor-relative tracked regular-file opens include O_NONBLOCK; fstat and the existing
+  identity/type checks continue to reject any raced special object.
+
+Follow-up GREEN command
+python3.11 -m unittest tests.test_phase_d_final_review_findings -v
+
+Follow-up GREEN result
+- Ran 9 tests in 0.837s; OK; process exit 0.
+
+Final verification
+- Complete Phase D-focused suite: 76 tests in 3.886s; OK; process exit 0.
+- Full Agent Company suite: 296 tests in 22.950s; OK; process exit 0.
+- Full PixWeave suite: 58 tests in 0.331s; OK; process exit 0.
+- python3.11 -m agent_company.cli validate: exit 0; {"errors": [], "ok": true}.
+- Agent Company tracked Python py_compile: exit 0; 95 temporary bytecode outputs.
+- PixWeave tracked Python py_compile: exit 0; 62 temporary bytecode outputs.
+- Agent Company git diff --check: exit 0, no output.
+- PixWeave git diff --check: exit 0, no output.
+- PixWeave git status --short --untracked-files=all: exit 0, no output.
+
+Security scans
+- Bandit 1.9.4 ran from a temporary environment outside both repositories, which was removed.
+- Agent Company runtime/scripts: exit 1; 11,292 lines scanned; 0 High, 6 Medium, 29 Low.
+- PixWeave runtime/scripts: exit 0; 3,218 lines scanned; 0 High, 0 Medium, 0 Low.
+
+Protected-state final verification
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Preserved evidence inventory: 631 files, excluding only verification-report.md and this new
+  review log.
+- Preserved evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+- Both protected hashes exactly match the baseline captured before RED.
+
+Later independent re-review
+- The reviewer confirmed the missing-list and blocking-open gaps, then re-reviewed their strict
+  TDD fixes.
+- The reviewer reran all 9 final-finding tests and git diff --check successfully.
+- Final disposition: no remaining findings.
+- Residual risk: filesystem race cases use deterministic mocks and the descriptor implementation
+  is POSIX-specific. Descriptor-relative checks, O_NOFOLLOW/O_NONBLOCK, pre/post identity checks,
+  directory re-enumeration, exact Git object hashes/modes, and final HEAD/tree checks form the
+  fail-closed boundary.
+
+Final repository state
+- HEAD remains the already pushed fixed commit
+  153b11f2faf4939adc0e66dc51e6602534efd745 on main, aligned with origin/main.
+- The fixes from this run remain only in the working tree for handoff.
+- No D0, D1, D2, treatment, or protocol execution script ran. No service, credential, or approval
+  was created, and no Treatment execution occurred.
+
+===== Latest independent-review replace-ref/report follow-up =====
+
+Scope
+- HIGH: reject every Git replacement ref before immutable object/tree reads and again at the final
+  boundary; disable replacement objects for every Git verification read; bind hash-verified raw
+  commit/tree bytes; reject Git environment and alternate/graft metadata that could change object
+  or repository semantics.
+- MEDIUM: keep this follow-up explicitly pending until a post-fix independent review and reject
+  contradictory re-review/no-remaining-findings assurance.
+
+Protected-state baseline before follow-up RED
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+
+Follow-up RED command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_real_commit_and_tree_replace_refs_fail_before_object_reads \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_replace_ref_created_during_verification_is_rejected_at_end \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_git_reads_disable_replacements_and_reject_semantic_environment \
+  tests.test_phase_d_final_review_findings.PhaseDFinalReportFindingTest.test_current_follow_up_is_pending_without_no_findings_assurance -v
+
+Follow-up RED result
+- Real refs/replace entries for both the reviewed commit and reviewed tree were not rejected; the
+  commit replacement returned success and the tree replacement altered ls-tree semantics before a
+  later worktree error.
+- A real commit replacement inserted after the worktree walk was not rejected at the final
+  boundary.
+- Git verification reads omitted --no-replace-objects, and semantic Git environment variables
+  were not rejected.
+- The report lacked the required current-follow-up/post-fix-review pending state and claimed that
+  an independent re-review found no remaining issues.
+- Ran 4 tests in 0.579s; FAILED (failures=5); process exit 1.
+
+No implementation or report correction preceded this RED run. The protected hashes matched the
+baseline captured before the earlier remediation. No D0, D1, D2, treatment, or protocol execution
+script ran; no service, credential, approval, commit, or push was created.
+
+Follow-up implementation and GREEN/final verification results will be appended after completion.
+
+Follow-up implementation
+- Every Git verification command now uses both --no-replace-objects and
+  GIT_NO_REPLACE_OBJECTS=1. Semantic Git environment variables, including injected config and
+  object/alternate/replace-ref locations, fail closed before Git access.
+- Every refs/replace entry is rejected before commit/tree reads and again at the final boundary.
+  The initial check uses replacement-disabled for-each-ref, so even an unrelated replacement ref
+  blocks verification.
+- Alternate object stores, graft metadata, shallow metadata, and a symlinked/non-directory object
+  store fail closed. The local object-store path and filesystem identity are bound and rechecked.
+- Raw commit bytes and every recursively referenced tree object are read with replacement semantics
+  disabled and hashed back to their expected object IDs. The commit's raw tree header is parsed
+  directly, and raw tree entries provide the exact worktree inventory without ls-tree. Commit and
+  root-tree bytes are read, hash-verified, and compared again at the final boundary.
+- The verification report now states that this current follow-up remains pending until a post-fix
+  independent review and contains no no-remaining-findings or equivalent re-review assurance.
+
+Exact follow-up GREEN command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_real_commit_and_tree_replace_refs_fail_before_object_reads \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_replace_ref_created_during_verification_is_rejected_at_end \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_git_reads_disable_replacements_and_reject_semantic_environment \
+  tests.test_phase_d_final_review_findings.PhaseDFinalReportFindingTest.test_current_follow_up_is_pending_without_no_findings_assurance -v
+
+Exact follow-up GREEN result
+- Ran 4 tests in 0.714s; OK; process exit 0.
+
+Expanded verification results
+- Complete final-findings module: 13 tests in 1.992s; OK; process exit 0.
+- Complete Phase D-focused suite: 80 tests in 7.242s; OK; process exit 0.
+- Full Agent Company suite: 300 tests in 25.039s; OK; process exit 0.
+- Full PixWeave suite: 58 tests in 0.332s; OK; process exit 0.
+- python3.11 -m agent_company.cli validate: exit 0; {"errors": [], "ok": true}.
+- Agent Company tracked Python py_compile: exit 0; 95 temporary bytecode outputs.
+- PixWeave tracked Python py_compile: exit 0; 62 temporary bytecode outputs.
+- Agent Company git diff --check: exit 0; no output.
+- PixWeave git diff --check: exit 0; no output.
+- PixWeave git status --short --untracked-files=all: exit 0; no output.
+
+Security scans
+- Bandit 1.9.4 ran from a temporary environment outside both repositories, which was removed.
+- Agent Company runtime/scripts: exit 1; 11,441 lines scanned; 0 High, 6 Medium, 29 Low.
+- PixWeave runtime: exit 0; 3,218 lines scanned; 0 High, 0 Medium, 0 Low.
+
+This current follow-up remains pending until a post-fix independent review. No independent
+re-review or no-remaining-findings outcome is claimed.
+
+Exact-code final rerun after recursive subtree/config assertions
+- Complete final-findings module: 13 tests in 1.912s; OK; process exit 0.
+- Complete Phase D-focused suite: 80 tests in 6.675s; OK; process exit 0.
+- Full Agent Company suite: 300 tests in 24.580s; OK; process exit 0.
+- Full PixWeave suite remains 58 tests in 0.332s; OK; process exit 0. No PixWeave source changed
+  after that run.
+- python3.11 -m agent_company.cli validate: exit 0; {"errors": [], "ok": true}.
+- Agent Company tracked Python py_compile: exit 0; 95 temporary bytecode outputs.
+- PixWeave tracked Python py_compile: exit 0; 62 temporary bytecode outputs.
+- Agent Company and PixWeave git diff --check: exit 0; no output.
+- PixWeave git status --short --untracked-files=all: exit 0; no output.
+- Final Bandit 1.9.4 Agent Company runtime/scripts scan: exit 1; 11,450 lines; 0 High,
+  6 Medium, 29 Low.
+- Final Bandit 1.9.4 PixWeave runtime scan: exit 0; 3,218 lines; 0 High, 0 Medium, 0 Low.
+- Both temporary Bandit environments were removed.
+
+Protected-state final verification
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+- Both hashes exactly match the baseline captured before follow-up RED.
+
+Final state and disposition
+- HEAD remains 153b11f2faf4939adc0e66dc51e6602534efd745 on main. All fixes remain
+  uncommitted in the existing working tree; PixWeave remains clean.
+- No D0, D1, D2, treatment, or protocol script ran. data/company.sqlite3 and protected/frozen
+  evidence were not mutated. No service was started; no authentication, credential, approval,
+  commit, or push was created.
+- This current follow-up remains pending until a post-fix independent review. No post-fix review
+  outcome or no-remaining-findings assurance is claimed.
+
+===== Final independent-review boundary and injection follow-up =====
+
+Scope
+- HIGH1: fail closed immediately before and after every immutable Git commit/tree object read,
+  including transient replacement refs, alternates, grafts, shallow metadata, and object-directory
+  indirection.
+- HIGH2: bind the supplied root exactly to the canonical primary Git worktree top-level; reject
+  descendants, symlink aliases, linked-worktree/common-directory ambiguity, and root identity drift.
+- MEDIUM1: descriptor-bind the exact V4 freeze path and bytes, reject symlinks/hardlinks, and
+  recheck path, descriptor, and bytes through the public verifier's final return boundary.
+- MEDIUM2: reject XML declarations, processing instructions, DOCTYPE, entity syntax, and raw XML
+  markup in every user-authored scenario label/feature/brief/constraint/message field before any
+  renderer or ElementTree parse.
+- MEDIUM3: exhaustively supersede all preserved V4 protocol reproduction collateral, including the
+  candidate-path and final/handoff before/after aggregate files, using filename/structure discovery
+  rather than only two exact status strings.
+
+Protected-state baseline before RED
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+
+Exact RED command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_transient_replace_ref_is_rejected_at_each_object_read_boundary \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_transient_object_metadata_is_rejected_at_each_object_read_boundary \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_transient_object_directory_indirection_is_rejected_around_object_reads \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_supplied_root_must_be_the_exact_canonical_worktree_top_level \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_linked_worktree_is_rejected_as_an_ambiguous_root \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_root_identity_drift_at_the_final_boundary_is_rejected \
+  tests.test_phase_d_final_review_findings.PhaseDFinalFreezeBindingFindingTest.test_exact_freeze_path_rejects_symlinks_and_hardlinks \
+  tests.test_phase_d_final_review_findings.PhaseDFinalFreezeBindingFindingTest.test_exact_freeze_descriptor_rejects_same_byte_path_replacement \
+  tests.test_phase_d_final_review_findings.PhaseDFinalSvgEncodingFindingTest.test_every_interpolated_scenario_field_rejects_xml_control_injection_before_parse \
+  tests.test_phase_d_final_review_findings.PhaseDFinalSupersessionFindingTest.test_every_preserved_positive_v4_artifact_and_claim_is_denied -v
+
+Exact RED result
+- Ran 10 test methods in 1.939s; FAILED (failures=77); process exit 1.
+- A replacement ref created and removed around the first object read was accepted.
+- Transient alternates, grafts, and shallow metadata created and removed around object reads were
+  accepted. The pre-existing object-directory symlink guard correctly rejected that subcase.
+- An ignored descendant duplicate checkout, a symlink alias, and a linked worktree were accepted;
+  replacement of the root with a same-content copy at the final boundary was not detected.
+- Symlinked and hardlinked exact freeze paths were accepted, as was same-byte freeze-path inode
+  replacement after parse.
+- All 66 interpolated-field/XML-injection combinations passed scenario validation.
+- The five newly named candidate-path/final-aggregate/handoff-aggregate files were missing from the
+  exact supersession denylist.
+
+No implementation change preceded this RED run. No D0, D1, D2, treatment, or protocol execution
+script ran. No service, credential, approval, commit, or push was created.
+
+Implementation
+- A canonical primary-worktree binding now holds the supplied root descriptor and exact .git/object
+  identities. Descendant roots, aliases, linked worktrees, common-directory ambiguity, and root
+  inode drift fail closed.
+- Each commit/tree cat-file read is bracketed by replacement-ref checks and a metadata snapshot that
+  includes the object/info, refs/replace, packed-refs, graft, shallow, alternate, and object-store
+  boundaries. Parent-directory metadata detects transient create/remove operations.
+- The V4 freeze is opened descriptor-relatively through bound parent descriptors with O_NOFOLLOW and
+  O_NONBLOCK, must be a one-link regular file, and retains exact bytes/descriptor/path identities
+  through the public verifier's final return boundary.
+- Scenario validation recursively checks all strings that may reach SVG construction and rejects
+  XML declaration, PI, DOCTYPE, entity, and raw-markup syntax before ElementTree can be called.
+- The denylist and discovery test now cover all 23 preserved V4 protocol reproduction files while
+  preserving their bytes.
+
+Exact GREEN command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_transient_replace_ref_is_rejected_at_each_object_read_boundary \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_transient_object_metadata_is_rejected_at_each_object_read_boundary \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_transient_object_directory_indirection_is_rejected_around_object_reads \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_supplied_root_must_be_the_exact_canonical_worktree_top_level \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_linked_worktree_is_rejected_as_an_ambiguous_root \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_root_identity_drift_at_the_final_boundary_is_rejected \
+  tests.test_phase_d_final_review_findings.PhaseDFinalFreezeBindingFindingTest.test_exact_freeze_path_rejects_symlinks_and_hardlinks \
+  tests.test_phase_d_final_review_findings.PhaseDFinalFreezeBindingFindingTest.test_exact_freeze_descriptor_rejects_same_byte_path_replacement \
+  tests.test_phase_d_final_review_findings.PhaseDFinalSvgEncodingFindingTest.test_every_interpolated_scenario_field_rejects_xml_control_injection_before_parse \
+  tests.test_phase_d_final_review_findings.PhaseDFinalSupersessionFindingTest.test_every_preserved_positive_v4_artifact_and_claim_is_denied -v
+
+Exact GREEN result
+- Ran 10 test methods in 1.338s; OK; process exit 0.
+
+Outer freeze-boundary follow-up RED/GREEN
+- RED command: python3.11 -m unittest
+  tests.test_phase_d_final_review_findings.PhaseDFinalFreezeBindingFindingTest.test_public_v4_verifier_binds_freeze_before_schema_read_and_through_return
+  -v
+- RED result: unsafe symlink freeze bytes reached V4 dispatch before descriptor binding; ran 1 test
+  in 0.004s; FAILED (failures=1); process exit 1.
+- GREEN result after moving descriptor binding outside dispatch and retaining it through return: ran
+  1 test in 0.007s; OK; process exit 0.
+- Complete final-findings module after this fix: 24 tests in 3.890s; OK; process exit 0.
+- Complete Phase D-focused suite: 90 tests in 12.047s; OK; process exit 0.
+
+Final requested verification results will be appended below. This follow-up remains pending until a
+post-fix independent review; no post-fix review outcome or no-remaining-findings assurance is claimed.
+
+Additional strict-TDD completeness cycles
+- Strengthened transient tests create replacement refs, alternates, grafts, shallow metadata, and
+  object-directory indirection only after the pre-read snapshot and remove them before the
+  post-read assertion. The strengthened boundary subset ran 5 tests in 1.286s; OK.
+- Quote-based attribute-breakout RED command: python3.11 -m unittest
+  tests.test_phase_d_final_review_findings.PhaseDFinalSvgEncodingFindingTest.test_every_interpolated_scenario_field_rejects_xml_control_injection_before_parse
+  -q
+- Quote RED result: the double-quote and single-quote injections passed for all 11 fields; ran 1
+  method in 0.097s; FAILED (failures=22); process exit 1.
+- Minimal quote fix: all five XML metacharacters are rejected recursively before render/parse.
+- Quote GREEN result: the same command ran 1 method in 0.075s; OK; process exit 0.
+- Exhaustive object/config boundary RED command: python3.11 -m unittest
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_transient_git_config_and_nested_object_metadata_are_rejected_around_reads
+  -v
+- Object/config RED result: transient local Git config and create/remove inside the existing
+  objects/pack metadata directory both passed; ran 1 method in 0.595s; FAILED (failures=2); process
+  exit 1.
+- Minimal object/config fix: system/global config is explicitly disabled, local config files are
+  snapshot-bound, and the complete local object metadata tree is recursively identity-snapshotted
+  immediately before and after every cat-file object read.
+- Object/config GREEN result: the new method plus transient replace/metadata/environment regression
+  coverage ran 4 tests in 1.253s; OK; process exit 0.
+
+Final exact-code verification
+- Complete final-findings module: 25 tests in 4.438s; OK; process exit 0.
+- Complete Phase D-focused suite: 92 tests in 15.034s; OK; process exit 0.
+- make test: 312 discovered Agent Company tests; process exit 0.
+- Full PixWeave suite: 58 tests in 0.357s; OK; process exit 0.
+- python3.11 -m agent_company.cli validate: exit 0; {"errors": [], "ok": true}.
+- Agent Company repository source/test Python: 58 files; py_compile exit 0; 96 temporary bytecode
+  outputs; temporary directory removed.
+- PixWeave repository source/test Python: 24 files; py_compile exit 0; 62 temporary bytecode
+  outputs; temporary directory removed.
+- Agent Company and PixWeave git diff --check: exit 0; no output.
+- PixWeave git status --short --untracked-files=all: exit 0; no output.
+
+Final security scan
+- Bandit 1.9.4 ran from temporary target directories outside both repositories; both directories
+  were removed.
+- Agent Company runtime/scripts: exit 1; 11,923 lines; 0 High, 6 Medium, 29 Low; 35 issues total.
+- PixWeave runtime: exit 0; 3,218 lines; 0 High, 0 Medium, 0 Low; 0 issues total.
+
+Final protected-state and repository verification
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+- Both protected hashes exactly match the pre-RED baseline. The five newly denied protocol files
+  retained their exact bytes; no preserved collateral was rewritten.
+- HEAD remains 153b11f2faf4939adc0e66dc51e6602534efd745 on main. All fixes remain
+  uncommitted in the existing working tree; PixWeave remains clean.
+- No D0, D1, D2, treatment, or protocol execution script ran. No service was started; no
+  authentication, credential, approval, commit, or push was created.
+- This final follow-up remains pending until a post-fix independent review. No post-fix review
+  outcome or no-remaining-findings assurance is claimed.
+
+Final immutable-read scope RED/GREEN and superseding exact-code verification
+- A last Git-command audit found the redundant post-walk `git status` command could internally
+  read Git objects outside the explicit per-cat-file metadata brackets, even though the complete
+  descriptor walk already verified every tracked, ignored, and untracked filesystem path.
+- RED command: python3.11 -m unittest
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_only_bracketed_cat_file_commands_may_read_git_objects
+  -v
+- RED result: `git status --porcelain=v1 --untracked-files=all` was observed; ran 1 test in 0.320s;
+  FAILED (failures=1); process exit 1.
+- Minimal fix: removed the redundant status call. The complete descriptor-relative filesystem walk
+  remains the exact worktree check; every commit/tree object read now uses only the explicitly
+  bracketed cat-file path.
+- GREEN regression command covered the new command audit, complete filesystem drift checks,
+  skip-worktree/assume-unchanged, and all ignored content categories: 7 tests in 7.487s; OK; process
+  exit 0.
+
+Final exact-code verification after removing the unbracketed status path
+- Complete final-findings module: 26 tests in 4.513s; OK; process exit 0.
+- Complete Phase D-focused suite: 93 tests in 15.723s; OK; process exit 0.
+- make test: 313 discovered Agent Company tests; process exit 0.
+- Full PixWeave suite: 58 tests in 0.319s; OK; process exit 0.
+- python3.11 -m agent_company.cli validate: exit 0; {"errors": [], "ok": true}.
+- Agent Company repository source/test Python: 58 files; py_compile exit 0; 96 temporary bytecode
+  outputs. PixWeave: 24 files; py_compile exit 0; 62 temporary bytecode outputs.
+- Agent Company and PixWeave git diff --check: exit 0; no output. PixWeave status is clean.
+- Bandit 1.9.4 Agent Company runtime/scripts: exit 1; 11,912 lines; 0 High, 6 Medium,
+  29 Low; 35 issues total.
+- Bandit 1.9.4 PixWeave runtime: exit 0; 3,218 lines; 0 High, 0 Medium, 0 Low.
+- data/company.sqlite3 SHA-256 remains
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70.
+- Protected evidence remains 631 files with aggregate SHA-256
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0.
+- HEAD remains 153b11f2faf4939adc0e66dc51e6602534efd745; fixes remain uncommitted.
+- No D0, D1, D2, treatment, or protocol execution script ran; no service, credential, approval,
+  commit, or push was created.
+- The report remains pending until a post-fix independent review. No post-fix review outcome or
+  no-remaining-findings assurance is claimed.
+
+Secondary scope-completeness RED
+- A final call-site audit found that the development-only object-target helper also performed an
+  immutable commit/tree read through rev-parse. Its Git command inherited replacement disabling,
+  but the helper did not fail closed on an existing real refs/replace entry before that read.
+- RED command: python3.11 -m unittest
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_development_object_target_rejects_replace_refs_before_object_reads
+  -v
+- RED result: PhaseDRedesignError was not raised; ran 1 test in 0.079s; FAILED (failures=1);
+  process exit 1.
+- No implementation change preceded this RED run. The prior protected-state and non-execution
+  constraints remained unchanged.
+
+Secondary scope-completeness implementation and GREEN
+- The development-only object-target helper now rejects all replacement refs before immutable
+  reads and at its final boundary, rejects semantic Git environment/alternate/graft/shallow
+  metadata, binds the local object-store identity, and hash-verifies raw commit/root-tree bytes
+  before comparing them again at the end. Its replacement-aware rev-parse tree read was removed.
+- Exact GREEN command: python3.11 -m unittest
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_development_object_target_rejects_replace_refs_before_object_reads
+  -v
+- GREEN result: ran 1 test in 0.096s; OK; process exit 0.
+- Complete final-findings module: 14 tests in 2.000s; OK; process exit 0.
+
+Final exact-code verification after secondary hardening
+- Complete Phase D-focused suite: 81 tests in 7.658s; OK; process exit 0.
+- Full Agent Company suite: 301 tests in 25.908s; OK; process exit 0.
+- Full PixWeave suite: 58 tests in 0.347s; OK; process exit 0.
+- python3.11 -m agent_company.cli validate: exit 0; {"errors": [], "ok": true}.
+- All Agent Company repository source/test Python: 58 files; py_compile exit 0; 96 temporary
+  bytecode outputs.
+- All PixWeave repository source/test Python: 24 files; py_compile exit 0; 62 temporary bytecode
+  outputs.
+- Agent Company and PixWeave git diff --check: exit 0; no output.
+- PixWeave git status --short --untracked-files=all: exit 0; no output.
+- Final Bandit 1.9.4 Agent Company runtime/scripts scan: exit 1; 11,467 lines; 0 High,
+  6 Medium, 29 Low.
+- Final Bandit 1.9.4 PixWeave runtime scan: exit 0; 3,218 lines; 0 High, 0 Medium, 0 Low.
+- The final temporary Bandit environment was removed.
+- No ls-tree or ^{tree} operation remains in phase_d_redesign.py.
+
+Final protected-state recheck after secondary hardening
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+- Both protected hashes still exactly match the pre-follow-up RED baseline.
+- HEAD remains 153b11f2faf4939adc0e66dc51e6602534efd745 on main; all fixes remain
+  uncommitted. No prohibited execution/state mutation occurred.
+- This current follow-up remains pending until a post-fix independent review. No post-fix review
+  outcome or no-remaining-findings assurance is claimed.
+
+===== Remaining independent-review success-boundary strict-TDD follow-up =====
+
+Scope
+- Reject HEAD and complete-checkout mutations made during the immutable verifier's last Git
+  object or repository-metadata read, before its actual success return boundary.
+- Make the final immutable boundary revalidate the exact canonical root/repository binding and
+  exact HEAD, then descriptor-walk and hash the complete checkout against the already bound tree.
+- Apply equivalent final repository/HEAD/metadata safety to the development Git-object target.
+
+Protected-state baseline before RED
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+
+Exact RED command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_actual_return_boundary_rejects_head_and_checkout_mutations \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_development_object_target_has_a_final_repository_boundary -v
+
+Exact RED result
+- Ran 2 test methods in 4.543s; FAILED (failures=14); process exit 1.
+- All 12 immutable subcases returned success after injected late mutation: HEAD plus tracked regular,
+  untracked regular, FIFO, Unix-domain socket, and symlink state at each of the last object-read and
+  metadata-read hooks.
+- Both development-target subcases returned success when HEAD or local Git config changed during
+  its last tree-object read.
+- Tests restored injected HEAD refs and tracked bytes and removed untracked/special filesystem
+  objects where appropriate. No implementation change preceded this RED run.
+
+Implementation
+- `_assert_immutable_success_boundary` rereads and hash-verifies the commit and every recursively
+  reachable tree under the existing per-object metadata brackets, and compares the complete
+  inventory to the initially bound immutable tree.
+- The boundary then rebinds and compares the exact canonical primary-worktree root, Git directory,
+  common directory, and object store; rejects replacement refs; compares the complete repository
+  metadata snapshot; and checks exact HEAD.
+- The descriptor-relative complete-checkout walk and blob hash is the last validation before the
+  verifier constructs and returns its result. It rejects tracked drift plus every untracked,
+  ignored, directory, symlink, FIFO, socket, and other special filesystem entry.
+- The development Git-object target now snapshots entry HEAD/repository metadata and, immediately
+  before return, rebinds the exact repository, compares the snapshot, and checks unchanged HEAD.
+
+Initial GREEN command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_actual_return_boundary_rejects_head_and_checkout_mutations \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_development_object_target_has_a_final_repository_boundary -v
+
+Initial GREEN result
+- Ran 2 test methods in 5.376s; OK; process exit 0; all original 14 adversarial subcases rejected.
+
+Strengthened final GREEN
+- The development test was expanded to inject both HEAD and config changes at both its last object
+  and last metadata reads, for 4 development subcases and 16 total adversarial subcases.
+- Exact command: the same two-method command above.
+- First strengthened run exposed one additional development-tail RED: config mutation immediately
+  after the new final repository-snapshot comparison still passed; ran 2 methods in 6.146s;
+  FAILED (failures=1); process exit 1.
+- The final HEAD read is now itself bracketed before and after by the entry repository snapshot,
+  closing that tail without adding an unchecked operation after the final development validation.
+- Final strengthened result: ran 2 test methods in 5.912s; OK; process exit 0.
+
+Final exact-code verification
+- Focused Phase D suite: 88 tests in 20.146s; OK; process exit 0. This ran Phase D unit-test
+  modules only, not any D0/D1/D2/treatment/protocol execution script.
+- make test: 315 discovered Agent Company tests in 42.529s; OK; process exit 0.
+- Full PixWeave suite: 58 tests in 0.313s; OK; process exit 0.
+- python3.11 -m agent_company.cli validate: exit 0; {"errors": [], "ok": true}.
+- Agent Company runtime/scripts/tests Python: 58 files; py_compile exit 0; 96 temporary bytecode
+  outputs. PixWeave runtime/tests Python: 24 files; py_compile exit 0; 62 temporary bytecode
+  outputs. Both temporary directories were removed.
+- Agent Company and PixWeave git diff --check: exit 0; no output.
+- PixWeave git status --short --untracked-files=all: exit 0; no output.
+
+Security scan
+- Bandit 1.9.4 was installed only into /tmp, scanned both runtime trees, and its temporary target
+  directory was removed.
+- Agent Company runtime/scripts: exit 1; 12,011 lines; 0 High, 6 Medium, 29 Low; 35 issues total.
+- PixWeave runtime: exit 0; 3,218 lines; 0 High, 0 Medium, 0 Low; 0 issues total.
+
+Final protected-state and repository verification
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+- Both protected hashes exactly match the pre-RED baseline. HEAD remains
+  153b11f2faf4939adc0e66dc51e6602534efd745 on main, and all existing plus current fixes remain
+  uncommitted.
+- No D0, D1, D2, treatment, or protocol execution script ran. No protected historical evidence or
+  data/company.sqlite3 bytes were changed. No service, credential, approval, commit, or push was
+  created.
+- This follow-up remains pending until a post-fix independent review. No post-fix review outcome is
+  claimed.
+
+===== Remaining High mutable-worktree atomic-snapshot follow-up =====
+
+Security disposition
+- No finite sequence of HEAD, Git metadata, object, or worktree checks can prove that a concurrently
+  mutable checkout remains unchanged after the final check and before a success return.
+- The public mutable-checkout path may perform static fail-closed inspection, but it must never
+  produce `scope: entire_git_tree` acceptance evidence without an atomic read-only filesystem
+  snapshot or OS-enforced immutability primitive.
+- The separate Git-object path is retained only as a development diagnostic. It is explicitly
+  unverified, non-candidate, authorization-ineligible, and scoped to Git objects rather than the
+  worktree.
+
+Protected-state baseline before RED
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log.
+- Protected evidence aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+
+Exact RED command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_clean_mutable_checkout_cannot_produce_acceptance_evidence \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_mutations_after_the_last_public_hook_still_cannot_produce_acceptance \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_git_object_diagnostic_is_unverified_and_cannot_authorize -v
+
+Exact RED result
+- Ran 3 test methods in 1.245s; FAILED (failures=3, errors=1); process exit 1.
+- A clean mutable checkout returned candidate-shaped acceptance evidence instead of raising the
+  required `blocked_unavailable_atomic_snapshot` result.
+- HEAD mutation and tracked-file mutation injected immediately after the public verifier's last
+  inspection hook both still returned success.
+- The required development-only Git-object diagnostic API did not exist.
+- No implementation change preceded this RED run. The tests restored injected HEAD and tracked
+  bytes. No protected data or historical evidence was changed.
+
+Minimal fail-closed implementation
+- `verify_immutable_review_target` retains the existing static Git-object, repository-metadata,
+  complete-checkout, descriptor, mode, and hash inspections so observed drift still rejects early.
+- Its only clean mutable-checkout terminal outcome is PhaseDRedesignError beginning exactly
+  `blocked_unavailable_atomic_snapshot:`. The public function has no success return and cannot
+  produce `scope: entire_git_tree` acceptance evidence.
+- The prior private Git-object return was replaced by `_inspect_development_git_object_target`,
+  whose result is `development_only_unverified_git_object_diagnostic`, has
+  `development_only: true`, `verified: false`, `candidate_evidence: false`,
+  `authorization_eligible: false`, and `diagnostic_scope: git_objects_only_not_worktree`, and has
+  no `scope` field.
+- The development freeze result exposes that value only as `development_git_object_diagnostic`;
+  the candidate-sounding `target_verification` key is absent.
+- Existing security tests were updated semantically to expect the blocked terminal result after
+  retaining all original command, flag, drift, and race assertions. No security assertion was
+  removed or weakened.
+
+Exact initial GREEN command
+python3.11 -m unittest \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_clean_mutable_checkout_cannot_produce_acceptance_evidence \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_mutations_after_the_last_public_hook_still_cannot_produce_acceptance \
+  tests.test_phase_d_final_review_findings.PhaseDFinalImmutableTargetFindingTest.test_git_object_diagnostic_is_unverified_and_cannot_authorize -v
+
+Exact initial GREEN result
+- Ran 3 test methods in 1.617s; OK; process exit 0.
+
+Semantic regression GREEN
+- The four directly affected final-review/V4/review/Medium modules ran 62 tests in 21.098s; OK;
+  process exit 0. This retained replacement-ref, metadata, special-object, complete-checkout,
+  nonblocking-open, and development-overlay assertions under the blocked terminal result.
+- The final development diagnostic/overlay focus ran 7 tests in 3.580s; OK; process exit 0.
+
+Final exact-code verification
+- Focused Phase D suite: 98 tests in 24.352s; OK; process exit 0. This ran Phase D unit-test
+  modules only, not any D0/D1/D2/treatment/protocol execution script.
+- make test: 318 Agent Company tests in 40.625s; OK; process exit 0.
+- Full PixWeave suite: 58 tests in 0.312s; OK; process exit 0.
+- python3.11 -m agent_company.cli validate: exit 0;
+  {"errors": [], "ok": true}.
+- Agent Company runtime/scripts/tests Python: 58 files; py_compile exit 0; 96 temporary bytecode
+  outputs. PixWeave runtime/tests Python: 24 files; py_compile exit 0; 62 temporary bytecode
+  outputs. Both temporary directories were removed.
+- Agent Company and PixWeave git diff --check: exit 0; no output.
+- PixWeave status: clean at d78094f26eb697c810899a40771a8af6dec7ce19, aligned with origin/main.
+
+Final security scan
+- Bandit 1.9.4 was installed only into a disposable /tmp virtual environment, scanned both runtime
+  trees, and the environment was removed.
+- Agent Company runtime/scripts: exit 1; 12,028 lines; 0 High, 6 Medium, 29 Low; 35 issues total.
+- PixWeave runtime: exit 0; 3,218 lines; 0 High, 0 Medium, 0 Low; 0 issues total.
+
+Final protected-state and repository verification
+- data/company.sqlite3 SHA-256:
+  9372e062d53323cbc6d7fdc9f6283f8c375c18815c5a9d1efdf737f240997f70
+- Protected evidence inventory: 631 files, excluding only verification-report.md and this review
+  log; aggregate SHA-256:
+  85054d586c1f77f189e0b6f5ca6fcaccb3a7b2d4949e08844489db507fd953e0
+- Bytewise comparison also confirmed that all 159 protected historical Phase D evidence files,
+  excluding only the requested mutable verification report and this review log, retained their
+  exact SHA-256 values. Both protected baselines match the pre-RED state.
+- Agent Company HEAD remains 153b11f2faf4939adc0e66dc51e6602534efd745 on main, aligned with
+  origin/main. All existing and current fixes remain uncommitted.
+- D0, D1, D2, treatments, and C2 remain blocked. No protocol or treatment execution script ran.
+  No data/company.sqlite3 or protected historical evidence byte was changed. No service,
+  credential, authorization, approval, commit, or push was created.
+- This follow-up remains pending until a post-fix independent review. No post-fix review outcome or
+  no-remaining-findings assurance is claimed.

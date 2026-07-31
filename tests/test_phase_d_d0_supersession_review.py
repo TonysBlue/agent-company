@@ -43,6 +43,29 @@ EXPECTED_DENIED_ARTIFACTS = {
     "evidence/phase-d/redesign-v3": "tree",
     "evidence/phase-d/full-agent-company-regression.txt": "file",
     "evidence/phase-d/full-pixweave-regression.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-candidate-path-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-candidate-verify-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-default-verify-handoff.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-final-aggregate-after-verify.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-final-aggregate-before-verify.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-final/evidence-manifest.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-final/protocol-result.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff/evidence-manifest.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff/protocol-result.json": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff-aggregate-after.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-handoff-aggregate-before.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run-final-definitive.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run-handoff.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-run.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-definitive.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-final-definitive.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-handoff.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify-svg-final.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol-verify.txt": "file",
+    "evidence/phase-d/redesign-v4/protocol/evidence-manifest.json": "file",
+    "evidence/phase-d/redesign-v4/protocol/protocol-result.json": "file",
 }
 
 EXPECTED_INVALID_CLAIMS = {
@@ -66,6 +89,8 @@ EXPECTED_INVALID_CLAIMS = {
     "d2_thresholds_passed",
     "v3_credentials_provided_an_external_trust_root",
     "v3_freeze_bound_current_head_and_complete_tree",
+    "blocked_protocol_checks_complete",
+    "evidence_reproduced",
 }
 
 
@@ -157,7 +182,9 @@ class PhaseDV4ExhaustiveSupersessionTest(unittest.TestCase):
     def test_validator_rejects_coverage_or_freeze_drift_and_consumers_deny_artifacts(self) -> None:
         freeze = redesign.load_json(V4_FREEZE)
         record = redesign.load_json(V4_SUPERSESSION)
-        validated = redesign.validate_v4_supersession_record(ROOT, freeze, record)
+        validated = redesign.validate_v4_supersession_record(
+            ROOT, V4_FREEZE, freeze, record
+        )
         self.assertEqual(validated["denied_artifacts"], EXPECTED_DENIED_ARTIFACTS)
 
         for denied in EXPECTED_DENIED_ARTIFACTS:
@@ -175,17 +202,17 @@ class PhaseDV4ExhaustiveSupersessionTest(unittest.TestCase):
         missing = copy.deepcopy(record)
         missing["denylist"]["artifacts"].pop()
         with self.assertRaisesRegex(redesign.PhaseDRedesignError, "exhaustive|denylist|coverage"):
-            redesign.validate_v4_supersession_record(ROOT, freeze, missing)
+            redesign.validate_v4_supersession_record(ROOT, V4_FREEZE, freeze, missing)
 
         rebound = copy.deepcopy(record)
         rebound["v4_freeze_binding"]["id"] = "different-freeze"
         with self.assertRaisesRegex(redesign.PhaseDRedesignError, "freeze.*binding"):
-            redesign.validate_v4_supersession_record(ROOT, freeze, rebound)
+            redesign.validate_v4_supersession_record(ROOT, V4_FREEZE, freeze, rebound)
 
         rehashed = copy.deepcopy(record)
         rehashed["v4_freeze_binding"]["sha256"] = "0" * 64
         with self.assertRaisesRegex(redesign.PhaseDRedesignError, "freeze.*binding"):
-            redesign.validate_v4_supersession_record(ROOT, freeze, rehashed)
+            redesign.validate_v4_supersession_record(ROOT, V4_FREEZE, freeze, rehashed)
 
     def test_v4_freeze_verification_invokes_supersession_validation(self) -> None:
         with patch.object(

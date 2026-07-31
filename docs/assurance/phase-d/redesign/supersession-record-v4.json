@@ -121,6 +121,98 @@
       {
         "path": "evidence/phase-d/full-pixweave-regression.txt",
         "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-candidate-path-final.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-candidate-verify-final.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-default-verify-handoff.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-final-aggregate-after-verify.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-final-aggregate-before-verify.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-final/evidence-manifest.json",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-final/protocol-result.json",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-handoff/evidence-manifest.json",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-handoff/protocol-result.json",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-handoff-aggregate-after.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-handoff-aggregate-before.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-run-final-definitive.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-run-final.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-run-handoff.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-run.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-verify-definitive.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-verify-final-definitive.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-verify-final.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-verify-handoff.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-verify-svg-final.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol-verify.txt",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol/evidence-manifest.json",
+        "scope": "file"
+      },
+      {
+        "path": "evidence/phase-d/redesign-v4/protocol/protocol-result.json",
+        "scope": "file"
       }
     ],
     "invalid_claims": [
@@ -143,7 +235,9 @@
       "d2_replayed_real_company_os_controls",
       "d2_thresholds_passed",
       "v3_credentials_provided_an_external_trust_root",
-      "v3_freeze_bound_current_head_and_complete_tree"
+      "v3_freeze_bound_current_head_and_complete_tree",
+      "blocked_protocol_checks_complete",
+      "evidence_reproduced"
     ],
     "consumer_behavior": "reject_as_superseded_and_non_authorizing"
   },

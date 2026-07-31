@@ -41,9 +41,11 @@ legacy D2 surrogate helpers, V3 authorization and V2/V3 dry-run entrypoints fail
 threshold API has no injectable root, attestation, or verifier path. Changing contract status or
 installing a mock cannot make certification pass.
 
-Strict immutable review-target validation requires a dedicated candidate clone containing zero
-ignored files or filesystem objects. SQLite databases and WAL/SHM/journal sidecars, JSON, logs,
-PID and lock files, sockets, code, executables, symlinks, directories, and every other ignored
-object fail candidate verification; there is no inert-content allowlist. Runtime state may exist
-only outside the strict candidate clone. Development-overlay diagnostics remain explicitly
-unverified and non-candidate and do not claim immutable-target verification or candidate binding.
+Review-target inspection of a mutable clone is static and can only reject observed drift. Even a
+clean dedicated clone returns `blocked_unavailable_atomic_snapshot`; it cannot produce candidate
+acceptance evidence without an atomic read-only filesystem snapshot or OS-enforced immutability
+primitive. SQLite databases and WAL/SHM/journal sidecars, JSON, logs, PID and lock files, sockets,
+code, executables, symlinks, directories, and every other ignored object fail the static inspection;
+there is no inert-content allowlist. The development Git-object diagnostic is explicitly
+unverified, non-candidate, authorization-ineligible, and scoped to Git objects rather than the
+worktree. Development-overlay diagnostics make no immutable-target or candidate-binding claim.

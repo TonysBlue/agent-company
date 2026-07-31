@@ -251,8 +251,11 @@ class PhaseDRedesignV4ImmutableTargetTest(unittest.TestCase):
                 "require_clean_worktree": True,
             }
 
-            verified = redesign.verify_immutable_review_target(repository, target)
-            self.assertEqual(verified["commit"], target["commit"])
+            with self.assertRaisesRegex(
+                redesign.PhaseDRedesignError,
+                "^blocked_unavailable_atomic_snapshot:",
+            ):
+                redesign.verify_immutable_review_target(repository, target)
 
             weakened_target = {**target, "require_clean_worktree": False}
             with self.assertRaisesRegex(
