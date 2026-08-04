@@ -163,6 +163,7 @@ class AssuranceCliTest(unittest.TestCase):
                 "trusted_eval_contracts", "assurance_task_bindings",
                 "assurance_pilot_config", "assurance_execution_bindings",
                 "assurance_claim_bindings", "assurance_pilot_claim_history",
+                "assurance_completion_bindings",
             } <= phase_c_tables)
             phase_c_triggers = {
                 row["name"] for row in conn.execute(
@@ -185,6 +186,9 @@ class AssuranceCliTest(unittest.TestCase):
                 "assurance_pilot_claim_history_immutable_delete",
                 "assurance_task_bindings_claimed_immutable_update",
                 "assurance_task_bindings_claimed_immutable_delete",
+                "assurance_completion_bindings_insert_guard",
+                "assurance_completion_bindings_immutable_update",
+                "assurance_completion_bindings_immutable_delete",
                 "tasks_bound_pilot_completion_guard",
                 "trusted_eval_runs_immutable_update",
                 "trusted_eval_runs_immutable_delete",

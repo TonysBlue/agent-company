@@ -1013,6 +1013,21 @@ class AssuranceKernel:
                             "initiative_id": run["initiative_id"],
                             "attempt": run["attempt"], "anchor": "trusted_eval_run",
                         })
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='assurance_completion_bindings'"
+            ).fetchone():
+                from .pilot_gate import PilotGate
+
+                gate = PilotGate(self.config)
+                for completion in conn.execute(
+                    "SELECT * FROM assurance_completion_bindings ORDER BY task_id"
+                ):
+                    if not gate.completion_binding_valid(conn, completion):
+                        conflicts.append({
+                            "task_id": completion["task_id"],
+                            "anchor": "completion_binding",
+                        })
         return {"status": "integrity_conflict" if conflicts else "ok", "conflicts": conflicts, "mode": "shadow"}
 
     def register_artifact(

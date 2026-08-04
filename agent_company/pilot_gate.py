@@ -76,6 +76,20 @@ class PilotGate:
                     created_at TEXT NOT NULL,
                     PRIMARY KEY(task_id,generation)
                 );
+                CREATE TABLE IF NOT EXISTS assurance_completion_bindings (
+                    task_id INTEGER PRIMARY KEY,
+                    generation INTEGER NOT NULL,
+                    initiative_id TEXT NOT NULL,
+                    artifact_set_sha256 TEXT NOT NULL,
+                    trusted_eval_result_sha256 TEXT NOT NULL,
+                    review_decision_ref TEXT NOT NULL,
+                    review_content_sha256 TEXT NOT NULL,
+                    task_result_sha256 TEXT NOT NULL,
+                    evidence_paths_sha256 TEXT NOT NULL,
+                    completed_at TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    integrity_signature TEXT NOT NULL
+                );
                 INSERT OR IGNORE INTO assurance_pilot_config(key,value,updated_at)
                     VALUES ('kill_switch','false','bootstrap');
                 """
@@ -100,6 +114,9 @@ class PilotGate:
                 DROP TRIGGER IF EXISTS assurance_pilot_claim_history_immutable_delete;
                 DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_task_bindings_claimed_immutable_delete;
+                DROP TRIGGER IF EXISTS assurance_completion_bindings_insert_guard;
+                DROP TRIGGER IF EXISTS assurance_completion_bindings_immutable_update;
+                DROP TRIGGER IF EXISTS assurance_completion_bindings_immutable_delete;
                 DROP TRIGGER IF EXISTS tasks_bound_pilot_completion_guard;
                 CREATE TRIGGER assurance_execution_bindings_immutable_update
                     BEFORE UPDATE ON assurance_execution_bindings
@@ -119,6 +136,132 @@ class PilotGate:
                 CREATE TRIGGER assurance_pilot_claim_history_immutable_delete
                     BEFORE DELETE ON assurance_pilot_claim_history
                     BEGIN SELECT RAISE(ABORT, 'assurance pilot claim history is immutable'); END;
+                CREATE TRIGGER assurance_completion_bindings_insert_guard
+                    BEFORE INSERT ON assurance_completion_bindings
+                    WHEN
+                        length(NEW.artifact_set_sha256)!=64
+                        OR length(NEW.trusted_eval_result_sha256)!=64
+                        OR length(NEW.review_content_sha256)!=64
+                        OR length(NEW.task_result_sha256)!=64
+                        OR length(NEW.evidence_paths_sha256)!=64
+                        OR assurance_completion_signature_valid(
+                            NEW.task_id,NEW.generation,NEW.initiative_id,
+                            NEW.artifact_set_sha256,NEW.trusted_eval_result_sha256,
+                            NEW.review_decision_ref,NEW.review_content_sha256,
+                            NEW.task_result_sha256,NEW.evidence_paths_sha256,
+                            NEW.completed_at,NEW.created_at,NEW.integrity_signature
+                        )!=1
+                        OR NOT EXISTS (
+                            SELECT 1
+                            FROM tasks task
+                            JOIN task_executions execution ON execution.task_id=task.id
+                            JOIN assurance_task_bindings binding ON binding.task_id=task.id
+                            JOIN assurance_claim_bindings claim
+                              ON claim.task_id=task.id AND claim.generation=NEW.generation
+                            JOIN assurance_pilot_claim_history history
+                              ON history.task_id=task.id AND history.generation=NEW.generation
+                            WHERE task.id=NEW.task_id
+                              AND task.status='in_progress'
+                              AND execution.recovery_status='running'
+                              AND execution.generation=NEW.generation
+                              AND binding.pilot=1
+                              AND binding.initiative_id=NEW.initiative_id
+                              AND binding.artifact_set_sha256=NEW.artifact_set_sha256
+                              AND binding.completion_result_sha256 IS NULL
+                              AND binding.review_decision_ref IS NULL
+                              AND binding.completed_at IS NULL
+                              AND claim.initiative_id=NEW.initiative_id
+                              AND claim.artifact_set_sha256=NEW.artifact_set_sha256
+                              AND history.initiative_id=claim.initiative_id
+                              AND history.artifact_set_sha256=claim.artifact_set_sha256
+                              AND history.fencing_token_sha256=claim.fencing_token_sha256
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM trusted_eval_quarantines
+                            WHERE initiative_id=NEW.initiative_id
+                        )
+                        OR NEW.trusted_eval_result_sha256 IS NOT (
+                            SELECT result_sha256 FROM trusted_eval_runs
+                            WHERE initiative_id=NEW.initiative_id
+                              AND status='completed'
+                            ORDER BY attempt DESC LIMIT 1
+                        )
+                        OR NOT EXISTS (
+                            SELECT 1 FROM trusted_eval_runs run
+                            WHERE run.initiative_id=NEW.initiative_id
+                              AND run.result_sha256=NEW.trusted_eval_result_sha256
+                              AND run.status='completed'
+                              AND run.evidence_sha256 IS NOT NULL
+                        )
+                        OR NOT EXISTS (
+                            SELECT 1 FROM assurance_artifacts review
+                            JOIN assurance_artifact_approvals approval
+                              ON approval.artifact_id=review.artifact_id
+                             AND approval.version=review.version
+                            JOIN assurance_principals reviewer
+                              ON reviewer.principal_id=review.owner_principal
+                            JOIN assurance_principals approver
+                              ON approver.principal_id=review.approved_by_principal
+                            WHERE review.initiative_id=NEW.initiative_id
+                              AND review.kind='review_decision'
+                              AND review.status='approved'
+                              AND review.artifact_id || ':v' || review.version
+                                  =NEW.review_decision_ref
+                              AND review.content_sha256=NEW.review_content_sha256
+                              AND assurance_artifact_body_valid(
+                                  review.content_json,review.content_sha256
+                              )=1
+                              AND review.approved_by_principal IS NOT review.owner_principal
+                              AND approval.content_sha256=review.content_sha256
+                              AND approval.approved_by_principal=review.approved_by_principal
+                              AND approval.approved_at=review.approved_at
+                              AND reviewer.status='active'
+                              AND reviewer.authority='reviewer'
+                              AND approver.status='active'
+                              AND approver.authority IN ('executive','chairman','reviewer')
+                              AND EXISTS (
+                                  SELECT 1 FROM json_each(
+                                      review.content_json,'$.content.evidence_refs'
+                                  ) WHERE value=NEW.trusted_eval_result_sha256
+                              )
+                              AND EXISTS (
+                                  SELECT 1 FROM json_each(
+                                      review.content_json,'$.content.evidence_refs'
+                                  ) WHERE value=NEW.artifact_set_sha256
+                              )
+                              AND json_extract(
+                                  review.content_json,'$.content.decision'
+                              ) IN ('approve','pass')
+                              AND json_array_length(
+                                  review.content_json,'$.content.findings'
+                              )=0
+                        )
+                        OR EXISTS (
+                            SELECT 1 FROM assurance_artifacts artifact
+                            WHERE artifact.initiative_id=NEW.initiative_id
+                              AND assurance_artifact_body_valid(
+                                  artifact.content_json,artifact.content_sha256
+                              )!=1
+                        )
+                        OR NEW.artifact_set_sha256 IS NOT (
+                            SELECT assurance_artifact_set_sha256(
+                                artifact_id || ':v' || version,content_sha256
+                            ) FROM (
+                                SELECT artifact_id,version,content_sha256
+                                FROM assurance_artifacts
+                                WHERE initiative_id=NEW.initiative_id
+                                  AND status='approved'
+                                  AND kind!='review_decision'
+                                ORDER BY artifact_id,version
+                            )
+                        )
+                    BEGIN SELECT RAISE(ABORT, 'completion binding integrity conflict'); END;
+                CREATE TRIGGER assurance_completion_bindings_immutable_update
+                    BEFORE UPDATE ON assurance_completion_bindings
+                    BEGIN SELECT RAISE(ABORT, 'assurance completion binding is immutable'); END;
+                CREATE TRIGGER assurance_completion_bindings_immutable_delete
+                    BEFORE DELETE ON assurance_completion_bindings
+                    BEGIN SELECT RAISE(ABORT, 'assurance completion binding is immutable'); END;
                 CREATE TRIGGER assurance_task_bindings_claimed_immutable_update
                     BEFORE UPDATE ON assurance_task_bindings
                     WHEN EXISTS (
@@ -138,6 +281,27 @@ class PilotGate:
                         OR NEW.review_decision_ref IS NULL
                         OR NEW.completed_at IS NULL
                         OR NEW.updated_at IS NOT NEW.completed_at
+                        OR NOT EXISTS (
+                            SELECT 1 FROM assurance_completion_bindings completion
+                            WHERE completion.task_id=OLD.task_id
+                              AND completion.initiative_id=OLD.initiative_id
+                              AND completion.artifact_set_sha256=OLD.artifact_set_sha256
+                              AND completion.trusted_eval_result_sha256
+                                  =NEW.completion_result_sha256
+                              AND completion.review_decision_ref=NEW.review_decision_ref
+                              AND completion.completed_at=NEW.completed_at
+                              AND assurance_completion_signature_valid(
+                                  completion.task_id,completion.generation,
+                                  completion.initiative_id,completion.artifact_set_sha256,
+                                  completion.trusted_eval_result_sha256,
+                                  completion.review_decision_ref,
+                                  completion.review_content_sha256,
+                                  completion.task_result_sha256,
+                                  completion.evidence_paths_sha256,
+                                  completion.completed_at,completion.created_at,
+                                  completion.integrity_signature
+                              )=1
+                        )
                     )
                     BEGIN SELECT RAISE(ABORT, 'claimed assurance task binding is immutable'); END;
                 CREATE TRIGGER assurance_task_bindings_claimed_immutable_delete
@@ -168,6 +332,56 @@ class PilotGate:
                               AND binding.completion_result_sha256 IS NOT NULL
                               AND binding.review_decision_ref IS NOT NULL
                               AND binding.completed_at IS NOT NULL
+                        )
+                        OR NOT EXISTS (
+                            SELECT 1
+                            FROM assurance_completion_bindings completion
+                            JOIN assurance_task_bindings binding
+                              ON binding.task_id=completion.task_id
+                            JOIN task_executions execution
+                              ON execution.task_id=completion.task_id
+                            WHERE completion.task_id=OLD.id
+                              AND completion.generation=execution.generation
+                              AND completion.initiative_id=binding.initiative_id
+                              AND completion.artifact_set_sha256
+                                  =binding.artifact_set_sha256
+                              AND completion.trusted_eval_result_sha256
+                                  =binding.completion_result_sha256
+                              AND completion.review_decision_ref
+                                  =binding.review_decision_ref
+                              AND completion.completed_at=binding.completed_at
+                              AND completion.task_result_sha256
+                                  =assurance_sha256(NEW.result)
+                              AND completion.evidence_paths_sha256
+                                  =assurance_sha256(execution.evidence_paths)
+                              AND json_extract(
+                                  NEW.result,'$.assurance.initiative_id'
+                              )=completion.initiative_id
+                              AND json_extract(
+                                  NEW.result,'$.assurance.artifact_set_sha256'
+                              )=completion.artifact_set_sha256
+                              AND json_extract(
+                                  NEW.result,'$.assurance.result_sha256'
+                              )=completion.trusted_eval_result_sha256
+                              AND json_extract(
+                                  NEW.result,'$.assurance.review_decision_ref'
+                              )=completion.review_decision_ref
+                              AND (
+                                  SELECT COUNT(*) FROM json_each(
+                                      NEW.result,'$.assurance'
+                                  )
+                              )=4
+                              AND assurance_completion_signature_valid(
+                                  completion.task_id,completion.generation,
+                                  completion.initiative_id,completion.artifact_set_sha256,
+                                  completion.trusted_eval_result_sha256,
+                                  completion.review_decision_ref,
+                                  completion.review_content_sha256,
+                                  completion.task_result_sha256,
+                                  completion.evidence_paths_sha256,
+                                  completion.completed_at,completion.created_at,
+                                  completion.integrity_signature
+                              )=1
                         )
                     )
                     BEGIN SELECT RAISE(ABORT, 'bound pilot completion is not atomic'); END;
@@ -391,6 +605,35 @@ class PilotGate:
         ).fetchone()
         if task_binding is None or not task_binding["pilot"]:
             return
+        execution = conn.execute(
+            "SELECT generation,fencing_token,recovery_status FROM task_executions "
+            "WHERE task_id=?", (task_id,),
+        ).fetchone()
+        if (
+            execution is None
+            or int(execution["generation"]) != generation
+            or execution["fencing_token"] != fencing_token
+            or execution["recovery_status"] != "running"
+        ):
+            raise ValueError("bound pilot claim does not match the active execution")
+        kernel = AssuranceKernel(self._config)
+        artifacts = conn.execute(
+            "SELECT content_json,content_sha256 FROM assurance_artifacts "
+            "WHERE initiative_id=?", (task_binding["initiative_id"],),
+        ).fetchall()
+        try:
+            for artifact in artifacts:
+                kernel._artifact_content_sha256(artifact)
+            current_artifact_set = kernel._initiative_build_artifact_set_sha256(
+                conn, task_binding["initiative_id"],
+            )
+        except AssuranceError as exc:
+            raise ValueError("bound pilot claim assurance integrity conflict") from exc
+        if (
+            not task_binding["artifact_set_sha256"]
+            or task_binding["artifact_set_sha256"] != current_artifact_set
+        ):
+            raise ValueError("bound pilot claim artifact set integrity conflict")
         created_at = utcnow()
         values = {
             "task_id": task_id,
@@ -736,6 +979,18 @@ class PilotGate:
                 "SELECT value FROM assurance_pilot_config WHERE key='kill_switch'"
             ).fetchone()["value"] == "true"
             if killed:
+                kernel = AssuranceKernel(self._config)
+                try:
+                    for artifact in conn.execute(
+                        "SELECT content_json,content_sha256 FROM assurance_artifacts "
+                        "WHERE initiative_id=?", (binding["initiative_id"],),
+                    ):
+                        kernel._artifact_content_sha256(artifact)
+                except AssuranceError:
+                    return {
+                        "allowed": False,
+                        "reason": "kill-switch dispatch assurance integrity conflict",
+                    }
                 return {"allowed": True, "reason": "pilot enforcement killed"}
             if binding["initiative_id"] != APPROVED_PILOT:
                 return {"allowed": False, "reason": "unapproved pilot initiative"}
@@ -1073,10 +1328,79 @@ class PilotGate:
             },
         }
 
-    @staticmethod
     def record_completion(
-        conn: Any, task_id: int, assurance: dict[str, str], completed_at: str,
+        self, conn: Any, task_id: int, assurance: dict[str, str], completed_at: str,
+        *, task_result_json: str | None = None,
+        evidence_paths_json: str | None = None,
     ) -> None:
+        task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+        execution = conn.execute(
+            "SELECT generation,recovery_status FROM task_executions WHERE task_id=?",
+            (task_id,),
+        ).fetchone()
+        if (
+            task is None
+            or execution is None
+            or task_result_json is None
+            or evidence_paths_json is None
+        ):
+            raise ValueError(f"task {task_id} completion assurance context is incomplete")
+        if conn.execute(
+            "SELECT 1 FROM assurance_completion_bindings WHERE task_id=?", (task_id,),
+        ).fetchone():
+            raise ValueError(f"task {task_id} assurance completion binding changed concurrently")
+        decision = self._completion_decision(conn, dict(task))
+        expected = decision.get("assurance") if decision.get("allowed") else None
+        if expected is None or assurance != expected:
+            raise ValueError(f"task {task_id} completion assurance is not current and exact")
+        try:
+            result_payload = json.loads(task_result_json)
+            embedded_assurance = result_payload["assurance"]
+            evidence = result_payload["evidence"]
+        except (KeyError, TypeError, json.JSONDecodeError) as exc:
+            raise ValueError(f"task {task_id} completion result body is invalid") from exc
+        if embedded_assurance != assurance or evidence != json.loads(evidence_paths_json):
+            raise ValueError(f"task {task_id} completion result body is not exact")
+        review_id, separator, version_text = assurance["review_decision_ref"].rpartition(":v")
+        if not separator or not version_text.isdigit():
+            raise ValueError(f"task {task_id} completion assurance review is invalid")
+        review = conn.execute(
+            "SELECT content_sha256 FROM assurance_artifacts "
+            "WHERE artifact_id=? AND version=? AND initiative_id=? "
+            "AND kind='review_decision' AND status='approved'",
+            (review_id, int(version_text), assurance["initiative_id"]),
+        ).fetchone()
+        if review is None:
+            raise ValueError(f"task {task_id} completion assurance review is missing")
+        created_at = utcnow()
+        values = {
+            "task_id": task_id,
+            "generation": int(execution["generation"]),
+            "initiative_id": assurance["initiative_id"],
+            "artifact_set_sha256": assurance["artifact_set_sha256"],
+            "trusted_eval_result_sha256": assurance["result_sha256"],
+            "review_decision_ref": assurance["review_decision_ref"],
+            "review_content_sha256": review["content_sha256"],
+            "task_result_sha256": hashlib.sha256(
+                task_result_json.encode("utf-8")
+            ).hexdigest(),
+            "evidence_paths_sha256": hashlib.sha256(
+                evidence_paths_json.encode("utf-8")
+            ).hexdigest(),
+            "completed_at": completed_at,
+            "created_at": created_at,
+        }
+        conn.execute(
+            """INSERT INTO assurance_completion_bindings(
+                   task_id,generation,initiative_id,artifact_set_sha256,
+                   trusted_eval_result_sha256,review_decision_ref,
+                   review_content_sha256,task_result_sha256,evidence_paths_sha256,
+                   completed_at,created_at,integrity_signature
+               ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (*values.values(), integrity_signature(
+                self._config.db_path, "completion-binding", values,
+            )),
+        )
         updated = conn.execute(
             """UPDATE assurance_task_bindings
                SET completion_result_sha256=?,review_decision_ref=?,completed_at=?,updated_at=?
@@ -1088,3 +1412,75 @@ class PilotGate:
         ).rowcount
         if updated != 1:
             raise ValueError(f"task {task_id} assurance completion binding changed concurrently")
+
+    def completion_binding_valid(self, conn: Any, completion: Any) -> bool:
+        if completion is None:
+            return False
+        keys = (
+            "task_id", "generation", "initiative_id", "artifact_set_sha256",
+            "trusted_eval_result_sha256", "review_decision_ref",
+            "review_content_sha256", "task_result_sha256",
+            "evidence_paths_sha256", "completed_at", "created_at",
+        )
+        values = {key: completion[key] for key in keys}
+        if not verify_integrity_signature(
+            self._config.db_path, "completion-binding", values,
+            completion["integrity_signature"],
+        ):
+            return False
+        task = conn.execute(
+            "SELECT * FROM tasks WHERE id=?", (completion["task_id"],),
+        ).fetchone()
+        execution = conn.execute(
+            "SELECT generation,recovery_status,evidence_paths,updated_at "
+            "FROM task_executions WHERE task_id=?", (completion["task_id"],),
+        ).fetchone()
+        binding = conn.execute(
+            "SELECT * FROM assurance_task_bindings WHERE task_id=?",
+            (completion["task_id"],),
+        ).fetchone()
+        if task is None or execution is None or binding is None:
+            return False
+        try:
+            task_result = json.loads(task["result"])
+            task_assurance = task_result["assurance"]
+        except (KeyError, TypeError, json.JSONDecodeError):
+            return False
+        expected = self._completion_decision(conn, dict(task)).get("assurance")
+        review_id, separator, version_text = completion["review_decision_ref"].rpartition(":v")
+        review = None
+        if separator and version_text.isdigit():
+            review = conn.execute(
+                "SELECT content_sha256 FROM assurance_artifacts "
+                "WHERE artifact_id=? AND version=? AND initiative_id=? "
+                "AND kind='review_decision' AND status='approved'",
+                (review_id, int(version_text), completion["initiative_id"]),
+            ).fetchone()
+        assurance = {
+            "initiative_id": completion["initiative_id"],
+            "artifact_set_sha256": completion["artifact_set_sha256"],
+            "result_sha256": completion["trusted_eval_result_sha256"],
+            "review_decision_ref": completion["review_decision_ref"],
+        }
+        return bool(
+            task["status"] == "done"
+            and execution["recovery_status"] == "completed"
+            and int(execution["generation"]) == int(completion["generation"])
+            and binding["pilot"] == 1
+            and binding["initiative_id"] == completion["initiative_id"]
+            and binding["artifact_set_sha256"] == completion["artifact_set_sha256"]
+            and binding["completion_result_sha256"]
+                == completion["trusted_eval_result_sha256"]
+            and binding["review_decision_ref"] == completion["review_decision_ref"]
+            and binding["completed_at"] == completion["completed_at"]
+            and task["updated_at"] == completion["completed_at"]
+            and execution["updated_at"] == completion["completed_at"]
+            and hashlib.sha256(task["result"].encode("utf-8")).hexdigest()
+                == completion["task_result_sha256"]
+            and hashlib.sha256(execution["evidence_paths"].encode("utf-8")).hexdigest()
+                == completion["evidence_paths_sha256"]
+            and task_assurance == assurance
+            and expected == assurance
+            and review is not None
+            and review["content_sha256"] == completion["review_content_sha256"]
+        )

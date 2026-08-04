@@ -592,17 +592,23 @@ class CompanyOS:
             if assurance:
                 result["assurance"] = assurance
             now = utcnow()
+            evidence_paths_json = json.dumps(result["evidence"], sort_keys=True)
+            task_result_json = json.dumps(result, sort_keys=True)
+            if assurance:
+                pilot_gate.record_completion(
+                    conn, task_id, assurance, now,
+                    task_result_json=task_result_json,
+                    evidence_paths_json=evidence_paths_json,
+                )
             execution_updated = conn.execute(
                 """UPDATE task_executions
                    SET recovery_status='completed', evidence_paths=?, updated_at=?
                    WHERE task_id=? AND recovery_status='running'""",
-                (json.dumps(result["evidence"], sort_keys=True), now, task_id),
+                (evidence_paths_json, now, task_id),
             ).rowcount
-            if assurance:
-                PilotGate.record_completion(conn, task_id, assurance, now)
             task_updated = conn.execute(
                 "UPDATE tasks SET status='done', updated_at=?, result=? WHERE id=? AND status='in_progress'",
-                (now, json.dumps(result, sort_keys=True), task_id),
+                (now, task_result_json, task_id),
             ).rowcount
             if execution_updated != 1 or task_updated != 1:
                 raise ValueError(f"task {task_id} completion state changed concurrently")
@@ -756,6 +762,7 @@ class CompanyOS:
             if missing:
                 errors.append(f"Missing tables: {sorted(missing)}")
                 return errors
+            completion_bindings_available = "assurance_completion_bindings" in present
             chairman = conn.execute("SELECT kind FROM roles WHERE name='Chairman'").fetchone()
             if chairman is None or chairman["kind"] != "human":
                 errors.append("Chairman must be the only human role")
@@ -866,6 +873,17 @@ class CompanyOS:
                     or (row["status"] == "done") != all(completion_values)
                     or any(completion_values) and not all(completion_values)
                 )
+                completion = None
+                if completion_bindings_available:
+                    completion = conn.execute(
+                        "SELECT * FROM assurance_completion_bindings WHERE task_id=?",
+                        (task_id,),
+                    ).fetchone()
+                    inconsistent = inconsistent or (
+                        (row["status"] == "done") != (completion is not None)
+                    )
+                elif row["status"] == "done":
+                    inconsistent = True
                 if row["status"] == "done" and not inconsistent:
                     try:
                         assurance = json.loads(row["result"])["assurance"]
@@ -880,6 +898,12 @@ class CompanyOS:
                             or assurance.get("review_decision_ref") != row["review_decision_ref"]
                             or row["task_updated_at"] != row["completed_at"]
                             or row["execution_updated_at"] != row["completed_at"]
+                        )
+                    if not inconsistent:
+                        from .pilot_gate import PilotGate
+
+                        inconsistent = not PilotGate(self.config).completion_binding_valid(
+                            conn, completion,
                         )
                 if inconsistent:
                     if task_id not in reported_pilot_tasks:

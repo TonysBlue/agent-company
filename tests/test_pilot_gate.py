@@ -122,7 +122,17 @@ class PilotGateTest(unittest.TestCase):
 
     def test_kill_switch_bypasses_dispatch_only_and_is_audited(self) -> None:
         self.create_open_task(4)
-        self.gate.bind(4, "pilot-c2-approved-for-build", pilot=True, actor="CEO", principal_id="principal-ceo")
+        with Store(self.config.db_path).connect() as conn:
+            empty_hash = AssuranceKernel(
+                self.config,
+            )._initiative_build_artifact_set_sha256(
+                conn, "pilot-c2-approved-for-build",
+            )
+        self.gate.bind(
+            4, "pilot-c2-approved-for-build", pilot=True,
+            artifact_set_sha256=empty_hash,
+            actor="CEO", principal_id="principal-ceo",
+        )
         self.gate.set_kill_switch(True, actor="CEO", principal_id="principal-ceo", reason="safe rollback")
         decision = self.gate.dispatch_decision(self.task(4))
         self.assertEqual(decision, {"allowed": True, "reason": "pilot enforcement killed"})

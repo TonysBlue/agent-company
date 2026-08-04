@@ -892,6 +892,425 @@ class CompletionAssuranceGateTest(unittest.TestCase):
 
         self.assertEqual(self.osys.validate(), [])
 
+    def test_coordinated_raw_sql_cannot_forge_all_completion_state(self) -> None:
+        completed_at = "2026-07-28T12:00:00+00:00"
+        forged_assurance = {
+            "initiative_id": self.initiative_id,
+            "artifact_set_sha256": self.artifact_set_sha256,
+            "result_sha256": "f" * 64,
+            "review_decision_ref": "forged-review:v1",
+        }
+        forged_result = json.dumps({
+            "summary": "forged completion",
+            "evidence": [str(self.task_evidence)],
+            "assurance": forged_assurance,
+        }, sort_keys=True)
+        before = {
+            "task": dict(self.osys.store.fetch_one(
+                "SELECT status,result,updated_at FROM tasks WHERE id=?", (self.task_id,),
+            )),
+            "execution": dict(self.osys.store.fetch_one(
+                "SELECT recovery_status,evidence_paths,updated_at FROM task_executions "
+                "WHERE task_id=?", (self.task_id,),
+            )),
+            "binding": dict(self.osys.store.fetch_one(
+                "SELECT completion_result_sha256,review_decision_ref,completed_at,updated_at "
+                "FROM assurance_task_bindings WHERE task_id=?", (self.task_id,),
+            )),
+        }
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable|completion"):
+            with self.osys.store.connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                conn.execute(
+                    "UPDATE assurance_task_bindings SET completion_result_sha256=?,"
+                    "review_decision_ref=?,completed_at=?,updated_at=? WHERE task_id=?",
+                    (
+                        forged_assurance["result_sha256"],
+                        forged_assurance["review_decision_ref"],
+                        completed_at, completed_at, self.task_id,
+                    ),
+                )
+                conn.execute(
+                    "UPDATE task_executions SET recovery_status='completed',"
+                    "evidence_paths=?,updated_at=? WHERE task_id=?",
+                    (json.dumps([str(self.task_evidence)]), completed_at, self.task_id),
+                )
+                conn.execute(
+                    "UPDATE tasks SET status='done',result=?,updated_at=? WHERE id=?",
+                    (forged_result, completed_at, self.task_id),
+                )
+
+        after = {
+            "task": dict(self.osys.store.fetch_one(
+                "SELECT status,result,updated_at FROM tasks WHERE id=?", (self.task_id,),
+            )),
+            "execution": dict(self.osys.store.fetch_one(
+                "SELECT recovery_status,evidence_paths,updated_at FROM task_executions "
+                "WHERE task_id=?", (self.task_id,),
+            )),
+            "binding": dict(self.osys.store.fetch_one(
+                "SELECT completion_result_sha256,review_decision_ref,completed_at,updated_at "
+                "FROM assurance_task_bindings WHERE task_id=?", (self.task_id,),
+            )),
+        }
+        self.assertEqual(after, before)
+
+    def test_structurally_complete_raw_completion_row_fails_closed_atomically(self) -> None:
+        completed_at = "2026-07-28T12:00:00+00:00"
+        evidence_json = json.dumps([str(self.task_evidence)], sort_keys=True)
+        task_result = json.dumps({
+            "summary": "structurally complete forgery",
+            "evidence": [str(self.task_evidence)],
+            "assurance": {
+                "initiative_id": self.initiative_id,
+                "artifact_set_sha256": self.artifact_set_sha256,
+                "result_sha256": "e" * 64,
+                "review_decision_ref": "forged-review:v1",
+            },
+        }, sort_keys=True)
+        before = {
+            "task": dict(self.osys.store.fetch_one(
+                "SELECT status,result,updated_at FROM tasks WHERE id=?", (self.task_id,),
+            )),
+            "execution": dict(self.osys.store.fetch_one(
+                "SELECT recovery_status,evidence_paths,updated_at FROM task_executions "
+                "WHERE task_id=?", (self.task_id,),
+            )),
+            "binding": dict(self.osys.store.fetch_one(
+                "SELECT completion_result_sha256,review_decision_ref,completed_at,updated_at "
+                "FROM assurance_task_bindings WHERE task_id=?", (self.task_id,),
+            )),
+        }
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+            with self.osys.store.connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                conn.execute(
+                    """INSERT INTO assurance_completion_bindings(
+                           task_id,generation,initiative_id,artifact_set_sha256,
+                           trusted_eval_result_sha256,review_decision_ref,
+                           review_content_sha256,task_result_sha256,
+                           evidence_paths_sha256,completed_at,created_at,
+                           integrity_signature
+                       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (
+                        self.task_id, int(self.claim["generation"]), self.initiative_id,
+                        self.artifact_set_sha256, "e" * 64, "forged-review:v1",
+                        "d" * 64,
+                        hashlib.sha256(task_result.encode("utf-8")).hexdigest(),
+                        hashlib.sha256(evidence_json.encode("utf-8")).hexdigest(),
+                        completed_at, completed_at, "0" * 64,
+                    ),
+                )
+                conn.execute(
+                    "UPDATE assurance_task_bindings SET completion_result_sha256=?,"
+                    "review_decision_ref=?,completed_at=?,updated_at=? WHERE task_id=?",
+                    ("e" * 64, "forged-review:v1", completed_at, completed_at, self.task_id),
+                )
+                conn.execute(
+                    "UPDATE task_executions SET recovery_status='completed',"
+                    "evidence_paths=?,updated_at=? WHERE task_id=?",
+                    (evidence_json, completed_at, self.task_id),
+                )
+                conn.execute(
+                    "UPDATE tasks SET status='done',result=?,updated_at=? WHERE id=?",
+                    (task_result, completed_at, self.task_id),
+                )
+
+        after = {
+            "task": dict(self.osys.store.fetch_one(
+                "SELECT status,result,updated_at FROM tasks WHERE id=?", (self.task_id,),
+            )),
+            "execution": dict(self.osys.store.fetch_one(
+                "SELECT recovery_status,evidence_paths,updated_at FROM task_executions "
+                "WHERE task_id=?", (self.task_id,),
+            )),
+            "binding": dict(self.osys.store.fetch_one(
+                "SELECT completion_result_sha256,review_decision_ref,completed_at,updated_at "
+                "FROM assurance_task_bindings WHERE task_id=?", (self.task_id,),
+            )),
+        }
+        self.assertEqual(after, before)
+
+    def test_public_record_completion_rejects_caller_forged_assurance_atomically(self) -> None:
+        completed_at = "2026-07-28T12:00:00+00:00"
+        forged = {
+            "result_sha256": "c" * 64,
+            "review_decision_ref": "forged-review:v1",
+        }
+
+        with self.assertRaisesRegex(ValueError, "completion assurance"):
+            with self.osys.store.connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                self.gate.record_completion(conn, self.task_id, forged, completed_at)
+
+        binding = self.osys.store.fetch_one(
+            "SELECT completion_result_sha256,review_decision_ref,completed_at "
+            "FROM assurance_task_bindings WHERE task_id=?", (self.task_id,),
+        )
+        self.assertEqual(tuple(binding), (None, None, None))
+        self.assertEqual(
+            self.osys.store.fetch_one(
+                "SELECT COUNT(*) AS count FROM assurance_completion_bindings "
+                "WHERE task_id=?", (self.task_id,),
+            )["count"],
+            0,
+        )
+
+    def test_public_record_completion_rejects_semantically_forged_result_body(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        assurance = self.gate.completion_decision({
+            "id": self.task_id,
+            "owner": "Company Platform Engineer",
+        })["assurance"]
+        completed_at = "2026-07-28T12:00:00+00:00"
+        evidence_paths_json = json.dumps([str(self.task_evidence)], sort_keys=True)
+        forged_result_json = json.dumps({
+            "summary": "public semantic forgery",
+            "evidence": [str(self.task_evidence)],
+            "assurance": {**assurance, "review_decision_ref": "forged-review:v1"},
+        }, sort_keys=True)
+
+        with self.assertRaisesRegex(ValueError, "result body"):
+            with self.osys.store.connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                self.gate.record_completion(
+                    conn, self.task_id, assurance, completed_at,
+                    task_result_json=forged_result_json,
+                    evidence_paths_json=evidence_paths_json,
+                )
+
+        binding = self.osys.store.fetch_one(
+            "SELECT completion_result_sha256,review_decision_ref,completed_at "
+            "FROM assurance_task_bindings WHERE task_id=?", (self.task_id,),
+        )
+        self.assertEqual(tuple(binding), (None, None, None))
+        self.assertEqual(
+            self.osys.store.fetch_one(
+                "SELECT COUNT(*) AS count FROM assurance_completion_bindings "
+                "WHERE task_id=?", (self.task_id,),
+            )["count"],
+            0,
+        )
+
+    def test_validate_and_integrity_reject_signed_structural_completion_forgery(self) -> None:
+        completed_at = "2026-07-28T12:00:00+00:00"
+        evidence_json = json.dumps([str(self.task_evidence)], sort_keys=True)
+        assurance = {
+            "initiative_id": self.initiative_id,
+            "artifact_set_sha256": self.artifact_set_sha256,
+            "result_sha256": "b" * 64,
+            "review_decision_ref": "forged-review:v1",
+        }
+        task_result = json.dumps({
+            "summary": "signed structural forgery",
+            "evidence": [str(self.task_evidence)],
+            "assurance": assurance,
+        }, sort_keys=True)
+        completion_values = {
+            "task_id": self.task_id,
+            "generation": int(self.claim["generation"]),
+            "initiative_id": self.initiative_id,
+            "artifact_set_sha256": self.artifact_set_sha256,
+            "trusted_eval_result_sha256": assurance["result_sha256"],
+            "review_decision_ref": assurance["review_decision_ref"],
+            "review_content_sha256": "a" * 64,
+            "task_result_sha256": hashlib.sha256(task_result.encode("utf-8")).hexdigest(),
+            "evidence_paths_sha256": hashlib.sha256(evidence_json.encode("utf-8")).hexdigest(),
+            "completed_at": completed_at,
+            "created_at": completed_at,
+        }
+
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER IF EXISTS assurance_completion_bindings_insert_guard")
+            conn.execute("DROP TRIGGER IF EXISTS tasks_bound_pilot_completion_guard")
+            conn.execute(
+                """INSERT INTO assurance_completion_bindings(
+                       task_id,generation,initiative_id,artifact_set_sha256,
+                       trusted_eval_result_sha256,review_decision_ref,
+                       review_content_sha256,task_result_sha256,
+                       evidence_paths_sha256,completed_at,created_at,
+                       integrity_signature
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (*completion_values.values(), integrity_signature(
+                    self.config.db_path, "completion-binding", completion_values,
+                )),
+            )
+            conn.execute(
+                "UPDATE assurance_task_bindings SET completion_result_sha256=?,"
+                "review_decision_ref=?,completed_at=?,updated_at=? WHERE task_id=?",
+                (
+                    assurance["result_sha256"], assurance["review_decision_ref"],
+                    completed_at, completed_at, self.task_id,
+                ),
+            )
+            conn.execute(
+                "UPDATE task_executions SET recovery_status='completed',"
+                "evidence_paths=?,updated_at=? WHERE task_id=?",
+                (evidence_json, completed_at, self.task_id),
+            )
+            conn.execute(
+                "UPDATE tasks SET status='done',result=?,updated_at=? WHERE id=?",
+                (task_result, completed_at, self.task_id),
+            )
+
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+        integrity = self.kernel.verify_integrity()
+        self.assertEqual(integrity["status"], "integrity_conflict")
+        self.assertTrue(any(
+            conflict.get("anchor") == "completion_binding"
+            for conflict in integrity["conflicts"]
+        ), integrity)
+
+    def test_valid_signature_cannot_bind_semantically_forged_task_result(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        assurance = self.gate.completion_decision({
+            "id": self.task_id,
+            "owner": "Company Platform Engineer",
+        })["assurance"]
+        completed_at = "2026-07-28T12:00:00+00:00"
+        evidence_json = json.dumps([str(self.task_evidence)], sort_keys=True)
+        forged_task_result = json.dumps({
+            "summary": "cryptographically signed semantic forgery",
+            "evidence": [str(self.task_evidence)],
+            "assurance": {**assurance, "result_sha256": "0" * 64},
+        }, sort_keys=True)
+        review = self.osys.store.fetch_one(
+            "SELECT content_sha256 FROM assurance_artifacts "
+            "WHERE artifact_id='completion-review' AND version=1"
+        )
+        values = {
+            "task_id": self.task_id,
+            "generation": int(self.claim["generation"]),
+            "initiative_id": self.initiative_id,
+            "artifact_set_sha256": self.artifact_set_sha256,
+            "trusted_eval_result_sha256": result_sha256,
+            "review_decision_ref": "completion-review:v1",
+            "review_content_sha256": review["content_sha256"],
+            "task_result_sha256": hashlib.sha256(
+                forged_task_result.encode("utf-8")
+            ).hexdigest(),
+            "evidence_paths_sha256": hashlib.sha256(
+                evidence_json.encode("utf-8")
+            ).hexdigest(),
+            "completed_at": completed_at,
+            "created_at": completed_at,
+        }
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "completion"):
+            with self.osys.store.connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                conn.execute(
+                    """INSERT INTO assurance_completion_bindings(
+                           task_id,generation,initiative_id,artifact_set_sha256,
+                           trusted_eval_result_sha256,review_decision_ref,
+                           review_content_sha256,task_result_sha256,
+                           evidence_paths_sha256,completed_at,created_at,
+                           integrity_signature
+                       ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                    (*values.values(), integrity_signature(
+                        self.config.db_path, "completion-binding", values,
+                    )),
+                )
+                conn.execute(
+                    "UPDATE assurance_task_bindings SET completion_result_sha256=?,"
+                    "review_decision_ref=?,completed_at=?,updated_at=? WHERE task_id=?",
+                    (
+                        result_sha256, "completion-review:v1", completed_at,
+                        completed_at, self.task_id,
+                    ),
+                )
+                conn.execute(
+                    "UPDATE task_executions SET recovery_status='completed',"
+                    "evidence_paths=?,updated_at=? WHERE task_id=?",
+                    (evidence_json, completed_at, self.task_id),
+                )
+                conn.execute(
+                    "UPDATE tasks SET status='done',result=?,updated_at=? WHERE id=?",
+                    (forged_task_result, completed_at, self.task_id),
+                )
+
+        self.assertEqual(
+            self.osys.store.fetch_one(
+                "SELECT status FROM tasks WHERE id=?", (self.task_id,),
+            )["status"],
+            "in_progress",
+        )
+
+    def test_kill_switch_rejects_invalid_artifact_body_before_atomic_claim(self) -> None:
+        self.osys.cancel_task(
+            self.task_id, "Company Platform Engineer", "isolate kill-switch claim probe",
+        )
+        next_task_id = int(self.osys.create_task(
+            "CEO", "Company Platform Engineer", "Kill-switch body validation", "platform", 98,
+            "A kill switch may bypass dispatch policy but never artifact integrity.",
+        )["task_id"])
+        self.gate.bind(
+            next_task_id, self.initiative_id, pilot=True,
+            artifact_set_sha256=self.artifact_set_sha256,
+            actor="CEO", principal_id="principal-ceo",
+        )
+        self.gate.set_kill_switch(
+            True, actor="CEO", principal_id="principal-ceo", reason="dispatch rollback",
+        )
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_artifacts SET content_json='{}' "
+                "WHERE artifact_id='completion-eval-contract' AND version=1"
+            )
+        with self.osys.store.connect_readonly() as conn:
+            before = {
+                "task": dict(conn.execute(
+                    "SELECT status,result,updated_at FROM tasks WHERE id=?", (next_task_id,),
+                ).fetchone()),
+                "executions": conn.execute(
+                    "SELECT COUNT(*) FROM task_executions WHERE task_id=?", (next_task_id,),
+                ).fetchone()[0],
+                "claims": conn.execute(
+                    "SELECT COUNT(*) FROM assurance_claim_bindings WHERE task_id=?",
+                    (next_task_id,),
+                ).fetchone()[0],
+                "history": conn.execute(
+                    "SELECT COUNT(*) FROM assurance_pilot_claim_history WHERE task_id=?",
+                    (next_task_id,),
+                ).fetchone()[0],
+                "audits": conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0],
+                "events": conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0],
+            }
+
+        with self.assertRaisesRegex(ValueError, "integrity"):
+            self.osys.claim_task(
+                next_task_id, "Company Platform Engineer",
+                executor_id="kill-switch-invalid-body", backend="local",
+            )
+
+        with self.osys.store.connect_readonly() as conn:
+            after = {
+                "task": dict(conn.execute(
+                    "SELECT status,result,updated_at FROM tasks WHERE id=?", (next_task_id,),
+                ).fetchone()),
+                "executions": conn.execute(
+                    "SELECT COUNT(*) FROM task_executions WHERE task_id=?", (next_task_id,),
+                ).fetchone()[0],
+                "claims": conn.execute(
+                    "SELECT COUNT(*) FROM assurance_claim_bindings WHERE task_id=?",
+                    (next_task_id,),
+                ).fetchone()[0],
+                "history": conn.execute(
+                    "SELECT COUNT(*) FROM assurance_pilot_claim_history WHERE task_id=?",
+                    (next_task_id,),
+                ).fetchone()[0],
+                "audits": conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0],
+                "events": conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0],
+            }
+        self.assertEqual(after, before)
+
     def test_direct_sql_cannot_complete_a_claimed_bound_pilot(self) -> None:
         with self.assertRaisesRegex(sqlite3.IntegrityError, "pilot completion"):
             with self.osys.store.connect() as conn:
@@ -1246,10 +1665,18 @@ class CompletionAssuranceGateTest(unittest.TestCase):
 
     def test_claimed_binding_allows_one_completion_write_without_rebinding(self) -> None:
         completed_at = "2026-07-28T12:00:00+00:00"
-        assurance = {
-            "result_sha256": "a" * 64,
-            "review_decision_ref": "completion-review:v1",
-        }
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        assurance = self.gate.completion_decision({
+            "id": self.task_id,
+            "owner": "Company Platform Engineer",
+        })["assurance"]
+        evidence_paths_json = json.dumps([str(self.task_evidence)], sort_keys=True)
+        task_result_json = json.dumps({
+            "summary": "guarded result",
+            "evidence": [str(self.task_evidence)],
+            "assurance": assurance,
+        }, sort_keys=True)
         before = self.osys.store.fetch_one(
             "SELECT * FROM assurance_task_bindings WHERE task_id=?", (self.task_id,)
         )
@@ -1266,7 +1693,11 @@ class CompletionAssuranceGateTest(unittest.TestCase):
                     conn.execute(statement, (self.task_id,))
 
         with self.osys.store.connect() as conn:
-            PilotGate.record_completion(conn, self.task_id, assurance, completed_at)
+            self.gate.record_completion(
+                conn, self.task_id, assurance, completed_at,
+                task_result_json=task_result_json,
+                evidence_paths_json=evidence_paths_json,
+            )
 
         after = self.osys.store.fetch_one(
             "SELECT * FROM assurance_task_bindings WHERE task_id=?", (self.task_id,)
@@ -1287,7 +1718,11 @@ class CompletionAssuranceGateTest(unittest.TestCase):
                 )
         with self.assertRaisesRegex(ValueError, "changed concurrently"):
             with self.osys.store.connect() as conn:
-                PilotGate.record_completion(conn, self.task_id, assurance, completed_at)
+                self.gate.record_completion(
+                    conn, self.task_id, assurance, completed_at,
+                    task_result_json=task_result_json,
+                    evidence_paths_json=evidence_paths_json,
+                )
         with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
             with self.osys.store.connect() as conn:
                 conn.execute(
@@ -1515,6 +1950,7 @@ class CompletionAssuranceGateTest(unittest.TestCase):
                 "assurance_claim_bindings_immutable_delete",
                 "assurance_pilot_claim_history_immutable_update",
                 "assurance_task_bindings_claimed_immutable_update",
+                "assurance_completion_bindings_insert_guard",
                 "assurance_artifact_registrations_immutable_delete",
                 "assurance_artifact_approvals_immutable_update",
                 "trusted_eval_runs_immutable_delete",
@@ -1532,6 +1968,9 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             "assurance_claim_bindings_immutable_delete",
             "assurance_pilot_claim_history_immutable_update",
             "assurance_pilot_claim_history_immutable_delete",
+            "assurance_completion_bindings_insert_guard",
+            "assurance_completion_bindings_immutable_update",
+            "assurance_completion_bindings_immutable_delete",
             "assurance_task_bindings_claimed_immutable_update",
             "assurance_task_bindings_claimed_immutable_delete",
             "assurance_artifact_registrations_immutable_update",
@@ -1634,6 +2073,18 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             )
         }
         self.assertEqual(history_columns, claim_columns)
+        completion_columns = {
+            row["name"] for row in self.osys.store.fetch_all(
+                "PRAGMA table_info(assurance_completion_bindings)"
+            )
+        }
+        self.assertEqual(completion_columns, {
+            "task_id", "generation", "initiative_id", "artifact_set_sha256",
+            "trusted_eval_result_sha256", "review_decision_ref",
+            "review_content_sha256", "task_result_sha256",
+            "evidence_paths_sha256", "completed_at", "created_at",
+            "integrity_signature",
+        })
 
 
 if __name__ == "__main__":

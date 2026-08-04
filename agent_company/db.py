@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import errno
+import hashlib
 import json
 import os
 import sqlite3
@@ -30,13 +31,75 @@ class Store:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
+        self._register_assurance_sql_functions(conn)
         return conn
 
     def connect_readonly(self) -> sqlite3.Connection:
         conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA query_only = ON")
+        self._register_assurance_sql_functions(conn)
         return conn
+
+    def _register_assurance_sql_functions(self, conn: sqlite3.Connection) -> None:
+        db_path = self.db_path
+
+        def sha256_text(value: object) -> str:
+            return hashlib.sha256(str(value).encode("utf-8")).hexdigest()
+
+        def artifact_body_valid(content_json: object, declared_sha256: object) -> int:
+            try:
+                canonical = json.dumps(
+                    json.loads(str(content_json)), ensure_ascii=True,
+                    sort_keys=True, separators=(",", ":"),
+                )
+            except (TypeError, ValueError):
+                return 0
+            return int(
+                hashlib.sha256(canonical.encode("ascii")).hexdigest()
+                == str(declared_sha256)
+            )
+
+        def completion_signature_valid(*values: object) -> int:
+            from .integrity import verify
+
+            if len(values) != 12:
+                return 0
+            keys = (
+                "task_id", "generation", "initiative_id", "artifact_set_sha256",
+                "trusted_eval_result_sha256", "review_decision_ref",
+                "review_content_sha256", "task_result_sha256",
+                "evidence_paths_sha256", "completed_at", "created_at",
+            )
+            payload = dict(zip(keys, values[:-1], strict=True))
+            return int(verify(db_path, "completion-binding", payload, str(values[-1])))
+
+        class ArtifactSetSha256:
+            def __init__(self) -> None:
+                self.artifacts: list[dict[str, str]] = []
+
+            def step(self, reference: object, digest: object) -> None:
+                self.artifacts.append({"ref": str(reference), "sha256": str(digest)})
+
+            def finalize(self) -> str:
+                canonical = json.dumps(
+                    self.artifacts, ensure_ascii=True, sort_keys=True,
+                    separators=(",", ":"),
+                )
+                return hashlib.sha256(canonical.encode("ascii")).hexdigest()
+
+        conn.create_function("assurance_sha256", 1, sha256_text, deterministic=True)
+        conn.create_function(
+            "assurance_artifact_body_valid", 2, artifact_body_valid,
+            deterministic=True,
+        )
+        conn.create_function(
+            "assurance_completion_signature_valid", 12,
+            completion_signature_valid, deterministic=True,
+        )
+        conn.create_aggregate(
+            "assurance_artifact_set_sha256", 2, ArtifactSetSha256,
+        )
 
     def init_assurance(self) -> None:
         """Add shadow assurance tables without touching operational schema or data."""
