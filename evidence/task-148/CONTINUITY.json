@@ -1,46 +1,47 @@
 {
   "schema_version": "agent-company-continuity/v1",
   "role": "Company Platform Engineer",
-  "project_summary": "Agent Company now rejects Phase C bound-pilot artifact body tampering even when stored content_sha256 and all artifact-set bindings remain unchanged; unbound behavior is preserved.",
-  "summary": "Fixed the independent-review High with strict RED/GREEN TDD, canonical body rehashing at every relevant assurance consumer, atomic context/runtime/completion probes, full regression, security scan, and protected-state verification.",
+  "project_summary": "All independent-review findings for 64010df are remediated on the actual final main commit/tree with cryptographic and semantic completion binding plus kill-switch claim body validation.",
+  "summary": "Strict RED/GREEN TDD proved and fixed coordinated raw completion, caller-selected record_completion, signed semantic forgery, and kill-switch claim bypasses; final suites, validation, security, PixWeave, and protected-state checks pass.",
   "project_decisions": [
-    "Artifact content_json is parsed, canonicalized, SHA-256 hashed, and compared with stored content_sha256 before its digest can be used by artifact-set, binding, context, runtime, dispatch, integrity, design-manifest, or completion validation.",
-    "The fixed source/test review target is unreferenced Git commit d5467f1cb51440353e10caf3eedf49d47bb15ff7 with tree e667b4b04f7870c3f0a60ca99547cc867934e526; HEAD and the index remain unchanged so main can inspect the uncommitted diff.",
-    "Post-build Review Decisions remain excluded from the G4 build artifact set, while completion still validates their bodies and integrity anchors.",
-    "Independent review remains pending and no post-fix approval is self-issued."
+    "The authoritative source/test target is main commit 228eb6b9299c8ac2fd2e39e7bbca2d10205d5b7e and tree f705fa87f50bc4b2017d6bd47f82a47163e48b4d, directly parented by reviewed commit 64010dfab9cc3074af5be74616572b01ef73563c.",
+    "A completion requires one immutable HMAC-authenticated completion binding whose exact current non-quarantined Trusted Eval, affirmative independent Review Decision and body hash, build artifact-set hash, generation, task-result digest, evidence-list digest, and timestamp all agree semantically and cryptographically.",
+    "SQLite completion triggers use connection-registered deterministic verification functions, so populating every structural field cannot substitute for a valid current completion binding.",
+    "Kill-switch behavior bypasses dispatch policy only; artifact bodies and the exact artifact-set anchor are always validated before claim/history persistence.",
+    "Task-148 evidence remains uncommitted outside the final source/test tree to avoid self-reference; independent review remains pending and no acceptance is self-issued."
   ],
   "verified_facts": [
-    "The authoritative RED ran 3 exact probes: context compilation and heartbeat failed to reject unchanged-declared-hash body tampering, while completion remained protected.",
-    "The exact GREEN ran the same 3 probes with all passing in 0.370 seconds.",
-    "Final focused Phase C verification ran 138 tests with all passing in 14.114 seconds.",
-    "Final Agent Company canonical verification ran 321 tests with all passing in 44.811 seconds.",
-    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 / tree 6f2d526d912fcf283937cd265d298004a31c00b2 and ran 58 tests with all passing in 0.366 seconds.",
+    "RED 1 ran 4 direct bypass probes and failed with 3 failures plus 1 error in 0.412 seconds before production implementation.",
+    "RED 2 proved a valid HMAC without semantic task-result binding was accepted; 1 test failed in 0.188 seconds before the semantic trigger guard.",
+    "Final GREEN ran 8 exact security and compatibility controls, including public semantic-result-body rejection, with all passing in 1.210 seconds.",
+    "Final focused verification ran 145 tests with all passing in 16.852 seconds.",
+    "Final Agent Company canonical verification ran 328 tests with all passing in 48.471 seconds.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 / tree 6f2d526d912fcf283937cd265d298004a31c00b2 and ran 58 tests with all passing in 0.313 seconds.",
     "Live read-only and fresh temporary-workspace validation returned ok=true; py_compile, compileall, and git diff --check passed.",
-    "Bandit 1.9.4 found zero High issues in Agent Company and PixWeave.",
-    "All 611 protected Phase D files and all 120 data files retained their pre-change SHA-256 inventory; data/company.sqlite3 remained dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48."
+    "Bandit 1.9.4 found zero High issues in Agent Company and PixWeave; Agent Company final scan was 0 High, 6 Medium, 26 Low across 12294 lines.",
+    "All 611 protected Phase D files and all 120 data files retained their pre-change SHA-256 inventories; data/company.sqlite3 remained dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48."
   ],
   "known_limits": [
-    "This change is only the Phase C bound-pilot same-hash artifact-body tamper remediation.",
-    "No D0, D1, D2, treatment, protocol, service, external system, credential, approval, PixWeave source, protected Phase D evidence, or live data mutation was authorized or performed.",
-    "Independent Control & Reliability review is pending and cannot be self-issued by the implementer."
+    "No independent acceptance is claimed; a fresh reviewer must review the exact final commit/tree.",
+    "No D0, D1, D2, treatment, protocol, service, external system, credential, approval, PixWeave source, protected Phase D evidence, or data mutation was authorized or performed.",
+    "The main branch is one local commit ahead of origin/main; no push or other external action was performed."
   ],
   "open_items": [
-    "A fresh independent reviewer must review fixed commit d5467f1cb51440353e10caf3eedf49d47bb15ff7 and tree e667b4b04f7870c3f0a60ca99547cc867934e526 before changing the review status.",
-    "Main should inspect the uncommitted working-tree and task-148 evidence changes, then choose the final branch commit/evidence integration."
+    "A fresh independent reviewer must review commit 228eb6b9299c8ac2fd2e39e7bbca2d10205d5b7e and tree f705fa87f50bc4b2017d6bd47f82a47163e48b4d before changing review status.",
+    "Main should inspect the uncommitted task-148 evidence files and decide how to integrate them."
   ],
   "handoffs": [
     {
       "to_role": "Control & Reliability Reviewer",
       "handoff_type": "control_review",
-      "summary": "The Phase C artifact-body same-hash High is remediated and fully verified; no independent approval is claimed.",
-      "decision_needed": "Independently review the exact fixed commit/tree, body-rehash consumers, RED/GREEN provenance, atomic denial assertions, compatibility controls, and evidence; return a fresh fixed-tree finding or approval.",
+      "summary": "The coordinated completion and kill-switch findings are implemented and verified on the actual final branch target; independent acceptance is pending.",
+      "decision_needed": "Independently review the exact final commit/tree, trigger cryptographic and semantic checks, public writer revalidation, kill-switch claim validation, RED/GREEN provenance, atomic rollback assertions, and evidence hashes.",
       "artifact_refs": [
-      "commit:d5467f1cb51440353e10caf3eedf49d47bb15ff7",
-      "tree:e667b4b04f7870c3f0a60ca99547cc867934e526",
+        "commit:228eb6b9299c8ac2fd2e39e7bbca2d10205d5b7e",
+        "tree:f705fa87f50bc4b2017d6bd47f82a47163e48b4d",
         "/home/tony/agent-company/evidence/task-148/verification-report.md",
         "/home/tony/agent-company/evidence/task-148/evidence-manifest.json",
-        "/home/tony/agent-company/evidence/task-148/red-test-output.txt",
-        "/home/tony/agent-company/evidence/task-148/green-test-output.txt"
+        "/home/tony/agent-company/evidence/task-148/review-log.md"
       ]
     }
   ]

@@ -2,39 +2,57 @@
   "schema_version": "agent-company-evidence-manifest/v1",
   "repository": "agent-company",
   "task_id": 148,
-  "remediation": "independent-review-high-phase-c-bound-pilot-artifact-body-same-hash-tampering",
-  "base_commit": "8cf986c3427863cb41ae86c71afc0f48d1ede5fd",
-  "base_tree": "12c4d0e20b9c9085c1b6b020c6f55c7750c72134",
-  "fixed_review_commit": "d5467f1cb51440353e10caf3eedf49d47bb15ff7",
-  "fixed_review_tree": "e667b4b04f7870c3f0a60ca99547cc867934e526",
-  "fixed_review_parent": "8cf986c3427863cb41ae86c71afc0f48d1ede5fd",
-  "fixed_review_ref_status": "unreferenced_commit_object",
-  "working_tree_status": "uncommitted_for_main_inspection",
-  "independent_review_status": "pending_fresh_fixed_tree_review",
-  "red_test": {
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_remains_protected_from_unchanged_declared_hash_body_tamper -v",
-    "ran": 3,
-    "failures": 2,
-    "errors": 0,
-    "passed_controls": 1,
-    "exit_status": 1,
-    "result": "expected_fail"
-  },
+  "remediation": "independent-review-coordinated-completion-kill-switch-and-final-evidence-binding",
+  "reviewed_commit": "64010dfab9cc3074af5be74616572b01ef73563c",
+  "reviewed_tree": "62800ca23129410113050a89ae06090a7b2d299b",
+  "final_branch_commit": "228eb6b9299c8ac2fd2e39e7bbca2d10205d5b7e",
+  "final_branch_tree": "f705fa87f50bc4b2017d6bd47f82a47163e48b4d",
+  "final_branch_parent": "64010dfab9cc3074af5be74616572b01ef73563c",
+  "final_branch_subject": "fix: bind pilot completion to exact assurance",
+  "final_branch_ref_status": "main_branch_tip_ahead_of_origin_by_one",
+  "evidence_tree_status": "uncommitted_outside_final_source_test_tree_for_main_inspection",
+  "independent_review_status": "pending_fresh_final_branch_tree_review",
+  "red_tests": [
+    {
+      "name": "coordinated_completion_and_kill_switch",
+      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_coordinated_raw_sql_cannot_forge_all_completion_state tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_structurally_complete_raw_completion_row_fails_closed_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_public_record_completion_rejects_caller_forged_assurance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_kill_switch_rejects_invalid_artifact_body_before_atomic_claim -v",
+      "ran": 4,
+      "failures": 3,
+      "errors": 1,
+      "seconds": 0.412,
+      "exit_status": 1,
+      "result": "expected_fail"
+    },
+    {
+      "name": "signed_semantic_completion_forgery",
+      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_valid_signature_cannot_bind_semantically_forged_task_result -v",
+      "ran": 1,
+      "failures": 1,
+      "errors": 0,
+      "seconds": 0.188,
+      "exit_status": 1,
+      "result": "expected_fail"
+    }
+  ],
   "green_test": {
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_remains_protected_from_unchanged_declared_hash_body_tamper -v",
-    "ran": 3,
-    "passed": 3,
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_coordinated_raw_sql_cannot_forge_all_completion_state tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_structurally_complete_raw_completion_row_fails_closed_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_public_record_completion_rejects_caller_forged_assurance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_kill_switch_rejects_invalid_artifact_body_before_atomic_claim tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_valid_signature_cannot_bind_semantically_forged_task_result tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_and_integrity_reject_signed_structural_completion_forgery tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion -v",
+    "ran": 8,
+    "passed": 8,
+    "seconds": 1.21,
     "result": "pass"
   },
   "focused_test": {
     "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials -v",
-    "passed": 138,
+    "passed": 145,
+    "seconds": 16.852,
     "result": "pass"
   },
   "canonical_test": {
     "command": "python3.11 -m unittest discover -s tests -v",
-    "passed": 321,
-    "result": "pass"
+    "passed": 328,
+    "seconds": 48.471,
+    "result": "pass",
+    "phase_d_scope": "unit tests inspected denial and tombstone controls; no D0/D1/D2 runner, treatment, or protocol command was invoked"
   },
   "pixweave": {
     "command": "python3.11 -m unittest discover -s tests -v",
@@ -42,6 +60,7 @@
     "tree": "6f2d526d912fcf283937cd265d298004a31c00b2",
     "worktree": "clean",
     "passed": 58,
+    "seconds": 0.313,
     "result": "pass"
   },
   "validation": {
@@ -70,13 +89,13 @@
   },
   "security_scan": {
     "tool": "bandit 1.9.4",
-    "installation": "disposable /tmp virtual environment",
     "agent_company": {
       "command": "bandit -r agent_company -f json",
       "high": 0,
       "medium": 6,
       "low": 26,
-      "loc": 11808,
+      "loc": 12294,
+      "errors": [],
       "result": "pass_no_high"
     },
     "pixweave": {
@@ -85,6 +104,7 @@
       "medium": 0,
       "low": 0,
       "loc": 3218,
+      "errors": [],
       "result": "pass_no_high"
     }
   },
@@ -101,55 +121,66 @@
     },
     "company_sqlite3_sha256": "dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48",
     "pixweave_source_unchanged": true,
-    "prohibited_protocols_run": false,
+    "credentials_unchanged": true,
+    "approvals_unchanged": true,
+    "prohibited_phase_or_protocol_commands_run": false,
     "services_started": false,
     "external_actions": []
   },
   "code_sha256": {
-    "agent_company/assurance.py": "d3875853d4d9328342781a86e47f6725f88683698e0caeffa1ce08a23e53e15f",
-    "agent_company/pilot_gate.py": "2a2efec9faa37601b4887e5b23c27ebdb89323e5f0d1bb0e48e945fdda30b394",
-    "tests/test_completion_assurance_gate.py": "f411ec0bfd77ef829a117748f0bf95e3342ed43acff3801dbdaecc0b052c0f76"
+    "agent_company/assurance.py": "d86c0fe581a6c0e4f40a0b655a7ef4df5784acd2fa9f0d5e0c6d525dbd353199",
+    "agent_company/db.py": "fd3aa0ed2b554862dda888021123f695b027c599f69546169b98732c7bdbd444",
+    "agent_company/ops.py": "70a283d58dddcfbe5f0d20345b11ea144038a15c1ba9a5743ec344270ef3b54c",
+    "agent_company/pilot_gate.py": "a5b0eda85a431e58f1a772bf24db01db098aa5514cbcd1d2c26c0254538b301c",
+    "tests/test_assurance_cli.py": "b16ad0fca8c47bbe437497cc91e70cfe5f8cf26b1aa97504b2889f390f6fb34c",
+    "tests/test_completion_assurance_gate.py": "81db24ab85c3e3a2a729a86f48596bf8f7758213c652c2cc2666e464881c0495",
+    "tests/test_pilot_gate.py": "5f251e0ddadef4c7ad31a8a989a7bbe48b12c36e44dde8d6837a160722fee65f"
   },
-  "source_test_patch_sha256": "2b37a636fb5cc2d5b90b7d54935a31d15062098f5fff6824f39f2580fd80e359",
+  "source_test_patch_sha256": "c6f467ff4513dc0d3a3246a8ebe998337a6903790cf48a5594bfe9a97ab88cba",
   "artifacts": [
     {
       "path": "verification-report.md",
-      "purpose": "Fixed-tree identity, TDD, verification, acceptance, protected-state, pending-review, and scope record",
-      "sha256": "bb9b33bba9e25c134666b4930287f5b2b617edf96b01610da872878146887a7e"
+      "purpose": "Authoritative final-branch target, controls, verification, and pending independent-review report",
+      "sha256": "63bb9a890c7055455dacd2b6963e80141bbb039a87f6792e002b833edd3919af"
     },
     {
       "path": "CONTINUITY.json",
-      "purpose": "Structured fixed-tree independent-review handoff",
-      "sha256": "e24b8c3c3245b352d749cf2965fe4d9ba8420cf55305ae6a1b7516b086bc1a21"
+      "purpose": "Structured final-branch independent-review handoff",
+      "sha256": "87300216685fcd46858b5f6ac86273ab4e19dac6c431d60b9db28cce862427c1"
+    },
+    {
+      "path": "review-log.md",
+      "purpose": "Exact append-only RED/GREEN and final verification log for this review follow-up",
+      "sha256": "d387e5390fdc141ef88d42868cfe7834e178f726a35dc923e3b00102a76df135"
     },
     {
       "path": "red-test-output.txt",
-      "purpose": "Authoritative pre-implementation same-hash tamper RED output",
+      "purpose": "Preserved historical RED output from prior same-hash remediation",
       "sha256": "1c101c903c9f37e19ba9a26fbeba67385fc9d69c841b541fe730595527430fa9"
     },
     {
       "path": "green-test-output.txt",
-      "purpose": "Exact final GREEN output for the three tamper probes",
+      "purpose": "Preserved historical GREEN output from prior same-hash remediation",
       "sha256": "fb63679ac6229d3051d1036593fdea277071f97f043d4301b8840193beed2301"
     },
     {
       "path": "focused-test-output.txt",
-      "purpose": "Final focused Phase C assurance/runtime output",
+      "purpose": "Preserved historical focused output from prior same-hash remediation",
       "sha256": "fdef8f191a07e2420360d443f47b7d2a40bd644e77ad95ee9c0ad1a600b62d42"
     },
     {
       "path": "full-test-output.txt",
-      "purpose": "Final Agent Company canonical suite output",
+      "purpose": "Preserved historical full output from prior same-hash remediation",
       "sha256": "686e355109d33c06841c45d367d6c643dfe351526c95b39d4e30c895564be31f"
     },
     {
       "path": "pixweave-test-output.txt",
-      "purpose": "Final clean PixWeave identity and canonical suite output",
+      "purpose": "Preserved historical PixWeave output from prior same-hash remediation",
       "sha256": "f6a32bd27c6a1b552da19ae36db713b81ecf0ddc8a1e865e678aec8c57e8e057"
     },
     {
       "path": "clean-init-validation.txt",
-      "purpose": "Fresh temporary-workspace initialization, validation, and binding-schema output",
+      "purpose": "Preserved historical clean-init output from prior same-hash remediation",
       "sha256": "0058771f5e7d8fd27037065289c512c7b7776cbbaa2dacf0ea8c4ea710b2ef3d"
     }
   ]
