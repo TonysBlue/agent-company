@@ -2,76 +2,105 @@
   "schema_version": "agent-company-evidence-manifest/v1",
   "repository": "agent-company",
   "task_id": 148,
-  "remediation": "independent-review-coordinated-completion-kill-switch-and-final-evidence-binding",
-  "reviewed_commit": "64010dfab9cc3074af5be74616572b01ef73563c",
-  "reviewed_tree": "62800ca23129410113050a89ae06090a7b2d299b",
-  "final_branch_commit": "228eb6b9299c8ac2fd2e39e7bbca2d10205d5b7e",
-  "final_branch_tree": "f705fa87f50bc4b2017d6bd47f82a47163e48b4d",
-  "final_branch_parent": "64010dfab9cc3074af5be74616572b01ef73563c",
-  "final_branch_subject": "fix: bind pilot completion to exact assurance",
+  "remediation": "final-review-exact-completion-semantic-verifier",
+  "reviewed_commit": "3cb5b4ad354e59359f76d9958d971b664f189429",
+  "reviewed_tree": "588f2c0de9f9de4dd1887adbbc963ff31407b1fc",
+  "final_branch_commit": "4cde805d6ece9e0b7532b4620007036a3c8f9217",
+  "final_branch_tree": "dc09a890df65cb64b31ac848c241e75572035ff0",
+  "final_branch_parent": "3cb5b4ad354e59359f76d9958d971b664f189429",
+  "final_branch_subject": "fix: close task 148 completion assurance gaps",
   "final_branch_ref_status": "main_branch_tip_ahead_of_origin_by_one",
-  "evidence_tree_status": "uncommitted_outside_final_source_test_tree_for_main_inspection",
+  "source_test_patch_sha256": "fd31ca83fbae1a164ccb81e8b6afe0b9721eb98b4d0128364a3bedbf57ac698d",
+  "evidence_tree_status": "four_task_148_evidence_files_uncommitted_outside_final_source_test_tree",
   "independent_review_status": "pending_fresh_final_branch_tree_review",
   "red_tests": [
     {
-      "name": "coordinated_completion_and_kill_switch",
-      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_coordinated_raw_sql_cannot_forge_all_completion_state tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_structurally_complete_raw_completion_row_fails_closed_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_public_record_completion_rejects_caller_forged_assurance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_kill_switch_rejects_invalid_artifact_body_before_atomic_claim -v",
-      "ran": 4,
-      "failures": 3,
-      "errors": 1,
-      "seconds": 0.412,
+      "name": "final_review_signed_sql_adversarial_probes",
+      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf -v",
+      "ran": 8,
+      "passed": 1,
+      "failures": 7,
+      "errors": 0,
+      "seconds": 1.28,
       "exit_status": 1,
-      "result": "expected_fail"
+      "result": "expected_fail",
+      "interpretation": "seven signed SQL completion attacks were incorrectly accepted; the raw missing-UDF connection failed closed"
     },
     {
-      "name": "signed_semantic_completion_forgery",
-      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_valid_signature_cannot_bind_semantically_forged_task_result -v",
+      "name": "completed_binding_snapshot_migration_order",
+      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger -v",
+      "ran": 1,
+      "failures": 0,
+      "errors": 1,
+      "seconds": 0.167,
+      "exit_status": 1,
+      "result": "expected_fail",
+      "error": "sqlite3.IntegrityError: assurance completion binding is immutable"
+    },
+    {
+      "name": "udf_connection_descriptor_lifecycle",
+      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks -v",
       "ran": 1,
       "failures": 1,
       "errors": 0,
-      "seconds": 0.188,
+      "seconds": 0.172,
       "exit_status": 1,
-      "result": "expected_fail"
+      "result": "expected_fail",
+      "error": "AssertionError: 64 not less than or equal to 4"
+    }
+  ],
+  "implementation_regression_observations": [
+    {
+      "suite": "Agent Company canonical",
+      "ran_before_error": 339,
+      "seconds": 148.027,
+      "error": "ValueError: filedescriptor out of range in select()"
+    },
+    {
+      "suite": "Agent Company canonical",
+      "ran_before_error": 339,
+      "seconds": 144.083,
+      "error": "ValueError: filedescriptor out of range in select()"
     }
   ],
   "green_test": {
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_coordinated_raw_sql_cannot_forge_all_completion_state tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_structurally_complete_raw_completion_row_fails_closed_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_public_record_completion_rejects_caller_forged_assurance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_kill_switch_rejects_invalid_artifact_body_before_atomic_claim tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_valid_signature_cannot_bind_semantically_forged_task_result tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_and_integrity_reject_signed_structural_completion_forgery tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion -v",
-    "ran": 8,
-    "passed": 8,
-    "seconds": 1.21,
-    "result": "pass"
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_nonlatest_completed_trusted_eval_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_tampered_trusted_eval_manifest_and_content_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_task_owner_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_contradictory_exact_refs_and_findings_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_reject_decision_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_review_missing_exact_refs_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_and_integrity_reject_signed_evidence_semantic_mismatch tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible -v",
+    "ran": 19,
+    "passed": 19,
+    "seconds": 2.756,
+    "exit_status": 0,
+    "result": "pass",
+    "atomicity": "signed direct-SQL denial helpers assert unchanged task, execution, task binding, completion count, audit count, and event count"
   },
   "focused_test": {
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials -v",
-    "passed": 145,
-    "seconds": 16.852,
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials tests.test_dashboard tests.test_event_engine -q",
+    "passed": 186,
+    "seconds": 20.421,
+    "exit_status": 0,
     "result": "pass"
   },
   "canonical_test": {
-    "command": "python3.11 -m unittest discover -s tests -v",
-    "passed": 328,
-    "seconds": 48.471,
+    "command": "python3.11 -m unittest discover -s tests -q",
+    "passed": 345,
+    "seconds": 50.303,
+    "exit_status": 0,
     "result": "pass",
-    "phase_d_scope": "unit tests inspected denial and tombstone controls; no D0/D1/D2 runner, treatment, or protocol command was invoked"
+    "phase_d_scope": "unit tests inspected existing controls; no D0/D1/D2 runner, treatment, protocol, or Phase D runner command was invoked"
   },
   "pixweave": {
     "command": "python3.11 -m unittest discover -s tests -v",
     "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
     "tree": "6f2d526d912fcf283937cd265d298004a31c00b2",
-    "worktree": "clean",
+    "worktree": "clean_main_aligned_with_origin",
     "passed": 58,
-    "seconds": 0.313,
+    "seconds": 0.307,
     "result": "pass"
   },
   "validation": {
     "live_readonly": {
       "command": "python3.11 -m agent_company.cli validate",
       "errors": [],
-      "result": "pass"
-    },
-    "clean_workspace": {
-      "initialized": true,
-      "errors": [],
+      "ok": true,
       "result": "pass"
     },
     "compile": {
@@ -94,7 +123,7 @@
       "high": 0,
       "medium": 6,
       "low": 26,
-      "loc": 12294,
+      "loc": 12625,
       "errors": [],
       "result": "pass_no_high"
     },
@@ -110,6 +139,10 @@
   },
   "protected_state": {
     "phase_d": {
+      "paths": [
+        "docs/assurance/phase-d",
+        "evidence/phase-d"
+      ],
       "file_count": 611,
       "inventory_sha256": "387d8bd7c7f774e7a7ee059943de864a49a759d57ceba3432d7520e772cb065f",
       "unchanged": true
@@ -124,64 +157,75 @@
     "credentials_unchanged": true,
     "approvals_unchanged": true,
     "prohibited_phase_or_protocol_commands_run": false,
-    "services_started": false,
-    "external_actions": []
+    "services": {
+      "checked": 6,
+      "all_inactive": true,
+      "started": false
+    },
+    "external_actions": [],
+    "pushed": false
   },
   "code_sha256": {
-    "agent_company/assurance.py": "d86c0fe581a6c0e4f40a0b655a7ef4df5784acd2fa9f0d5e0c6d525dbd353199",
-    "agent_company/db.py": "fd3aa0ed2b554862dda888021123f695b027c599f69546169b98732c7bdbd444",
-    "agent_company/ops.py": "70a283d58dddcfbe5f0d20345b11ea144038a15c1ba9a5743ec344270ef3b54c",
-    "agent_company/pilot_gate.py": "a5b0eda85a431e58f1a772bf24db01db098aa5514cbcd1d2c26c0254538b301c",
-    "tests/test_assurance_cli.py": "b16ad0fca8c47bbe437497cc91e70cfe5f8cf26b1aa97504b2889f390f6fb34c",
-    "tests/test_completion_assurance_gate.py": "81db24ab85c3e3a2a729a86f48596bf8f7758213c652c2cc2666e464881c0495",
-    "tests/test_pilot_gate.py": "5f251e0ddadef4c7ad31a8a989a7bbe48b12c36e44dde8d6837a160722fee65f"
+    "agent_company/assurance.py": "7e929d35a72a01e84fc10881b6c7c7ab8f17d95537214b208d3391715c63a0c6",
+    "agent_company/assurance_credentials.py": "ca7bfff8bd7c62a31b0e94135c8c7446452291c0c950ceaccfaf709385940505",
+    "agent_company/ceo_runtime.py": "1b3f6fdf730b2d31eb14baa10ab6575d4f8d3cab5facddd2d42cdaaa90940eb5",
+    "agent_company/completion_verifier.py": "a00d22875a0bec1a950f4100a576521a82e945895e82ad42031195a087d9c227",
+    "agent_company/context_compiler.py": "f0c0977fab8f34db4b8f29c6dd26cd6231e6d4fe3ca22b98a133517a57637bb1",
+    "agent_company/context_knowledge.py": "1b39d907b8fec10887cc4f7a15188194f09a08b7860ce06d03e58ad7a71653d7",
+    "agent_company/dashboard.py": "c74a48c45acb572189246f74fe7c5cf8ad45ca6468cf1c4b987802c53ca85b8a",
+    "agent_company/db.py": "4ab85b86c7aabe80885f77b09b3f73c5cf1b092df79858cc9c91e63f48f997ff",
+    "agent_company/event_engine.py": "3d47f7e45b56b11a71d4f874847e5f728e78c1b6857ffae845c83c2b568b8e1f",
+    "agent_company/ops.py": "1b022ba791e85d1fe87a1532c212f019cd4db5ddd1491cfb11f96c5f4d939d2e",
+    "agent_company/pilot_gate.py": "f0b83b2322035942a9f7ca7b8f907a6e370608dbb0acd050fa4fed4c51d381a5",
+    "agent_company/trusted_evaluator.py": "307e127d13f7024b0a0accef095cfd6e483a652c92a0e355d3af7fb72fc86e8c",
+    "tests/test_completion_assurance_gate.py": "1b94fe6a3e50d43fed0ff922a5a74fa93ae10b37178e55b89921305433d528fd"
   },
-  "source_test_patch_sha256": "c6f467ff4513dc0d3a3246a8ebe998337a6903790cf48a5594bfe9a97ab88cba",
   "artifacts": [
     {
       "path": "verification-report.md",
-      "purpose": "Authoritative final-branch target, controls, verification, and pending independent-review report",
-      "sha256": "63bb9a890c7055455dacd2b6963e80141bbb039a87f6792e002b833edd3919af"
+      "purpose": "Authoritative final-review controls, fixed target, verification, and pending independent-review report",
+      "sha256": "fbe53e77a43580bd22331bad16303637548020e1e98ba7b68402d75046f06de1"
     },
     {
       "path": "CONTINUITY.json",
-      "purpose": "Structured final-branch independent-review handoff",
-      "sha256": "87300216685fcd46858b5f6ac86273ab4e19dac6c431d60b9db28cce862427c1"
+      "purpose": "Structured final-review handoff for the exact fixed commit and tree",
+      "sha256": "03385f02f1e18c0fc2121d4f2455cf2aca9ae7672fd7255f73413c2ac931c516"
     },
     {
       "path": "review-log.md",
-      "purpose": "Exact append-only RED/GREEN and final verification log for this review follow-up",
-      "sha256": "d387e5390fdc141ef88d42868cfe7834e178f726a35dc923e3b00102a76df135"
+      "purpose": "Append-only exact RED/GREEN and final verification record, including prior Task 148 review history",
+      "sha256": "925217dff4d883de907c12c4c03b6e8f2c0bd2da025971e6cad199172ae198fa"
     },
     {
       "path": "red-test-output.txt",
-      "purpose": "Preserved historical RED output from prior same-hash remediation",
+      "purpose": "Preserved historical RED output from an earlier Task 148 review round",
       "sha256": "1c101c903c9f37e19ba9a26fbeba67385fc9d69c841b541fe730595527430fa9"
     },
     {
       "path": "green-test-output.txt",
-      "purpose": "Preserved historical GREEN output from prior same-hash remediation",
+      "purpose": "Preserved historical GREEN output from an earlier Task 148 review round",
       "sha256": "fb63679ac6229d3051d1036593fdea277071f97f043d4301b8840193beed2301"
     },
     {
       "path": "focused-test-output.txt",
-      "purpose": "Preserved historical focused output from prior same-hash remediation",
+      "purpose": "Preserved historical focused output from an earlier Task 148 review round",
       "sha256": "fdef8f191a07e2420360d443f47b7d2a40bd644e77ad95ee9c0ad1a600b62d42"
     },
     {
       "path": "full-test-output.txt",
-      "purpose": "Preserved historical full output from prior same-hash remediation",
+      "purpose": "Preserved historical full output from an earlier Task 148 review round",
       "sha256": "686e355109d33c06841c45d367d6c643dfe351526c95b39d4e30c895564be31f"
     },
     {
       "path": "pixweave-test-output.txt",
-      "purpose": "Preserved historical PixWeave output from prior same-hash remediation",
+      "purpose": "Preserved historical PixWeave output from an earlier Task 148 review round",
       "sha256": "f6a32bd27c6a1b552da19ae36db713b81ecf0ddc8a1e865e678aec8c57e8e057"
     },
     {
       "path": "clean-init-validation.txt",
-      "purpose": "Preserved historical clean-init output from prior same-hash remediation",
+      "purpose": "Preserved historical clean-init output from an earlier Task 148 review round",
       "sha256": "0058771f5e7d8fd27037065289c512c7b7776cbbaa2dacf0ea8c4ea710b2ef3d"
     }
-  ]
+  ],
+  "manifest_self_hash": "omitted_to_avoid_self_reference"
 }

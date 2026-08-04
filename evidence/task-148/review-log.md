@@ -267,3 +267,339 @@ Ran 8 tests in 1.210s
 
 OK
 ```
+
+## 2026-08-04 — Final-review RED: four completion-assurance gaps
+
+The source was still the requested clean tip
+`3cb5b4ad354e59359f76d9958d971b664f189429` when the following eight-test
+adversarial command ran. The direct-SQL cases used structurally complete completion
+rows and valid completion signatures; the no-UDF control used a raw SQLite
+connection.
+
+```text
+python3.11 -m unittest \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf -v
+```
+
+Exact captured terminal result:
+
+```text
+test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically) ... FAIL
+test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically) ... FAIL
+test_signed_sql_rejects_review_with_invalid_approval_signature_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically) ... FAIL
+test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically) ... FAIL
+test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically) ... FAIL
+test_signed_sql_rejects_any_contradictory_approved_review_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically) ... FAIL
+test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically) ... FAIL
+test_completion_insert_fails_closed_without_registered_semantic_udf (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf) ... ok
+
+======================================================================
+FAIL: test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1068, in test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically
+    self._assert_signed_sql_completion_rejected(result_sha256)
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 307, in _assert_signed_sql_completion_rejected
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1090, in test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically
+    self._assert_signed_sql_completion_rejected(result_sha256)
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 307, in _assert_signed_sql_completion_rejected
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_signed_sql_rejects_review_with_invalid_approval_signature_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1105, in test_signed_sql_rejects_review_with_invalid_approval_signature_atomically
+    self._assert_signed_sql_completion_rejected(result_sha256)
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 307, in _assert_signed_sql_completion_rejected
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1131, in test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically
+    self._assert_signed_sql_completion_rejected(result_sha256)
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 307, in _assert_signed_sql_completion_rejected
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1118, in test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically
+    self._assert_signed_sql_completion_rejected(result_sha256)
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 307, in _assert_signed_sql_completion_rejected
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_signed_sql_rejects_any_contradictory_approved_review_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1141, in test_signed_sql_rejects_any_contradictory_approved_review_atomically
+    self._assert_signed_sql_completion_rejected(result_sha256)
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 307, in _assert_signed_sql_completion_rejected
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1151, in test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically
+    self._assert_signed_sql_completion_rejected(
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 307, in _assert_signed_sql_completion_rejected
+    with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+AssertionError: IntegrityError not raised
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.280s
+
+FAILED (failures=7)
+EXIT_CODE=1
+```
+
+Exit status `1` was the expected RED. Seven signed direct-SQL attacks were accepted:
+invalid Trusted Eval runtime lineage; invalid Review Decision registration/lifecycle;
+invalid approval signature; reviewer overlap with build ownership and evaluator
+lineage; a contradictory approved review; and semantic divergence between
+`task.result.evidence` and `task_executions.evidence_paths`. The raw-connection
+control already proved the old trigger failed closed when an SQL function was absent.
+Every direct-SQL helper compared task, execution, task binding, completion count,
+audit count, and event count before and after the rejected transaction; those
+atomicity assertions pass in GREEN.
+
+## 2026-08-04 — Additional implementation REDs
+
+The completed-row migration test first exposed an old immutable trigger firing before
+the new signed snapshots could be backfilled. After the test fixture represented the
+actual legacy table correctly, the production migration remained RED:
+
+```text
+test_completed_binding_snapshot_migration_precedes_old_immutability_trigger (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger) ... ERROR
+
+======================================================================
+ERROR: test_completed_binding_snapshot_migration_precedes_old_immutability_trigger (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 2514, in test_completed_binding_snapshot_migration_precedes_old_immutability_trigger
+    self.gate.init()
+  File "/home/tony/agent-company/agent_company/pilot_gate.py", line 128, in init
+    conn.execute(
+sqlite3.IntegrityError: assurance completion binding is immutable
+
+----------------------------------------------------------------------
+Ran 1 test in 0.167s
+
+FAILED (errors=1)
+EXIT=1
+```
+
+The UDF callbacks also retained connections after context-manager exit. Two canonical
+suite attempts exposed the operational consequence in the event engine
+(`filedescriptor out of range in select()`), after 339 tests in 148.027 seconds and
+144.083 seconds respectively. The focused descriptor RED made the leak deterministic:
+
+```text
+test_store_context_closes_connections_retained_by_udf_callbacks (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks) ... FAIL
+
+======================================================================
+FAIL: test_store_context_closes_connections_retained_by_udf_callbacks (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 1230, in test_store_context_closes_connections_retained_by_udf_callbacks
+    self.assertLessEqual(after - before, 4)
+AssertionError: 64 not less than or equal to 4
+
+----------------------------------------------------------------------
+Ran 1 test in 0.172s
+
+FAILED (failures=1)
+EXIT=1
+```
+
+The migration now removes old completion immutability guards before backfill and
+recreates the canonical guards afterward. `StoreConnection` now commits or rolls
+back and explicitly closes on context exit, releasing the UDF closures.
+
+## 2026-08-04 — Final-review GREEN
+
+Final security and compatibility command:
+
+```text
+python3.11 -m unittest \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_nonlatest_completed_trusted_eval_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_tampered_trusted_eval_manifest_and_content_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_task_owner_review_even_with_valid_anchors_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_contradictory_exact_refs_and_findings_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_reject_decision_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_review_missing_exact_refs_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_and_integrity_reject_signed_evidence_semantic_mismatch \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible -v
+```
+
+Exact captured terminal result:
+
+```text
+test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically) ... ok
+test_signed_sql_rejects_nonlatest_completed_trusted_eval_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_nonlatest_completed_trusted_eval_atomically) ... ok
+test_signed_sql_rejects_tampered_trusted_eval_manifest_and_content_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_tampered_trusted_eval_manifest_and_content_atomically) ... ok
+test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically) ... ok
+test_signed_sql_rejects_review_with_invalid_approval_signature_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically) ... ok
+test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically) ... ok
+test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically) ... ok
+test_signed_sql_rejects_task_owner_review_even_with_valid_anchors_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_task_owner_review_even_with_valid_anchors_atomically) ... ok
+test_signed_sql_rejects_any_contradictory_approved_review_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically) ... ok
+test_signed_sql_rejects_contradictory_exact_refs_and_findings_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_contradictory_exact_refs_and_findings_atomically) ... ok
+test_signed_sql_rejects_approved_reject_decision_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_reject_decision_atomically) ... ok
+test_signed_sql_rejects_approved_review_missing_exact_refs_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_review_missing_exact_refs_atomically) ... ok
+test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically) ... ok
+test_completion_insert_fails_closed_without_registered_semantic_udf (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf) ... ok
+test_validate_and_integrity_reject_signed_evidence_semantic_mismatch (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_and_integrity_reject_signed_evidence_semantic_mismatch) ... ok
+test_store_context_closes_connections_retained_by_udf_callbacks (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks) ... ok
+test_completed_binding_snapshot_migration_precedes_old_immutability_trigger (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger) ... ok
+test_exact_eval_and_independent_review_allow_atomic_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion) ... ok
+test_validate_keeps_never_bound_and_nonpilot_completions_compatible (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 2.756s
+
+OK
+EXIT_CODE=0
+```
+
+All 19 passed. The adversarial helpers prove transaction rollback; the control tests
+prove legitimate approved completion, never-bound completion, and non-pilot
+completion remain compatible.
+
+## 2026-08-04 — Final-review source target and verification
+
+```text
+commit  4cde805d6ece9e0b7532b4620007036a3c8f9217
+tree    dc09a890df65cb64b31ac848c241e75572035ff0
+parent  3cb5b4ad354e59359f76d9958d971b664f189429
+subject fix: close task 148 completion assurance gaps
+branch  main (ahead of origin/main by 1; no push performed)
+patch SHA-256 from parent fd31ca83fbae1a164ccb81e8b6afe0b9721eb98b4d0128364a3bedbf57ac698d
+```
+
+Focused Phase C/runtime command and exact result:
+
+```text
+python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials tests.test_dashboard tests.test_event_engine -q
+
+----------------------------------------------------------------------
+Ran 186 tests in 20.421s
+
+OK
+EXIT_CODE=0
+```
+
+Canonical Agent Company command and exact result:
+
+```text
+python3.11 -m unittest discover -s tests -q
+
+----------------------------------------------------------------------
+Ran 345 tests in 50.303s
+
+OK
+EXIT_CODE=0
+```
+
+Phase D unit tests inspected existing controls. No D0, D1, D2, treatment, protocol,
+or Phase D runner command was invoked.
+
+PixWeave read-only verification:
+
+```text
+branch  main (clean and aligned with origin/main)
+commit  d78094f26eb697c810899a40771a8af6dec7ce19
+tree    6f2d526d912fcf283937cd265d298004a31c00b2
+python3.11 -m unittest discover -s tests -v
+
+----------------------------------------------------------------------
+Ran 58 tests in 0.307s
+
+OK
+```
+
+Validation, compilation, and diff checks:
+
+```text
+python3.11 -m agent_company.cli validate
+{"errors": [], "ok": true}
+
+rg --files -0 agent_company tests -g '*.py' | xargs -0 python3.11 -m py_compile
+exit 0, no output
+
+python3.11 -m compileall -q agent_company tests
+exit 0, no output
+
+git diff --check
+exit 0, no output
+```
+
+Bandit 1.9.4 final summaries:
+
+```text
+Agent Company: 0 High, 6 Medium, 26 Low, 12625 lines; no scan errors
+PixWeave:      0 High, 0 Medium, 0 Low, 3218 lines; no scan errors
+```
+
+Protected-state and service results:
+
+```text
+docs/assurance/phase-d + evidence/phase-d: 611 files
+387d8bd7c7f774e7a7ee059943de864a49a759d57ceba3432d7520e772cb065f
+
+data: 120 files
+9e431ac06cbc41fb690b1b29fa0d476363627746af0f726b5a6d1105464a1664
+
+data/company.sqlite3
+dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48
+
+git diff 3cb5b4ad354e59359f76d9958d971b664f189429 --name-only -- docs/assurance/phase-d evidence/phase-d data credentials approvals
+exit 0, no output
+
+PixWeave status
+## main...origin/main
+
+all six checked Agent Company systemd units
+inactive
+```
+
+No protected Phase D evidence, PixWeave source, data, credentials, approvals, or
+external system was modified. Services remain stopped; none was started. Independent
+review of commit `4cde805d6ece9e0b7532b4620007036a3c8f9217` and tree
+`dc09a890df65cb64b31ac848c241e75572035ff0` remains pending. Nothing in this log
+constitutes approval or independent acceptance.
