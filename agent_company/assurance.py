@@ -384,6 +384,7 @@ class AssuranceKernel:
         credential = secrets.token_urlsafe(32)
         digest = hashlib.sha256(credential.encode("utf-8")).hexdigest()
         with self.store.connect() as conn:
+            now = utcnow()
             conn.execute(
                 """INSERT INTO assurance_principals(
                        principal_id, actor, authority, credential_sha256, status, created_at
@@ -391,8 +392,86 @@ class AssuranceKernel:
                    ON CONFLICT(principal_id) DO UPDATE SET actor=excluded.actor,
                      authority=excluded.authority, credential_sha256=excluded.credential_sha256,
                      status='active'""",
-                (principal_id, actor, authority, digest, utcnow()),
+                (principal_id, actor, authority, digest, now),
             )
+            if actor == "Trusted Evaluator" and authority == "operator":
+                conn.execute(
+                    """CREATE TABLE IF NOT EXISTS trusted_eval_evaluator_credentials (
+                           id INTEGER PRIMARY KEY AUTOINCREMENT,
+                           principal_id TEXT NOT NULL,
+                           sequence INTEGER NOT NULL,
+                           actor TEXT NOT NULL,
+                           authority TEXT NOT NULL,
+                           credential_sha256 TEXT NOT NULL,
+                           principal_created_at TEXT NOT NULL,
+                           issued_at TEXT NOT NULL,
+                           previous_signature TEXT,
+                           integrity_signature TEXT NOT NULL UNIQUE,
+                           UNIQUE(principal_id, sequence),
+                           UNIQUE(principal_id, credential_sha256,
+                                  principal_created_at)
+                       )"""
+                )
+                conn.execute(
+                    """CREATE TRIGGER IF NOT EXISTS
+                           trusted_eval_evaluator_credentials_immutable_update
+                       BEFORE UPDATE ON trusted_eval_evaluator_credentials
+                       BEGIN
+                           SELECT RAISE(
+                               ABORT,
+                               'trusted evaluator credential provenance is immutable'
+                           );
+                       END"""
+                )
+                conn.execute(
+                    """CREATE TRIGGER IF NOT EXISTS
+                           trusted_eval_evaluator_credentials_immutable_delete
+                       BEFORE DELETE ON trusted_eval_evaluator_credentials
+                       BEGIN
+                           SELECT RAISE(
+                               ABORT,
+                               'trusted evaluator credential provenance is immutable'
+                           );
+                       END"""
+                )
+                principal = conn.execute(
+                    "SELECT created_at FROM assurance_principals "
+                    "WHERE principal_id=?",
+                    (principal_id,),
+                ).fetchone()
+                previous = conn.execute(
+                    "SELECT sequence,issued_at,integrity_signature "
+                    "FROM trusted_eval_evaluator_credentials "
+                    "WHERE principal_id=? ORDER BY sequence DESC LIMIT 1",
+                    (principal_id,),
+                ).fetchone()
+                provenance = {
+                    "principal_id": principal_id,
+                    "sequence": 1 if previous is None else previous["sequence"] + 1,
+                    "actor": actor,
+                    "authority": authority,
+                    "credential_sha256": digest,
+                    "principal_created_at": principal["created_at"],
+                    "issued_at": now,
+                    "previous_signature": (
+                        None if previous is None
+                        else previous["integrity_signature"]
+                    ),
+                }
+                conn.execute(
+                    """INSERT OR IGNORE INTO trusted_eval_evaluator_credentials(
+                           principal_id,sequence,actor,authority,credential_sha256,
+                           principal_created_at,issued_at,previous_signature,
+                           integrity_signature
+                       ) VALUES (?,?,?,?,?,?,?,?,?)""",
+                    (
+                        *provenance.values(),
+                        integrity_signature(
+                            self.config.db_path,
+                            "trusted-eval-evaluator-provenance", provenance,
+                        ),
+                    ),
+                )
         return credential
 
     def _principal(
@@ -988,6 +1067,80 @@ class AssuranceKernel:
             if conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='trusted_eval_runs'"
             ).fetchone():
+                for contract in conn.execute(
+                    "SELECT * FROM trusted_eval_contracts ORDER BY initiative_id"
+                ):
+                    contract_values = {
+                        "initiative_id": contract["initiative_id"],
+                        "max_attempts": contract["max_attempts"],
+                        "created_at": contract["created_at"],
+                    }
+                    if not verify_integrity_signature(
+                        self.config.db_path, "trusted-eval-contract",
+                        contract_values, contract["integrity_signature"],
+                    ):
+                        conflicts.append({
+                            "initiative_id": contract["initiative_id"],
+                            "anchor": "trusted_eval_contract",
+                        })
+                previous_principal = None
+                previous_sequence = 0
+                previous_signature = None
+                previous_issued_at = None
+                for provenance in conn.execute(
+                    "SELECT * FROM trusted_eval_evaluator_credentials "
+                    "ORDER BY principal_id,sequence"
+                ):
+                    provenance_values = {
+                        "principal_id": provenance["principal_id"],
+                        "sequence": provenance["sequence"],
+                        "actor": provenance["actor"],
+                        "authority": provenance["authority"],
+                        "credential_sha256": provenance["credential_sha256"],
+                        "principal_created_at": provenance[
+                            "principal_created_at"
+                        ],
+                        "issued_at": provenance["issued_at"],
+                        "previous_signature": provenance[
+                            "previous_signature"
+                        ],
+                    }
+                    try:
+                        principal_created_at = datetime.fromisoformat(
+                            provenance["principal_created_at"]
+                        )
+                        issued_at = datetime.fromisoformat(provenance["issued_at"])
+                    except (TypeError, ValueError):
+                        principal_created_at = datetime.max.replace(
+                            tzinfo=timezone.utc
+                        )
+                        issued_at = datetime.min.replace(tzinfo=timezone.utc)
+                    if provenance["principal_id"] != previous_principal:
+                        previous_principal = provenance["principal_id"]
+                        previous_sequence = 0
+                        previous_signature = None
+                        previous_issued_at = principal_created_at
+                    provenance_valid = bool(
+                        provenance["sequence"] == previous_sequence + 1
+                        and provenance["previous_signature"] == previous_signature
+                        and provenance["actor"] == "Trusted Evaluator"
+                        and provenance["authority"] == "operator"
+                        and issued_at >= previous_issued_at
+                        and verify_integrity_signature(
+                            self.config.db_path,
+                            "trusted-eval-evaluator-provenance",
+                            provenance_values,
+                            provenance["integrity_signature"],
+                        )
+                    )
+                    if not provenance_valid:
+                        conflicts.append({
+                            "principal_id": provenance["principal_id"],
+                            "anchor": "trusted_eval_evaluator_provenance",
+                        })
+                    previous_sequence = provenance["sequence"]
+                    previous_signature = provenance["integrity_signature"]
+                    previous_issued_at = issued_at
                 for run in conn.execute("SELECT * FROM trusted_eval_runs ORDER BY id"):
                     run_values = {
                         "initiative_id": run["initiative_id"],
@@ -1002,6 +1155,20 @@ class AssuranceKernel:
                         "evidence_ref": run["evidence_ref"],
                         "evidence_sha256": run["evidence_sha256"],
                         "evaluator_principal_id": run["evaluator_principal_id"],
+                        "evaluator_actor": run["evaluator_actor"],
+                        "evaluator_authority": run["evaluator_authority"],
+                        "evaluator_credential_sha256": run[
+                            "evaluator_credential_sha256"
+                        ],
+                        "evaluator_principal_created_at": run[
+                            "evaluator_principal_created_at"
+                        ],
+                        "evaluator_provenance_signature": run[
+                            "evaluator_provenance_signature"
+                        ],
+                        "contract_integrity_signature": run[
+                            "contract_integrity_signature"
+                        ],
                         "result_sha256": run["result_sha256"],
                         "created_at": run["created_at"],
                     }

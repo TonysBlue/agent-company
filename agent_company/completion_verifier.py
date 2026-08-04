@@ -192,6 +192,27 @@ def _trusted_eval_run_values(run: Any) -> tuple[dict[str, str], dict[str, Any]]:
     return refs, values
 
 
+def _trusted_eval_contract_values(contract: Any) -> dict[str, Any]:
+    return {
+        "initiative_id": contract["initiative_id"],
+        "max_attempts": contract["max_attempts"],
+        "created_at": contract["created_at"],
+    }
+
+
+def _trusted_eval_provenance_values(provenance: Any) -> dict[str, Any]:
+    return {
+        "principal_id": provenance["principal_id"],
+        "sequence": provenance["sequence"],
+        "actor": provenance["actor"],
+        "authority": provenance["authority"],
+        "credential_sha256": provenance["credential_sha256"],
+        "principal_created_at": provenance["principal_created_at"],
+        "issued_at": provenance["issued_at"],
+        "previous_signature": provenance["previous_signature"],
+    }
+
+
 def _trusted_eval_created_at(value: Any) -> datetime:
     if not isinstance(value, str):
         raise CompletionVerificationError(
@@ -266,6 +287,7 @@ def _trusted_eval_manifest_valid(
 
 def _trusted_eval_run_valid(
     conn: Any, db_path: Path, workspace: Path, initiative_id: str, run: Any,
+    contract: Any,
 ) -> tuple[str, set[str], datetime]:
     if (
         run["initiative_id"] != initiative_id
@@ -286,6 +308,16 @@ def _trusted_eval_run_valid(
     signed_values = {
         **result_values,
         "evaluator_principal_id": run["evaluator_principal_id"],
+        "evaluator_actor": run["evaluator_actor"],
+        "evaluator_authority": run["evaluator_authority"],
+        "evaluator_credential_sha256": run["evaluator_credential_sha256"],
+        "evaluator_principal_created_at": run[
+            "evaluator_principal_created_at"
+        ],
+        "evaluator_provenance_signature": run[
+            "evaluator_provenance_signature"
+        ],
+        "contract_integrity_signature": run["contract_integrity_signature"],
         "result_sha256": run["result_sha256"],
         "created_at": run["created_at"],
     }
@@ -295,8 +327,51 @@ def _trusted_eval_run_valid(
         raise CompletionVerificationError(
             "bound pilot Trusted Eval integrity anchor is invalid"
         )
+    provenance = conn.execute(
+        "SELECT * FROM trusted_eval_evaluator_credentials "
+        "WHERE integrity_signature=?",
+        (run["evaluator_provenance_signature"],),
+    ).fetchone()
+    if provenance is None:
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval evaluator credential provenance is invalid"
+        )
+    provenance_values = _trusted_eval_provenance_values(provenance)
+    issued_at = _trusted_eval_created_at(provenance["issued_at"])
+    principal_created_at = _trusted_eval_created_at(
+        provenance["principal_created_at"]
+    )
+    run_provenance = {
+        "principal_id": run["evaluator_principal_id"],
+        "sequence": provenance["sequence"],
+        "actor": run["evaluator_actor"],
+        "authority": run["evaluator_authority"],
+        "credential_sha256": run["evaluator_credential_sha256"],
+        "principal_created_at": run["evaluator_principal_created_at"],
+        "issued_at": provenance["issued_at"],
+        "previous_signature": provenance["previous_signature"],
+    }
+    if (
+        provenance_values != run_provenance
+        or not _signed(
+            db_path, "trusted-eval-evaluator-provenance", provenance_values,
+            provenance["integrity_signature"],
+        )
+        or principal_created_at > issued_at
+        or issued_at > created_at
+        or run["evaluator_actor"] != "Trusted Evaluator"
+        or run["evaluator_authority"] != "operator"
+        or not isinstance(run["evaluator_credential_sha256"], str)
+        or len(run["evaluator_credential_sha256"]) != 64
+        or run["contract_integrity_signature"]
+        != contract["integrity_signature"]
+    ):
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval evaluator credential provenance is invalid"
+        )
     evaluator = conn.execute(
-        "SELECT actor,authority,status,credential_sha256 FROM assurance_principals "
+        "SELECT actor,authority,status,credential_sha256,created_at "
+        "FROM assurance_principals "
         "WHERE principal_id=?",
         (run["evaluator_principal_id"],),
     ).fetchone()
@@ -306,10 +381,67 @@ def _trusted_eval_run_valid(
         or evaluator["authority"] != "operator"
         or evaluator["status"] != "active"
         or not evaluator["credential_sha256"]
+        or evaluator["created_at"] != run["evaluator_principal_created_at"]
+        or _trusted_eval_created_at(evaluator["created_at"]) > created_at
     ):
         raise CompletionVerificationError(
             "bound pilot Trusted Eval evaluator principal authority or credential "
             "provenance is invalid"
+        )
+    current_provenance = conn.execute(
+        "SELECT * FROM trusted_eval_evaluator_credentials "
+        "WHERE principal_id=? AND credential_sha256=? "
+        "AND principal_created_at=?",
+        (
+            run["evaluator_principal_id"], evaluator["credential_sha256"],
+            evaluator["created_at"],
+        ),
+    ).fetchone()
+    if current_provenance is None:
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval current evaluator credential issuance is invalid"
+        )
+    current_values = _trusted_eval_provenance_values(current_provenance)
+    chain = conn.execute(
+        "SELECT * FROM trusted_eval_evaluator_credentials "
+        "WHERE principal_id=? ORDER BY sequence",
+        (run["evaluator_principal_id"],),
+    ).fetchall()
+    previous_signature = None
+    previous_issued_at = _trusted_eval_created_at(evaluator["created_at"])
+    chain_valid = bool(chain)
+    for sequence, entry in enumerate(chain, 1):
+        values = _trusted_eval_provenance_values(entry)
+        issued_at = _trusted_eval_created_at(entry["issued_at"])
+        chain_valid = bool(
+            chain_valid
+            and entry["sequence"] == sequence
+            and entry["previous_signature"] == previous_signature
+            and entry["actor"] == "Trusted Evaluator"
+            and entry["authority"] == "operator"
+            and entry["principal_created_at"] == evaluator["created_at"]
+            and issued_at >= previous_issued_at
+            and _signed(
+                db_path, "trusted-eval-evaluator-provenance", values,
+                entry["integrity_signature"],
+            )
+        )
+        previous_signature = entry["integrity_signature"]
+        previous_issued_at = issued_at
+    if (
+        current_provenance["actor"] != evaluator["actor"]
+        or current_provenance["authority"] != evaluator["authority"]
+        or not _signed(
+            db_path, "trusted-eval-evaluator-provenance", current_values,
+            current_provenance["integrity_signature"],
+        )
+        or _trusted_eval_created_at(current_provenance["principal_created_at"])
+        > _trusted_eval_created_at(current_provenance["issued_at"])
+        or not chain_valid
+        or current_provenance["integrity_signature"] != previous_signature
+    ):
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval current evaluator credential issuance is invalid"
         )
     try:
         evidence_ref = Path(run["evidence_ref"])
@@ -359,14 +491,20 @@ def _trusted_eval_ledger(
     conn: Any, db_path: Path, workspace: Path, initiative_id: str,
 ) -> tuple[Any, set[str]]:
     contract = conn.execute(
-        "SELECT max_attempts,created_at FROM trusted_eval_contracts "
+        "SELECT * FROM trusted_eval_contracts "
         "WHERE initiative_id=?",
         (initiative_id,),
     ).fetchone()
     if (
         contract is None
+        or contract["initiative_id"] != initiative_id
         or type(contract["max_attempts"]) is not int
         or not 1 <= contract["max_attempts"] <= 3
+        or not _signed(
+            db_path, "trusted-eval-contract",
+            _trusted_eval_contract_values(contract),
+            contract["integrity_signature"],
+        )
     ):
         raise CompletionVerificationError(
             "bound pilot Trusted Eval attempt contract is invalid"
@@ -390,7 +528,7 @@ def _trusted_eval_ledger(
     previous_created_at = contract_created_at
     for row in rows:
         _, principals, created_at = _trusted_eval_run_valid(
-            conn, db_path, workspace, initiative_id, row,
+            conn, db_path, workspace, initiative_id, row, contract,
         )
         if created_at < previous_created_at:
             raise CompletionVerificationError(
@@ -412,6 +550,7 @@ def _trusted_eval_result(
     required_tables = {
         "trusted_eval_runs", "trusted_eval_quarantines",
         "trusted_eval_manifests", "trusted_eval_contracts",
+        "trusted_eval_evaluator_credentials",
     }
     available = {
         row["name"] for row in conn.execute(

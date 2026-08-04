@@ -10,6 +10,7 @@ from pathlib import Path
 from agent_company.assurance import AssuranceKernel
 from agent_company.config import load_config
 from agent_company.db import Store
+from agent_company.integrity import verify as verify_integrity_signature
 from agent_company.trusted_evaluator import EvaluationError, TrustedEvaluator
 
 
@@ -80,6 +81,31 @@ class TrustedEvaluatorTest(unittest.TestCase):
             changed["content_sha256"] = "0" * 64
             self.evaluator.register_manifest("candidate", changed, actor="Trusted Evaluator", principal_id="principal-evaluator")
 
+    def test_official_contract_issuance_is_cryptographically_anchored(self) -> None:
+        contract = self.evaluator.create_contract(
+            "pilot", 3, actor="Trusted Evaluator",
+            principal_id="principal-evaluator",
+        )
+        with Store(self.config.db_path).connect_readonly() as conn:
+            stored = conn.execute(
+                "SELECT * FROM trusted_eval_contracts WHERE initiative_id='pilot'"
+            ).fetchone()
+        values = {
+            "initiative_id": stored["initiative_id"],
+            "max_attempts": stored["max_attempts"],
+            "created_at": stored["created_at"],
+        }
+        self.assertEqual(
+            {key: contract[key] for key in values}, values,
+        )
+        self.assertEqual(
+            contract["integrity_signature"], stored["integrity_signature"],
+        )
+        self.assertTrue(verify_integrity_signature(
+            self.config.db_path, "trusted-eval-contract", values,
+            stored["integrity_signature"],
+        ))
+
     def test_attempt_budget_retains_failed_abandoned_and_completed_runs(self) -> None:
         refs = {}
         for kind in ("candidate", "dataset", "grader", "environment"):
@@ -113,6 +139,21 @@ class TrustedEvaluatorTest(unittest.TestCase):
                 actor="Trusted Evaluator", principal_id="principal-evaluator",
             )
         self.assertEqual(len(self.evaluator.list_runs("pilot", actor="Trusted Evaluator", principal_id="principal-evaluator")), 3)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            principal = conn.execute(
+                "SELECT credential_sha256,created_at FROM assurance_principals "
+                "WHERE principal_id='principal-evaluator'"
+            ).fetchone()
+            runs = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id='pilot' "
+                "ORDER BY attempt"
+            ).fetchall()
+        self.assertTrue(all(
+            run["evaluator_credential_sha256"] == principal["credential_sha256"]
+            and run["evaluator_principal_created_at"] == principal["created_at"]
+            and run["contract_integrity_signature"]
+            for run in runs
+        ))
 
     def test_contamination_quarantines_runs_and_only_evaluator_can_execute(self) -> None:
         refs = {}

@@ -150,7 +150,7 @@ class AssuranceCliTest(unittest.TestCase):
             ).fetchone())
             self.assertEqual(conn.execute(
                 "SELECT COUNT(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'trusted_eval_%'"
-            ).fetchone()[0], 8)
+            ).fetchone()[0], 10)
             phase_c_tables = {
                 row["name"] for row in conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'"
@@ -160,7 +160,8 @@ class AssuranceCliTest(unittest.TestCase):
                 "assurance_artifact_registrations", "assurance_artifact_approvals",
                 "assurance_artifact_lifecycle", "trusted_eval_runs",
                 "trusted_eval_manifests", "trusted_eval_quarantines",
-                "trusted_eval_contracts", "assurance_task_bindings",
+                "trusted_eval_contracts", "trusted_eval_evaluator_credentials",
+                "assurance_task_bindings",
                 "assurance_pilot_config", "assurance_execution_bindings",
                 "assurance_claim_bindings", "assurance_pilot_claim_history",
                 "assurance_completion_bindings",
@@ -198,6 +199,8 @@ class AssuranceCliTest(unittest.TestCase):
                 "trusted_eval_contracts_immutable_delete",
                 "trusted_eval_quarantines_append_only",
                 "trusted_eval_quarantines_no_delete",
+                "trusted_eval_evaluator_credentials_immutable_update",
+                "trusted_eval_evaluator_credentials_immutable_delete",
             } <= phase_c_triggers)
         credential = "test-cli-ceo-credential"
         os.environ["ASSURANCE_CREDENTIAL_PRINCIPAL_CEO"] = credential

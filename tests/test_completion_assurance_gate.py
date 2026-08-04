@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 from agent_company.assurance import AssuranceKernel
+from agent_company.assurance_credentials import CredentialManager
 from agent_company.config import load_config
 from agent_company.context_compiler import ContextCompiler
 from agent_company.integrity import signature as integrity_signature
@@ -210,6 +211,20 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         signed_values = {
             **result_values,
             "evaluator_principal_id": values["evaluator_principal_id"],
+            "evaluator_actor": values["evaluator_actor"],
+            "evaluator_authority": values["evaluator_authority"],
+            "evaluator_credential_sha256": values[
+                "evaluator_credential_sha256"
+            ],
+            "evaluator_principal_created_at": values[
+                "evaluator_principal_created_at"
+            ],
+            "evaluator_provenance_signature": values[
+                "evaluator_provenance_signature"
+            ],
+            "contract_integrity_signature": values[
+                "contract_integrity_signature"
+            ],
             "result_sha256": values["result_sha256"],
             "created_at": values["created_at"],
         }
@@ -1121,6 +1136,361 @@ class CompletionAssuranceGateTest(unittest.TestCase):
 
         self.assertEqual(self.osys.validate(), [])
 
+    def test_signed_sql_rejects_mutated_trusted_eval_contract_budget_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_contracts_immutable_update")
+            conn.execute(
+                "UPDATE trusted_eval_contracts SET max_attempts=1 "
+                "WHERE initiative_id=?",
+                (self.initiative_id,),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_mutated_trusted_eval_contract_creation_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_contracts_immutable_update")
+            conn.execute(
+                "UPDATE trusted_eval_contracts "
+                "SET created_at='2026-07-27T00:00:00+00:00' "
+                "WHERE initiative_id=?",
+                (self.initiative_id,),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_resigned_contract_created_after_run_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_contracts_immutable_update")
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            contract = conn.execute(
+                "SELECT * FROM trusted_eval_contracts WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            contract_values = {
+                "initiative_id": contract["initiative_id"],
+                "max_attempts": contract["max_attempts"],
+                "created_at": "2099-01-01T00:00:00+00:00",
+            }
+            contract_signature = integrity_signature(
+                self.config.db_path, "trusted-eval-contract", contract_values,
+            )
+            forged = self._forged_eval_run(
+                run, contract_integrity_signature=contract_signature,
+            )
+            conn.execute(
+                "UPDATE trusted_eval_contracts SET created_at=?,"
+                "integrity_signature=? WHERE initiative_id=?",
+                (
+                    contract_values["created_at"], contract_signature,
+                    self.initiative_id,
+                ),
+            )
+            conn.execute(
+                "UPDATE trusted_eval_runs SET contract_integrity_signature=?,"
+                "integrity_signature=? WHERE id=?",
+                (
+                    forged["contract_integrity_signature"],
+                    forged["integrity_signature"], run["id"],
+                ),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_evaluator_principal_created_after_run_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_principals "
+                "SET created_at='2099-01-01T00:00:00+00:00' "
+                "WHERE principal_id='principal-evaluator'"
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_resigned_postdated_run_provenance_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            conn.execute(
+                "DROP TRIGGER "
+                "trusted_eval_evaluator_credentials_immutable_update"
+            )
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            provenance = conn.execute(
+                "SELECT * FROM trusted_eval_evaluator_credentials "
+                "WHERE integrity_signature=?",
+                (run["evaluator_provenance_signature"],),
+            ).fetchone()
+            postdated = "2099-01-01T00:00:00+00:00"
+            provenance_values = {
+                "principal_id": provenance["principal_id"],
+                "sequence": provenance["sequence"],
+                "actor": provenance["actor"],
+                "authority": provenance["authority"],
+                "credential_sha256": provenance["credential_sha256"],
+                "principal_created_at": postdated,
+                "issued_at": provenance["issued_at"],
+                "previous_signature": provenance["previous_signature"],
+            }
+            provenance_signature = integrity_signature(
+                self.config.db_path, "trusted-eval-evaluator-provenance",
+                provenance_values,
+            )
+            conn.execute(
+                "UPDATE assurance_principals SET created_at=? "
+                "WHERE principal_id='principal-evaluator'",
+                (postdated,),
+            )
+            conn.execute(
+                "UPDATE trusted_eval_evaluator_credentials "
+                "SET principal_created_at=?,integrity_signature=? WHERE id=?",
+                (postdated, provenance_signature, provenance["id"]),
+            )
+            forged = self._forged_eval_run(
+                run,
+                evaluator_principal_created_at=postdated,
+                evaluator_provenance_signature=provenance_signature,
+            )
+            conn.execute(
+                "UPDATE trusted_eval_runs SET evaluator_principal_created_at=?,"
+                "evaluator_provenance_signature=?,integrity_signature=? "
+                "WHERE id=?",
+                (
+                    forged["evaluator_principal_created_at"],
+                    forged["evaluator_provenance_signature"],
+                    forged["integrity_signature"], run["id"],
+                ),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_unrecorded_evaluator_credential_substitution_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            substituted = hashlib.sha256(
+                b"substituted-evaluator-credential"
+            ).hexdigest()
+            conn.execute(
+                "UPDATE assurance_principals SET credential_sha256=? "
+                "WHERE principal_id='principal-evaluator'",
+                (substituted,),
+            )
+            forged = self._forged_eval_run(
+                run, evaluator_credential_sha256=substituted,
+            )
+            conn.execute(
+                "UPDATE trusted_eval_runs SET evaluator_credential_sha256=?,"
+                "integrity_signature=? WHERE id=?",
+                (
+                    forged["evaluator_credential_sha256"],
+                    forged["integrity_signature"], run["id"],
+                ),
+            )
+        self._refresh_execution_principal_snapshot()
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_evaluator_provenance_substitution_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            forged_credential = hashlib.sha256(
+                b"forged-provenance-credential"
+            ).hexdigest()
+            provenance = {
+                "principal_id": "principal-evaluator",
+                "sequence": 99,
+                "actor": "Trusted Evaluator",
+                "authority": "operator",
+                "credential_sha256": forged_credential,
+                "principal_created_at": run["evaluator_principal_created_at"],
+                "issued_at": run["created_at"],
+                "previous_signature": None,
+            }
+            provenance_signature = integrity_signature(
+                self.config.db_path, "trusted-eval-evaluator-provenance",
+                provenance,
+            )
+            conn.execute(
+                """INSERT INTO trusted_eval_evaluator_credentials(
+                       principal_id,sequence,actor,authority,credential_sha256,
+                       principal_created_at,issued_at,previous_signature,
+                       integrity_signature
+                   ) VALUES (?,?,?,?,?,?,?,?,?)""",
+                (*provenance.values(), provenance_signature),
+            )
+            conn.execute(
+                "UPDATE assurance_principals SET credential_sha256=? "
+                "WHERE principal_id='principal-evaluator'",
+                (forged_credential,),
+            )
+            forged = self._forged_eval_run(
+                run,
+                evaluator_credential_sha256=forged_credential,
+                evaluator_provenance_signature=provenance_signature,
+            )
+            conn.execute(
+                "UPDATE trusted_eval_runs SET evaluator_credential_sha256=?,"
+                "evaluator_provenance_signature=?,integrity_signature=? "
+                "WHERE id=?",
+                (
+                    forged["evaluator_credential_sha256"],
+                    forged["evaluator_provenance_signature"],
+                    forged["integrity_signature"], run["id"],
+                ),
+            )
+        self._refresh_execution_principal_snapshot()
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_official_evaluator_credential_rotation_preserves_run_provenance(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        bootstrap = self.root / "data" / "assurance-bootstrap.secret"
+        bootstrap.write_text("completion-bootstrap\n", encoding="utf-8")
+        bootstrap.chmod(0o600)
+        CredentialManager(self.config).rotate(
+            "principal-evaluator",
+            bootstrap_secret="completion-bootstrap",
+        )
+        with self.osys.store.connect_readonly() as conn:
+            current = conn.execute(
+                "SELECT credential_sha256 FROM assurance_principals "
+                "WHERE principal_id='principal-evaluator'"
+            ).fetchone()
+            provenance_count = conn.execute(
+                "SELECT COUNT(*) FROM trusted_eval_evaluator_credentials "
+                "WHERE principal_id='principal-evaluator'"
+            ).fetchone()[0]
+        self.assertNotEqual(
+            current["credential_sha256"],
+            hashlib.sha256(b"credential-principal-evaluator").hexdigest(),
+        )
+        self.assertEqual(provenance_count, 2)
+        self._refresh_execution_principal_snapshot()
+
+        completed = self.osys.complete_task(
+            self.task_id, "Company Platform Engineer", "guarded result",
+            [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
+        )
+        self.assertEqual(completed["assurance"]["result_sha256"], result_sha256)
+
+    def test_migration_does_not_bless_legacy_unsigned_active_completion(self) -> None:
+        result_sha256 = self._record_eval()
+        with self.osys.store.connect() as conn:
+            conn.executescript(
+                """
+                DROP TRIGGER trusted_eval_runs_immutable_update;
+                DROP TRIGGER trusted_eval_runs_immutable_delete;
+                DROP TRIGGER trusted_eval_contracts_immutable_update;
+                DROP TRIGGER trusted_eval_contracts_immutable_delete;
+                ALTER TABLE trusted_eval_runs RENAME TO signed_trusted_eval_runs;
+                CREATE TABLE trusted_eval_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    initiative_id TEXT NOT NULL,
+                    attempt INTEGER NOT NULL,
+                    candidate_sha256 TEXT NOT NULL,
+                    dataset_sha256 TEXT NOT NULL,
+                    grader_sha256 TEXT NOT NULL,
+                    environment_sha256 TEXT NOT NULL,
+                    seed INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    evidence_ref TEXT NOT NULL,
+                    evidence_sha256 TEXT,
+                    evaluator_principal_id TEXT NOT NULL,
+                    result_sha256 TEXT NOT NULL UNIQUE,
+                    integrity_signature TEXT,
+                    created_at TEXT NOT NULL,
+                    UNIQUE(initiative_id, attempt)
+                );
+                INSERT INTO trusted_eval_runs(
+                    id,initiative_id,attempt,candidate_sha256,dataset_sha256,
+                    grader_sha256,environment_sha256,seed,status,evidence_ref,
+                    evidence_sha256,evaluator_principal_id,result_sha256,
+                    integrity_signature,created_at
+                ) SELECT
+                    id,initiative_id,attempt,candidate_sha256,dataset_sha256,
+                    grader_sha256,environment_sha256,seed,status,evidence_ref,
+                    evidence_sha256,evaluator_principal_id,result_sha256,
+                    integrity_signature,created_at
+                FROM signed_trusted_eval_runs;
+                DROP TABLE signed_trusted_eval_runs;
+                ALTER TABLE trusted_eval_contracts
+                    RENAME TO signed_trusted_eval_contracts;
+                CREATE TABLE trusted_eval_contracts (
+                    initiative_id TEXT PRIMARY KEY,
+                    max_attempts INTEGER NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                INSERT INTO trusted_eval_contracts(
+                    initiative_id,max_attempts,created_at
+                ) SELECT initiative_id,max_attempts,created_at
+                  FROM signed_trusted_eval_contracts;
+                DROP TABLE signed_trusted_eval_contracts;
+                """
+            )
+
+        TrustedEvaluator(self.config).init()
+        with self.osys.store.connect_readonly() as conn:
+            contract = conn.execute(
+                "SELECT * FROM trusted_eval_contracts WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+        self.assertIsNone(contract["integrity_signature"])
+        self.assertIsNone(run["evaluator_credential_sha256"])
+        self.assertIsNone(run["evaluator_principal_created_at"])
+        self.assertIsNone(run["contract_integrity_signature"])
+        self._record_review(result_sha256)
+        self._assert_denial_is_atomic("attempt contract")
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
     def test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically(
         self,
     ) -> None:
@@ -1215,6 +1585,12 @@ class CompletionAssuranceGateTest(unittest.TestCase):
                     evidence_ref TEXT NOT NULL,
                     evidence_sha256 TEXT,
                     evaluator_principal_id TEXT NOT NULL,
+                    evaluator_actor TEXT,
+                    evaluator_authority TEXT,
+                    evaluator_credential_sha256 TEXT,
+                    evaluator_principal_created_at TEXT,
+                    evaluator_provenance_signature TEXT,
+                    contract_integrity_signature TEXT,
                     result_sha256 TEXT,
                     integrity_signature TEXT,
                     created_at TEXT NOT NULL
@@ -2729,6 +3105,8 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             "trusted_eval_contracts_immutable_delete",
             "trusted_eval_quarantines_append_only",
             "trusted_eval_quarantines_no_delete",
+            "trusted_eval_evaluator_credentials_immutable_update",
+            "trusted_eval_evaluator_credentials_immutable_delete",
         }
         with self.osys.store.connect_readonly() as conn:
             actual = {
