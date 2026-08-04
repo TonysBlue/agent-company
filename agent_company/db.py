@@ -479,6 +479,26 @@ class Store:
                     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE CASCADE,
                     UNIQUE(task_id)
                 );
+                CREATE TABLE IF NOT EXISTS task_reconciliations (
+                    task_id INTEGER PRIMARY KEY,
+                    reconciled_at TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    accepted_source_commit TEXT NOT NULL,
+                    accepted_source_tree TEXT NOT NULL,
+                    evidence_tip_commit TEXT NOT NULL,
+                    evidence_tip_tree TEXT NOT NULL,
+                    independent_verdict TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    previous_task_state TEXT NOT NULL,
+                    previous_execution_state TEXT NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT
+                );
+                CREATE TRIGGER IF NOT EXISTS task_reconciliations_immutable_update
+                    BEFORE UPDATE ON task_reconciliations
+                    BEGIN SELECT RAISE(ABORT, 'task reconciliation is immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS task_reconciliations_immutable_delete
+                    BEFORE DELETE ON task_reconciliations
+                    BEGIN SELECT RAISE(ABORT, 'task reconciliation is immutable'); END;
                 CREATE TABLE IF NOT EXISTS task_contexts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id INTEGER NOT NULL,

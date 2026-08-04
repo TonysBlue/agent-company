@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import subprocess
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
@@ -537,6 +538,138 @@ class CompanyOS:
                 raise ValueError(f"task {task_id} has no recoverable execution")
         self.store.notify_worker()
         return result
+
+    def _git_object_type(self, object_id: str) -> str | None:
+        result = subprocess.run(
+            ["git", "cat-file", "-t", object_id], cwd=self.config.workspace,
+            text=True, capture_output=True, check=False,
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+
+    def reconcile_task(
+        self, task_id: int, actor: str, accepted_source_commit: str,
+        accepted_source_tree: str, evidence_tip_commit: str,
+        evidence_tip_tree: str, independent_verdict: dict[str, int], reason: str,
+    ) -> dict[str, object]:
+        """Govern an accepted out-of-band delivery without fabricating completion."""
+        self.init()
+        if actor != "CEO":
+            raise ValueError("only CEO may reconcile task executions")
+        hashes = {
+            "accepted_source_commit": accepted_source_commit,
+            "accepted_source_tree": accepted_source_tree,
+            "evidence_tip_commit": evidence_tip_commit,
+            "evidence_tip_tree": evidence_tip_tree,
+        }
+        if any(len(value) != 40 or any(char not in "0123456789abcdef" for char in value) for value in hashes.values()):
+            raise ValueError("commit and tree identifiers must be exact 40-character lowercase hexadecimal hashes")
+        severities = ("Critical", "High", "Medium", "Low")
+        if set(independent_verdict) != set(severities):
+            raise ValueError("independent verdict must contain exactly Critical, High, Medium, and Low")
+        if any(type(independent_verdict[level]) is not int or independent_verdict[level] != 0 for level in severities):
+            raise ValueError("all independent verdict finding counts must be zero")
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("reason must not be empty")
+        verdict_json = json.dumps(independent_verdict, sort_keys=True)
+        requested = {**hashes, "independent_verdict": verdict_json, "reason": reason}
+        with self.store.connect_readonly() as conn:
+            existing = conn.execute("SELECT * FROM task_reconciliations WHERE task_id=?", (task_id,)).fetchone()
+            if existing is not None:
+                stored = {key: existing[key] for key in requested}
+                if stored != requested:
+                    raise ValueError(f"task {task_id} immutable reconciliation mismatch")
+                task = conn.execute("SELECT status FROM tasks WHERE id=?", (task_id,)).fetchone()
+                execution = conn.execute("SELECT recovery_status FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+                if task is None or execution is None or task["status"] != "reconciled" or execution["recovery_status"] != "reconciled":
+                    raise ValueError(f"task {task_id} reconciliation state is inconsistent")
+                return self._reconciliation_response(existing)
+        for name, object_id in hashes.items():
+            expected_type = "tree" if name.endswith("tree") else "commit"
+            if self._git_object_type(object_id) != expected_type:
+                raise ValueError(f"{name} is not an available exact Git {expected_type}")
+        for commit_name, tree_name in (
+            ("accepted_source_commit", "accepted_source_tree"),
+            ("evidence_tip_commit", "evidence_tip_tree"),
+        ):
+            actual_tree = subprocess.run(
+                ["git", "show", "-s", "--format=%T", hashes[commit_name]],
+                cwd=self.config.workspace, text=True, capture_output=True, check=True,
+            ).stdout.strip()
+            if actual_tree != hashes[tree_name]:
+                raise ValueError(f"{tree_name} does not match {commit_name}")
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+            existing = conn.execute("SELECT * FROM task_reconciliations WHERE task_id=?", (task_id,)).fetchone()
+            if existing is not None:
+                stored = {key: existing[key] for key in requested}
+                if stored != requested:
+                    raise ValueError(f"task {task_id} immutable reconciliation mismatch")
+                if task is None or execution is None or task["status"] != "reconciled" or execution["recovery_status"] != "reconciled":
+                    raise ValueError(f"task {task_id} reconciliation state is inconsistent")
+                return self._reconciliation_response(existing)
+            if task is None:
+                raise ValueError(f"task not found: {task_id}")
+            if execution is None or task["status"] != "blocked" or execution["recovery_status"] != "exhausted":
+                raise ValueError(f"task {task_id} reconciliation requires blocked task and exhausted execution")
+            if int(execution["attempt_count"]) < int(execution["max_attempts"]):
+                raise ValueError(f"task {task_id} execution retry budget is not exhausted")
+            process = self._process_status(self._execution_details(execution))
+            if process["alive"]:
+                raise ValueError(f"task {task_id} has a live execution that may still complete")
+            now = utcnow()
+            details = {
+                **hashes,
+                "independent_verdict": independent_verdict,
+                "reason": reason,
+                "previous_task_state": dict(task),
+                "previous_execution_state": self._execution_details(execution),
+                "no_live_execution_can_complete": True,
+                "completed": False,
+            }
+            conn.execute(
+                """INSERT INTO task_reconciliations(
+                       task_id,reconciled_at,actor,accepted_source_commit,accepted_source_tree,
+                       evidence_tip_commit,evidence_tip_tree,independent_verdict,reason,
+                       previous_task_state,previous_execution_state
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (task_id, now, actor, *hashes.values(), verdict_json, reason,
+                 json.dumps(dict(task), sort_keys=True),
+                 json.dumps(self._execution_details(execution), sort_keys=True)),
+            )
+            execution_updated = conn.execute(
+                "UPDATE task_executions SET recovery_status='reconciled',updated_at=? "
+                "WHERE task_id=? AND recovery_status='exhausted'",
+                (now, task_id),
+            ).rowcount
+            task_updated = conn.execute(
+                "UPDATE tasks SET status='reconciled',updated_at=?,blocked_reason=NULL "
+                "WHERE id=? AND status='blocked' AND result IS NULL",
+                (now, task_id),
+            ).rowcount
+            if execution_updated != 1 or task_updated != 1:
+                raise ValueError(f"task {task_id} reconciliation state changed concurrently")
+            self.store.audit(conn, actor, "reconcile_task_execution", "task_execution", task_id, details)
+            self.store.enqueue_event(conn, "task.reconciled", "task", task_id, details)
+            row = conn.execute("SELECT * FROM task_reconciliations WHERE task_id=?", (task_id,)).fetchone()
+            response = self._reconciliation_response(row)
+        self.store.notify_worker()
+        return response
+
+    @staticmethod
+    def _reconciliation_response(row) -> dict[str, object]:
+        return {
+            "task_id": int(row["task_id"]), "status": "reconciled",
+            "reconciled_at": row["reconciled_at"], "actor": row["actor"],
+            "accepted_source_commit": row["accepted_source_commit"],
+            "accepted_source_tree": row["accepted_source_tree"],
+            "evidence_tip_commit": row["evidence_tip_commit"],
+            "evidence_tip_tree": row["evidence_tip_tree"],
+            "independent_verdict": json.loads(row["independent_verdict"]),
+            "reason": row["reason"], "completed": False,
+        }
 
     def complete_task(
         self, task_id: int, actor: str, summary: str, evidence: list[Path],

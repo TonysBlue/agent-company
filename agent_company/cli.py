@@ -89,6 +89,15 @@ def build_parser() -> argparse.ArgumentParser:
     recover.add_argument("task_id", type=int)
     recover.add_argument("--actor", required=True)
     recover.add_argument("--reason", required=True)
+    reconcile = sub.add_parser("task-reconcile", help="Govern an accepted out-of-band delivery for exhausted work")
+    reconcile.add_argument("task_id", type=int)
+    reconcile.add_argument("--actor", required=True)
+    reconcile.add_argument("--source-commit", required=True)
+    reconcile.add_argument("--source-tree", required=True)
+    reconcile.add_argument("--evidence-tip", required=True)
+    reconcile.add_argument("--evidence-tree", required=True)
+    reconcile.add_argument("--verdict", required=True, help="JSON finding counts for Critical/High/Medium/Low")
+    reconcile.add_argument("--reason", required=True)
     fail = sub.add_parser("task-fail", help="Record task execution failure")
     fail.add_argument("task_id", type=int)
     fail.add_argument("--executor-id", required=True)
@@ -286,6 +295,14 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(osys.inspect_execution(args.task_id), indent=2, sort_keys=True))
         elif args.command == "task-recover":
             print(json.dumps(osys.recover_task(args.task_id, args.actor, args.reason), indent=2, sort_keys=True))
+        elif args.command == "task-reconcile":
+            verdict = json.loads(args.verdict)
+            if not isinstance(verdict, dict):
+                raise ValueError("verdict must be a JSON object")
+            print(json.dumps(osys.reconcile_task(
+                args.task_id, args.actor, args.source_commit, args.source_tree,
+                args.evidence_tip, args.evidence_tree, verdict, args.reason,
+            ), indent=2, sort_keys=True))
         elif args.command == "task-fail":
             print(json.dumps(osys.fail_task(args.task_id, args.executor_id, args.error, recoverable=not args.permanent), indent=2, sort_keys=True))
         elif args.command == "token-record":

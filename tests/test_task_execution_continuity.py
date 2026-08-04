@@ -5,6 +5,7 @@ import io
 import json
 import os
 import sqlite3
+import subprocess
 import tempfile
 import threading
 import unittest
@@ -549,6 +550,97 @@ codex_enabled = true
             with contextlib.redirect_stdout(io.StringIO()) as command_out:
                 self.assertEqual(cli_main(["--config", str(self.root / "config" / "sample.ini"), *args]), 0)
                 self.assertTrue(command_out.getvalue().strip())
+
+    def test_governed_reconciliation_accepts_only_blocked_exhausted_without_completion(self) -> None:
+        task_id = self._create_task()
+        self.osys.claim_task(task_id, "Product Engineer", executor_id="failed-exec", backend="codex", max_attempts=3)
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                "UPDATE tasks SET status='blocked', blocked_reason='retry attempts exhausted' WHERE id=?",
+                (task_id,),
+            )
+            conn.execute(
+                "UPDATE task_executions SET recovery_status='exhausted', attempt_count=3, max_attempts=3, "
+                "process_id=NULL, process_started_at=NULL, session_ref=NULL WHERE task_id=?",
+                (task_id,),
+            )
+        verdict = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+        object.__setattr__(self.config, "workspace", Path("/home/tony/agent-company"))
+        result = self.osys.reconcile_task(
+            task_id, "CEO", "8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0", "e4a8adcbb60e510d05bf1f58ab053f86f530af55",
+            "e54fc03b4089f521a1abdae0cb3deecc5d972a20", "85ebe293ee57178cfde89dae4f97adc38f6d446e",
+            verdict, "independently accepted out-of-band delivery; no live execution can complete",
+        )
+        self.assertEqual(result["status"], "reconciled")
+        inspection = self.osys.inspect_execution(task_id)
+        self.assertEqual(inspection["task"]["status"], "reconciled")
+        self.assertIsNone(inspection["task"]["result"])
+        self.assertEqual(inspection["execution"]["recovery_status"], "reconciled")
+        row = Store(self.config.db_path).fetch_one("SELECT * FROM task_reconciliations WHERE task_id=?", (task_id,))
+        self.assertEqual(json.loads(row["independent_verdict"]), verdict)
+        audit = Store(self.config.db_path).fetch_one(
+            "SELECT * FROM audit_log WHERE action='reconcile_task_execution' AND entity_id=?", (str(task_id),)
+        )
+        self.assertEqual(json.loads(audit["details"])["accepted_source_commit"], "8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0")
+
+    def test_reconciliation_is_idempotent_and_rejects_mismatch_or_unsafe_state(self) -> None:
+        task_id = self._create_task()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET status='blocked' WHERE id=?", (task_id,))
+            conn.execute("INSERT INTO task_executions(task_id,executor_id,backend,claimed_at,heartbeat_at,lease_expires_at,attempt_count,max_attempts,recovery_status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (task_id, 'dead', 'codex', 't', 't', 't', 3, 3, 'exhausted', 't', 't'))
+        repository = self.root / "repo"
+        subprocess.run(["git", "init", "-q", str(repository)], check=True)
+        subprocess.run(["git", "-C", str(repository), "config", "user.email", "test@example.com"], check=True)
+        subprocess.run(["git", "-C", str(repository), "config", "user.name", "Test"], check=True)
+        (repository / "delivery.txt").write_text("accepted\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(repository), "add", "delivery.txt"], check=True)
+        subprocess.run(["git", "-C", str(repository), "commit", "-qm", "accepted"], check=True)
+        source_commit = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD"], text=True).strip()
+        source_tree = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD^{tree}"], text=True).strip()
+        (repository / "evidence.txt").write_text("independently accepted\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(repository), "add", "evidence.txt"], check=True)
+        subprocess.run(["git", "-C", str(repository), "commit", "-qm", "evidence"], check=True)
+        evidence_tip = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD"], text=True).strip()
+        evidence_tree = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD^{tree}"], text=True).strip()
+        object.__setattr__(self.config, "workspace", repository)
+        args = (task_id, "CEO", source_commit, source_tree, evidence_tip, evidence_tree, {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}, "accepted and no execution can complete")
+        result = self.osys.reconcile_task(*args)
+        with patch.object(self.osys, "_git_object_type", return_value=None):
+            second = self.osys.reconcile_task(*args)
+        self.assertEqual(result, second)
+        with self.assertRaisesRegex(ValueError, "immutable reconciliation mismatch"):
+            self.osys.reconcile_task(*args[:-1], "different reason")
+        with self.assertRaisesRegex(ValueError, "must be zero"):
+            self.osys.reconcile_task(*args[:6], {"Critical": 1, "High": 0, "Medium": 0, "Low": 0}, args[7])
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET status='open' WHERE id=?", (task_id,))
+        with self.assertRaisesRegex(ValueError, "reconciliation state is inconsistent"):
+            self.osys.reconcile_task(*args)
+
+    def test_reconciliation_cli_requires_explicit_governance_fields(self) -> None:
+        task_id = self._create_task()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET status='blocked' WHERE id=?", (task_id,))
+            conn.execute("INSERT INTO task_executions(task_id,executor_id,backend,claimed_at,heartbeat_at,lease_expires_at,attempt_count,max_attempts,recovery_status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (task_id, 'dead', 'codex', 't', 't', 't', 3, 3, 'exhausted', 't', 't'))
+        output = io.StringIO()
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        subprocess.run(["git", "-C", str(self.root), "config", "user.email", "test@example.com"], check=True)
+        subprocess.run(["git", "-C", str(self.root), "config", "user.name", "Test"], check=True)
+        (self.root / "delivery.txt").write_text("accepted\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.root), "add", "delivery.txt"], check=True)
+        subprocess.run(["git", "-C", str(self.root), "commit", "-qm", "accepted"], check=True)
+        source_commit = subprocess.check_output(["git", "-C", str(self.root), "rev-parse", "HEAD"], text=True).strip()
+        source_tree = subprocess.check_output(["git", "-C", str(self.root), "rev-parse", "HEAD^{tree}"], text=True).strip()
+        (self.root / "evidence.txt").write_text("independently accepted\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(self.root), "add", "evidence.txt"], check=True)
+        subprocess.run(["git", "-C", str(self.root), "commit", "-qm", "evidence"], check=True)
+        evidence_tip = subprocess.check_output(["git", "-C", str(self.root), "rev-parse", "HEAD"], text=True).strip()
+        evidence_tree = subprocess.check_output(["git", "-C", str(self.root), "rev-parse", "HEAD^{tree}"], text=True).strip()
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            code = cli_main(["--config", str(self.root / "config" / "sample.ini"), "task-reconcile", str(task_id), "--actor", "CEO", "--source-commit", source_commit, "--source-tree", source_tree, "--evidence-tip", evidence_tip, "--evidence-tree", evidence_tree, "--verdict", '{"Critical":0,"High":0,"Medium":0,"Low":0}', "--reason", "accepted and no execution can complete"])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output.getvalue())["status"], "reconciled")
 
     def test_dashboard_exposes_execution_health(self) -> None:
         task_id = self._create_task()
