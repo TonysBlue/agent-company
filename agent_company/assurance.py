@@ -269,12 +269,11 @@ class AssuranceKernel:
     ) -> str | None:
         if manifest is None or artifact["version"] != 1:
             return "artifact is not in the approved legacy migration manifest"
-        actual_sha256 = hashlib.sha256(artifact["content_json"].encode("ascii")).hexdigest()
-        if (
-            actual_sha256 != artifact["content_sha256"]
-            or artifact["content_sha256"] != manifest["content_sha256"]
-            or artifact["kind"] != manifest["kind"]
-        ):
+        try:
+            actual_sha256 = self._artifact_content_sha256(artifact)
+        except AssuranceError:
+            return "content hash does not match approved legacy manifest"
+        if actual_sha256 != manifest["content_sha256"] or artifact["kind"] != manifest["kind"]:
             return "content hash does not match approved legacy manifest"
         if (
             artifact["initiative_id"] != "development-assurance-bootstrap"
@@ -427,15 +426,33 @@ class AssuranceKernel:
     ) -> str:
         exclude_kinds = exclude_kinds or set()
         rows = conn.execute(
-            """SELECT artifact_id, version, kind, content_sha256 FROM assurance_artifacts
+            """SELECT artifact_id,version,kind,content_json,content_sha256
+               FROM assurance_artifacts
                WHERE initiative_id=? AND status='approved'
                ORDER BY artifact_id, version""",
             (initiative_id,),
         ).fetchall()
-        return hashlib.sha256(_canonical([
-            {"ref": f"{row['artifact_id']}:v{row['version']}", "sha256": row["content_sha256"]}
-            for row in rows if row["kind"] not in exclude_kinds
-        ]).encode("ascii")).hexdigest()
+        artifact_set = []
+        for row in rows:
+            if row["kind"] in exclude_kinds:
+                continue
+            digest = self._artifact_content_sha256(row)
+            artifact_set.append({
+                "ref": f"{row['artifact_id']}:v{row['version']}", "sha256": digest,
+            })
+        return hashlib.sha256(_canonical(artifact_set).encode("ascii")).hexdigest()
+
+    @staticmethod
+    def _artifact_content_sha256(artifact: Any) -> str:
+        try:
+            payload = json.loads(artifact["content_json"])
+            canonical = _canonical(payload)
+            digest = hashlib.sha256(canonical.encode("ascii")).hexdigest()
+        except (KeyError, TypeError, UnicodeEncodeError, json.JSONDecodeError) as exc:
+            raise AssuranceError("artifact content body is not valid canonical JSON") from exc
+        if digest != artifact["content_sha256"]:
+            raise AssuranceError("artifact content body hash does not match stored content_sha256")
+        return digest
 
     def _initiative_build_artifact_set_sha256(self, conn: Any, initiative_id: str) -> str:
         return self._initiative_artifact_set_sha256(
@@ -652,14 +669,14 @@ class AssuranceKernel:
                     raise AssuranceError(f"lifecycle transition {required_gate} artifact set is stale")
                 if required_gate in {"G5", "G6"}:
                     review_rows = conn.execute(
-                        """SELECT content_json FROM assurance_artifacts
+                        """SELECT content_json,content_sha256 FROM assurance_artifacts
                            WHERE initiative_id=? AND kind='review_decision' AND status='approved'""",
                         (initiative_id,),
                     ).fetchall()
-                    bound = {
-                        ref for review in review_rows
-                        for ref in json.loads(review["content_json"])["content"]["evidence_refs"]
-                    }
+                    bound = set()
+                    for review in review_rows:
+                        self._artifact_content_sha256(review)
+                        bound.update(json.loads(review["content_json"])["content"]["evidence_refs"])
                     matching = conn.execute(
                         """SELECT result_sha256 FROM trusted_eval_runs
                            WHERE initiative_id=? AND status='completed' ORDER BY attempt""",
@@ -673,10 +690,14 @@ class AssuranceKernel:
                 raise AssuranceError(f"illegal lifecycle transition: {current} -> {target}")
             if target in {"release_candidate", "release_decision", "release_approved", "release_approved_conditional", "conditions_verified", "enabled_or_deployed"}:
                 review_rows = conn.execute(
-                    "SELECT content_json FROM assurance_artifacts WHERE initiative_id=? AND kind='review_decision' AND status='approved'",
+                    """SELECT content_json,content_sha256 FROM assurance_artifacts
+                       WHERE initiative_id=? AND kind='review_decision' AND status='approved'""",
                     (initiative_id,),
                 ).fetchall()
-                bound = {ref for review in review_rows for ref in json.loads(review["content_json"])["content"]["evidence_refs"]}
+                bound = set()
+                for review in review_rows:
+                    self._artifact_content_sha256(review)
+                    bound.update(json.loads(review["content_json"])["content"]["evidence_refs"])
                 latest = conn.execute(
                     "SELECT result_sha256 FROM trusted_eval_runs WHERE initiative_id=? AND status='completed' ORDER BY attempt DESC LIMIT 1",
                     (initiative_id,),
@@ -773,7 +794,7 @@ class AssuranceKernel:
                 except (ValueError, TypeError) as exc:
                     raise AssuranceError("invalid gate artifact reference") from exc
                 row = conn.execute(
-                    """SELECT initiative_id, owner_principal, status, content_sha256
+                    """SELECT initiative_id,owner_principal,status,content_json,content_sha256
                        FROM assurance_artifacts WHERE artifact_id=? AND version=?""",
                     (artifact_id, version),
                 ).fetchone()
@@ -781,7 +802,7 @@ class AssuranceKernel:
                     raise AssuranceError("gate references must be approved artifacts in the initiative")
                 if row["owner_principal"] == principal_id:
                     raise AssuranceError("separation of duties forbids author gate approval")
-                ordered.append({"ref": ref, "sha256": row["content_sha256"]})
+                ordered.append({"ref": ref, "sha256": self._artifact_content_sha256(row)})
             required_kinds = GATE_REQUIRED_KINDS[gate]
             rows = conn.execute(
                 """SELECT kind, artifact_id, version FROM assurance_artifacts
@@ -794,10 +815,11 @@ class AssuranceKernel:
                 raise AssuranceError(f"gate {gate} missing approved artifact kinds: {missing}")
             content_by_kind: dict[str, list[dict[str, Any]]] = {}
             for artifact_row in conn.execute(
-                """SELECT kind, content_json FROM assurance_artifacts
+                """SELECT kind,content_json,content_sha256 FROM assurance_artifacts
                    WHERE initiative_id=? AND status='approved'""",
                 (initiative_id,),
             ):
+                self._artifact_content_sha256(artifact_row)
                 content_by_kind.setdefault(artifact_row["kind"], []).append(
                     json.loads(artifact_row["content_json"])["content"]
                 )
@@ -908,8 +930,10 @@ class AssuranceKernel:
                           approved_by_principal,approved_at
                    FROM assurance_artifacts ORDER BY id"""
             ):
-                actual = hashlib.sha256(row["content_json"].encode("ascii")).hexdigest()
-                if actual != row["content_sha256"]:
+                try:
+                    actual = self._artifact_content_sha256(row)
+                except AssuranceError:
+                    actual = ""
                     conflicts.append({
                         "artifact_id": row["artifact_id"], "version": row["version"],
                         "expected_sha256": row["content_sha256"], "actual_sha256": actual,
@@ -1100,6 +1124,7 @@ class AssuranceKernel:
                 raise AssuranceError("separation of duties forbids author self-approval")
             if row["status"] != "draft":
                 raise AssuranceError("only draft artifacts may be approved")
+            self._artifact_content_sha256(row)
             now = utcnow()
             self._record_artifact_lifecycle(
                 conn, artifact_id, version, "draft", "approved", now,
@@ -1231,13 +1256,16 @@ class AssuranceKernel:
                 if not isinstance(ref, dict) or set(ref) != {"kind", "artifact_id", "version", "sha256"}:
                     raise AssuranceError("invalid design manifest artifact reference")
                 row = conn.execute(
-                    """SELECT kind, status, content_sha256, initiative_id
+                    """SELECT kind,status,content_json,content_sha256,initiative_id
                        FROM assurance_artifacts WHERE artifact_id=? AND version=?""",
                     (ref["artifact_id"], ref["version"]),
                 ).fetchone()
                 if row is None or row["status"] != "approved" or row["kind"] != ref["kind"]:
                     raise AssuranceError("design manifest reference is not an approved matching artifact")
-                if row["content_sha256"] != ref["sha256"] or row["initiative_id"] != payload["initiative_id"]:
+                if (
+                    self._artifact_content_sha256(row) != ref["sha256"]
+                    or row["initiative_id"] != payload["initiative_id"]
+                ):
                     raise AssuranceError("design manifest reference hash or initiative mismatch")
         allowed_relations = {"governs", "refines", "evaluated_by", "baselined_by", "constrains"}
         nodes = {ref["artifact_id"] for ref in refs}

@@ -257,6 +257,149 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self.assertEqual(executor_after, executor_before)
         self._assert_denial_is_atomic(expected)
 
+    def _tamper_build_artifact_body_preserving_declared_hashes(self) -> None:
+        with self.osys.store.connect() as conn:
+            artifact = conn.execute(
+                "SELECT content_json,content_sha256 FROM assurance_artifacts "
+                "WHERE artifact_id='completion-eval-contract' AND version=1"
+            ).fetchone()
+            declared_before = {
+                "content_sha256": artifact["content_sha256"],
+                "gate": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_gate_decisions "
+                    "WHERE initiative_id=? AND gate='G4' ORDER BY id DESC LIMIT 1",
+                    (self.initiative_id,),
+                ).fetchone()[0],
+                "task": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()[0],
+                "claim": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_claim_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()[0],
+                "execution": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_execution_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()[0],
+            }
+            payload = json.loads(artifact["content_json"])
+            payload["content"]["hard_gates"].append("tampered body bypasses declared hash")
+            tampered = json.dumps(
+                payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True,
+            )
+            self.assertNotEqual(
+                hashlib.sha256(tampered.encode("ascii")).hexdigest(),
+                artifact["content_sha256"],
+            )
+            conn.execute(
+                "UPDATE assurance_artifacts SET content_json=? "
+                "WHERE artifact_id='completion-eval-contract' AND version=1",
+                (tampered,),
+            )
+            declared_after = {
+                "content_sha256": conn.execute(
+                    "SELECT content_sha256 FROM assurance_artifacts "
+                    "WHERE artifact_id='completion-eval-contract' AND version=1"
+                ).fetchone()[0],
+                "gate": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_gate_decisions "
+                    "WHERE initiative_id=? AND gate='G4' ORDER BY id DESC LIMIT 1",
+                    (self.initiative_id,),
+                ).fetchone()[0],
+                "task": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_task_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()[0],
+                "claim": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_claim_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()[0],
+                "execution": conn.execute(
+                    "SELECT artifact_set_sha256 FROM assurance_execution_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()[0],
+            }
+        self.assertEqual(declared_after, declared_before)
+
+    def test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation(self) -> None:
+        self.osys.cancel_task(
+            self.task_id, "Company Platform Engineer", "isolate pre-context tamper probe",
+        )
+        next_task_id = int(self.osys.create_task(
+            "CEO", "Company Platform Engineer", "Compile a second guarded pilot context",
+            "platform", 98, "The bound artifact body must retain its registered digest.",
+        )["task_id"])
+        self.gate.bind(
+            next_task_id, self.initiative_id, pilot=True,
+            artifact_set_sha256=self.artifact_set_sha256,
+            actor="CEO", principal_id="principal-ceo",
+        )
+        next_claim = self.osys.claim_task(
+            next_task_id, "Company Platform Engineer", executor_id="platform-runner-2",
+            backend="local",
+        )
+        self._tamper_build_artifact_body_preserving_declared_hashes()
+
+        with self.assertRaisesRegex(ValueError, "artifact content body hash"):
+            ContextCompiler(
+                self.config, context_root=self.old_cwd / "company_context",
+            ).compile(
+                next_task_id,
+                generation=int(next_claim["generation"]),
+                role="Company Platform Engineer",
+                repository={"id": "agent-company"},
+                fencing_token=str(next_claim["fencing_token"]),
+            )
+        with self.osys.store.connect_readonly() as conn:
+            self.assertIsNone(conn.execute(
+                "SELECT 1 FROM task_contexts WHERE task_id=?", (next_task_id,),
+            ).fetchone())
+            self.assertIsNone(conn.execute(
+                "SELECT 1 FROM assurance_execution_bindings WHERE task_id=?",
+                (next_task_id,),
+            ).fetchone())
+
+    def test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat(self) -> None:
+        self._tamper_build_artifact_body_preserving_declared_hashes()
+        with self.osys.store.connect_readonly() as conn:
+            execution_before = dict(conn.execute(
+                "SELECT heartbeat_at,lease_expires_at,updated_at FROM task_executions WHERE task_id=?",
+                (self.task_id,),
+            ).fetchone())
+            executor_row = conn.execute(
+                "SELECT heartbeat_at,updated_at FROM executors WHERE executor_id='platform-runner'"
+            ).fetchone()
+            executor_before = dict(executor_row) if executor_row is not None else None
+            audit_before = conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0]
+            events_before = conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0]
+
+        with self.assertRaisesRegex(ValueError, "artifact content body hash"):
+            self.osys.heartbeat_task(
+                self.task_id, "platform-runner",
+                fencing_token=str(self.claim["fencing_token"]),
+            )
+
+        with self.osys.store.connect_readonly() as conn:
+            execution_after = dict(conn.execute(
+                "SELECT heartbeat_at,lease_expires_at,updated_at FROM task_executions WHERE task_id=?",
+                (self.task_id,),
+            ).fetchone())
+            executor_row = conn.execute(
+                "SELECT heartbeat_at,updated_at FROM executors WHERE executor_id='platform-runner'"
+            ).fetchone()
+            executor_after = dict(executor_row) if executor_row is not None else None
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0], audit_before)
+            self.assertEqual(conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0], events_before)
+        self.assertEqual(execution_after, execution_before)
+        self.assertEqual(executor_after, executor_before)
+
+    def test_completion_remains_protected_from_unchanged_declared_hash_body_tamper(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self._tamper_build_artifact_body_preserving_declared_hashes()
+        self._assert_denial_is_atomic("artifact content body hash")
+
     def test_context_persists_immutable_execution_assurance_binding(self) -> None:
         serialized = json.dumps(self.context_bundle["assurance"], sort_keys=True)
         self.assertNotIn("principal-", serialized)

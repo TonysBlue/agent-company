@@ -1,45 +1,47 @@
 {
-  "handoffs": [
-    {
-      "artifact_refs": [
-        "/home/tony/agent-company/evidence/task-148/verification-report.md",
-        "/home/tony/agent-company/evidence/task-148/red-test-output.txt",
-        "/home/tony/agent-company/evidence/task-148/focused-test-output.txt",
-        "/home/tony/agent-company/evidence/task-148/full-test-output.txt",
-        "/home/tony/agent-company/evidence/task-148/pixweave-test-output.txt"
-      ],
-      "decision_needed": "Independently review task 148's immutable execution binding, fail-closed runtime validator, migration behavior, redaction boundary, atomic denial tests, and adversarial fencing coverage; return approve or findings to CEO.",
-      "handoff_type": "control_review",
-      "summary": "Task 148 implements bound-pilot runtime fencing across context, heartbeat, and completion and passes 104 focused, 183 Agent Company, and 58 PixWeave tests. Independent review remains required by the Phase C charter.",
-      "to_role": "Control & Reliability Reviewer"
-    }
+  "schema_version": "agent-company-continuity/v1",
+  "role": "Company Platform Engineer",
+  "project_summary": "Agent Company now rejects Phase C bound-pilot artifact body tampering even when stored content_sha256 and all artifact-set bindings remain unchanged; unbound behavior is preserved.",
+  "summary": "Fixed the independent-review High with strict RED/GREEN TDD, canonical body rehashing at every relevant assurance consumer, atomic context/runtime/completion probes, full regression, security scan, and protected-state verification.",
+  "project_decisions": [
+    "Artifact content_json is parsed, canonicalized, SHA-256 hashed, and compared with stored content_sha256 before its digest can be used by artifact-set, binding, context, runtime, dispatch, integrity, design-manifest, or completion validation.",
+    "The fixed source/test review target is unreferenced Git commit d5467f1cb51440353e10caf3eedf49d47bb15ff7 with tree e667b4b04f7870c3f0a60ca99547cc867934e526; HEAD and the index remain unchanged so main can inspect the uncommitted diff.",
+    "Post-build Review Decisions remain excluded from the G4 build artifact set, while completion still validates their bodies and integrity anchors.",
+    "Independent review remains pending and no post-fix approval is self-issued."
+  ],
+  "verified_facts": [
+    "The authoritative RED ran 3 exact probes: context compilation and heartbeat failed to reject unchanged-declared-hash body tampering, while completion remained protected.",
+    "The exact GREEN ran the same 3 probes with all passing in 0.370 seconds.",
+    "Final focused Phase C verification ran 138 tests with all passing in 14.114 seconds.",
+    "Final Agent Company canonical verification ran 321 tests with all passing in 44.811 seconds.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 / tree 6f2d526d912fcf283937cd265d298004a31c00b2 and ran 58 tests with all passing in 0.366 seconds.",
+    "Live read-only and fresh temporary-workspace validation returned ok=true; py_compile, compileall, and git diff --check passed.",
+    "Bandit 1.9.4 found zero High issues in Agent Company and PixWeave.",
+    "All 611 protected Phase D files and all 120 data files retained their pre-change SHA-256 inventory; data/company.sqlite3 remained dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48."
   ],
   "known_limits": [
-    "This is only the Phase C fencing workstream; remaining Phase C workstreams and Phase D are not authorized or claimed complete.",
-    "No production service deployment, live-database mutation, or PixWeave source change was performed.",
-    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+    "This change is only the Phase C bound-pilot same-hash artifact-body tamper remediation.",
+    "No D0, D1, D2, treatment, protocol, service, external system, credential, approval, PixWeave source, protected Phase D evidence, or live data mutation was authorized or performed.",
+    "Independent Control & Reliability review is pending and cannot be self-issued by the implementer."
   ],
   "open_items": [
-    "Control & Reliability Reviewer should independently review the pushed task 148 commit and evidence before the Phase C exit gate."
+    "A fresh independent reviewer must review fixed commit d5467f1cb51440353e10caf3eedf49d47bb15ff7 and tree e667b4b04f7870c3f0a60ca99547cc867934e526 before changing the review status.",
+    "Main should inspect the uncommitted working-tree and task-148 evidence changes, then choose the final branch commit/evidence integration."
   ],
-  "project_decisions": [
-    "Runtime fencing remains opt-in to explicitly bound pilot tasks; unbound and explicit non-pilot paths return before enforcement.",
-    "Context compilation creates one immutable binding per task execution generation and binds the exact context bundle, build artifact set, evaluation policy, and principal registry state.",
-    "Principal and credential state are compared through a server-side canonical digest and are not disclosed in task context.",
-    "The same validator runs before context use, heartbeat renewal, and completion, with heartbeat and completion checks inside their existing transactions.",
-    "Existing bound executions without a new execution binding fail closed and must be recovered/reclaimed to compile a current generation context."
-  ],
-  "project_summary": "Agent Company now fences explicitly bound pilot executions when build artifacts, evaluation thresholds/profile, assurance authority/credentials, context binding, or execution generation drift after context compilation, while preserving unbound and non-pilot behavior.",
-  "role": "Company Platform Engineer",
-  "schema_version": "agent-company-continuity/v1",
-  "summary": "Implemented and verified task 148's Phase C runtime fencing with strict RED-GREEN TDD, immutable per-generation bindings, atomic heartbeat/completion denial, restart and migration probes, compatibility controls, and cross-repository regression evidence.",
-  "verified_facts": [
-    "The normalized initial RED run executed 36 tests and failed with seven failures plus one error before production controls existed.",
-    "Focused assurance/runtime verification executed 104 tests with all passing.",
-    "Agent Company canonical verification executed 183 tests with all passing.",
-    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and its canonical suite executed 58 tests with all passing.",
-    "Clean temporary-workspace initialization and validation returned ok=true and created the expected immutable execution-binding schema.",
-    "Denied bound-pilot heartbeats and completions leave lease, executor, task, execution, audit, and event state unchanged in focused tests.",
-    "Unbound and explicit non-pilot heartbeat/completion response shapes remain compatible in focused tests."
+  "handoffs": [
+    {
+      "to_role": "Control & Reliability Reviewer",
+      "handoff_type": "control_review",
+      "summary": "The Phase C artifact-body same-hash High is remediated and fully verified; no independent approval is claimed.",
+      "decision_needed": "Independently review the exact fixed commit/tree, body-rehash consumers, RED/GREEN provenance, atomic denial assertions, compatibility controls, and evidence; return a fresh fixed-tree finding or approval.",
+      "artifact_refs": [
+      "commit:d5467f1cb51440353e10caf3eedf49d47bb15ff7",
+      "tree:e667b4b04f7870c3f0a60ca99547cc867934e526",
+        "/home/tony/agent-company/evidence/task-148/verification-report.md",
+        "/home/tony/agent-company/evidence/task-148/evidence-manifest.json",
+        "/home/tony/agent-company/evidence/task-148/red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-148/green-test-output.txt"
+      ]
+    }
   ]
 }

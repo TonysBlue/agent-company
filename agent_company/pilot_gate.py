@@ -762,7 +762,11 @@ class PilotGate:
                    WHERE initiative_id=? AND kind!='review_decision'""",
                 (binding["initiative_id"],),
             ):
-                actual = hashlib.sha256(artifact["content_json"].encode("utf-8")).hexdigest()
+                try:
+                    kernel._artifact_content_sha256(artifact)
+                    body_valid = True
+                except AssuranceError:
+                    body_valid = False
                 registration = conn.execute(
                     """SELECT * FROM assurance_artifact_registrations
                        WHERE artifact_id=? AND version=?""",
@@ -797,7 +801,7 @@ class PilotGate:
                         and approval["approved_at"] == artifact["approved_at"]
                     )
                 if (
-                    actual != artifact["content_sha256"]
+                    not body_valid
                     or not registration_valid
                     or not approval_valid
                 ):
@@ -863,9 +867,8 @@ class PilotGate:
             (initiative_id,),
         ).fetchall()
         for artifact in artifacts:
-            actual = ""
             try:
-                actual = hashlib.sha256(artifact["content_json"].encode("ascii")).hexdigest()
+                kernel._artifact_content_sha256(artifact)
                 payload = json.loads(artifact["content_json"])
                 metadata_matches = (
                     payload["artifact_id"] == artifact["artifact_id"]
@@ -875,7 +878,7 @@ class PilotGate:
                     and payload["owner_principal"] == artifact["owner_principal"]
                     and payload["initiative_id"] == initiative_id
                 )
-            except (KeyError, TypeError, UnicodeEncodeError, json.JSONDecodeError):
+            except (AssuranceError, KeyError, TypeError, json.JSONDecodeError):
                 metadata_matches = False
             registration = conn.execute(
                 """SELECT content_sha256,created_at,integrity_signature
@@ -896,8 +899,7 @@ class PilotGate:
                 )
             )
             if (
-                actual != artifact["content_sha256"]
-                or not metadata_matches
+                not metadata_matches
                 or not registration_matches
                 or not kernel._artifact_lifecycle_valid(conn, artifact)
             ):

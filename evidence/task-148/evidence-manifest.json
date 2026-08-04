@@ -1,63 +1,156 @@
 {
-  "artifacts": [
-    {
-      "path": "verification-report.md",
-      "purpose": "Reviewable implementation, TDD, acceptance, compatibility, verification, and limitation evidence"
-    },
-    {
-      "path": "CONTINUITY.json",
-      "purpose": "Structured Company Platform Engineer continuity and independent-review handoff"
-    },
-    {
-      "path": "red-test-output.txt",
-      "purpose": "Normalized failing test output captured before production implementation"
-    },
-    {
-      "path": "focused-test-output.txt",
-      "purpose": "Focused assurance, runtime, context, credential, migration, and compatibility verification output"
-    },
-    {
-      "path": "full-test-output.txt",
-      "purpose": "Agent Company canonical full-suite output"
-    },
-    {
-      "path": "pixweave-test-output.txt",
-      "purpose": "PixWeave canonical full-suite output from a clean unchanged source tree"
-    },
-    {
-      "path": "clean-init-validation.txt",
-      "purpose": "Clean temporary-database initialization, validation, schema, and immutable-trigger probe"
-    }
-  ],
-  "base_commit": "09bfeb80d0bfcdf84aa9d22fb077adaffb3548b0",
-  "canonical_test": {
-    "command": "python3.11 -m unittest discover -s tests -v",
-    "passed": 183,
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "repository": "agent-company",
+  "task_id": 148,
+  "remediation": "independent-review-high-phase-c-bound-pilot-artifact-body-same-hash-tampering",
+  "base_commit": "8cf986c3427863cb41ae86c71afc0f48d1ede5fd",
+  "base_tree": "12c4d0e20b9c9085c1b6b020c6f55c7750c72134",
+  "fixed_review_commit": "d5467f1cb51440353e10caf3eedf49d47bb15ff7",
+  "fixed_review_tree": "e667b4b04f7870c3f0a60ca99547cc867934e526",
+  "fixed_review_parent": "8cf986c3427863cb41ae86c71afc0f48d1ede5fd",
+  "fixed_review_ref_status": "unreferenced_commit_object",
+  "working_tree_status": "uncommitted_for_main_inspection",
+  "independent_review_status": "pending_fresh_fixed_tree_review",
+  "red_test": {
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_remains_protected_from_unchanged_declared_hash_body_tamper -v",
+    "ran": 3,
+    "failures": 2,
+    "errors": 0,
+    "passed_controls": 1,
+    "exit_status": 1,
+    "result": "expected_fail"
+  },
+  "green_test": {
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_remains_protected_from_unchanged_declared_hash_body_tamper -v",
+    "ran": 3,
+    "passed": 3,
     "result": "pass"
   },
-  "external_actions": [
-    "required git push only"
-  ],
   "focused_test": {
     "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials -v",
-    "passed": 104,
+    "passed": 138,
+    "result": "pass"
+  },
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 321,
     "result": "pass"
   },
   "pixweave": {
+    "command": "python3.11 -m unittest discover -s tests -v",
     "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "tree": "6f2d526d912fcf283937cd265d298004a31c00b2",
+    "worktree": "clean",
     "passed": 58,
-    "result": "pass",
-    "worktree": "clean"
+    "result": "pass"
   },
-  "red_test": {
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate -v",
-    "errors": 1,
-    "exit_status": 1,
-    "failures": 7,
-    "ran": 36,
-    "result": "expected_fail"
+  "validation": {
+    "live_readonly": {
+      "command": "python3.11 -m agent_company.cli validate",
+      "errors": [],
+      "result": "pass"
+    },
+    "clean_workspace": {
+      "initialized": true,
+      "errors": [],
+      "result": "pass"
+    },
+    "compile": {
+      "command": "python3.11 -m compileall -q agent_company tests",
+      "result": "pass"
+    },
+    "py_compile": {
+      "command": "rg --files -0 agent_company tests -g '*.py' | xargs -0 python3.11 -m py_compile",
+      "result": "pass"
+    },
+    "diff_check": {
+      "command": "git diff --check",
+      "result": "pass"
+    }
   },
-  "repository": "agent-company",
-  "schema_version": "agent-company-evidence-manifest/v1",
-  "task_id": 148
+  "security_scan": {
+    "tool": "bandit 1.9.4",
+    "installation": "disposable /tmp virtual environment",
+    "agent_company": {
+      "command": "bandit -r agent_company -f json",
+      "high": 0,
+      "medium": 6,
+      "low": 26,
+      "loc": 11808,
+      "result": "pass_no_high"
+    },
+    "pixweave": {
+      "command": "bandit -r /home/tony/products/pixweave/pixweave -f json",
+      "high": 0,
+      "medium": 0,
+      "low": 0,
+      "loc": 3218,
+      "result": "pass_no_high"
+    }
+  },
+  "protected_state": {
+    "phase_d": {
+      "file_count": 611,
+      "inventory_sha256": "387d8bd7c7f774e7a7ee059943de864a49a759d57ceba3432d7520e772cb065f",
+      "unchanged": true
+    },
+    "data": {
+      "file_count": 120,
+      "inventory_sha256": "9e431ac06cbc41fb690b1b29fa0d476363627746af0f726b5a6d1105464a1664",
+      "unchanged": true
+    },
+    "company_sqlite3_sha256": "dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48",
+    "pixweave_source_unchanged": true,
+    "prohibited_protocols_run": false,
+    "services_started": false,
+    "external_actions": []
+  },
+  "code_sha256": {
+    "agent_company/assurance.py": "d3875853d4d9328342781a86e47f6725f88683698e0caeffa1ce08a23e53e15f",
+    "agent_company/pilot_gate.py": "2a2efec9faa37601b4887e5b23c27ebdb89323e5f0d1bb0e48e945fdda30b394",
+    "tests/test_completion_assurance_gate.py": "f411ec0bfd77ef829a117748f0bf95e3342ed43acff3801dbdaecc0b052c0f76"
+  },
+  "source_test_patch_sha256": "2b37a636fb5cc2d5b90b7d54935a31d15062098f5fff6824f39f2580fd80e359",
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Fixed-tree identity, TDD, verification, acceptance, protected-state, pending-review, and scope record",
+      "sha256": "bb9b33bba9e25c134666b4930287f5b2b617edf96b01610da872878146887a7e"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured fixed-tree independent-review handoff",
+      "sha256": "e24b8c3c3245b352d749cf2965fe4d9ba8420cf55305ae6a1b7516b086bc1a21"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Authoritative pre-implementation same-hash tamper RED output",
+      "sha256": "1c101c903c9f37e19ba9a26fbeba67385fc9d69c841b541fe730595527430fa9"
+    },
+    {
+      "path": "green-test-output.txt",
+      "purpose": "Exact final GREEN output for the three tamper probes",
+      "sha256": "fb63679ac6229d3051d1036593fdea277071f97f043d4301b8840193beed2301"
+    },
+    {
+      "path": "focused-test-output.txt",
+      "purpose": "Final focused Phase C assurance/runtime output",
+      "sha256": "fdef8f191a07e2420360d443f47b7d2a40bd644e77ad95ee9c0ad1a600b62d42"
+    },
+    {
+      "path": "full-test-output.txt",
+      "purpose": "Final Agent Company canonical suite output",
+      "sha256": "686e355109d33c06841c45d367d6c643dfe351526c95b39d4e30c895564be31f"
+    },
+    {
+      "path": "pixweave-test-output.txt",
+      "purpose": "Final clean PixWeave identity and canonical suite output",
+      "sha256": "f6a32bd27c6a1b552da19ae36db713b81ecf0ddc8a1e865e678aec8c57e8e057"
+    },
+    {
+      "path": "clean-init-validation.txt",
+      "purpose": "Fresh temporary-workspace initialization, validation, and binding-schema output",
+      "sha256": "0058771f5e7d8fd27037065289c512c7b7776cbbaa2dacf0ea8c4ea710b2ef3d"
+    }
+  ]
 }

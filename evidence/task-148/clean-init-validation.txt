@@ -1,8 +1,9 @@
-base_commit=09bfeb80d0bfcdf84aa9d22fb077adaffb3548b0
-temp_workspace=/tmp/tmp.Opk9YlQqQS
+fixed_review_commit=d5467f1cb51440353e10caf3eedf49d47bb15ff7
+fixed_review_tree=e667b4b04f7870c3f0a60ca99547cc867934e526
+temp_workspace=/tmp/task148-clean-validation-final.UJuimT
 initialized
 {
   "errors": [],
   "ok": true
 }
-{'columns': ['task_id', 'generation', 'initiative_id', 'artifact_set_sha256', 'evaluation_policy_sha256', 'principal_state_sha256', 'context_bundle_sha256', 'created_at'], 'triggers': ['assurance_execution_bindings_immutable_delete', 'assurance_execution_bindings_immutable_update']}
+{"columns": ["task_id", "generation", "initiative_id", "artifact_set_sha256", "evaluation_policy_sha256", "principal_state_sha256", "context_bundle_sha256", "fencing_token_sha256", "integrity_signature", "created_at"], "triggers": ["assurance_execution_bindings_immutable_delete", "assurance_execution_bindings_immutable_update"]}

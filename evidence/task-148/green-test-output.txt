@@ -1,0 +1,8 @@
+test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation) ... ok
+test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat) ... ok
+test_completion_remains_protected_from_unchanged_declared_hash_body_tamper (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_remains_protected_from_unchanged_declared_hash_body_tamper) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.370s
+
+OK

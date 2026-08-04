@@ -1,3 +1,6 @@
+## main...origin/main
+d78094f26eb697c810899a40771a8af6dec7ce19
+6f2d526d912fcf283937cd265d298004a31c00b2
 test_artifact_route_serves_only_local_beta_files (test_beta_product.LocalBetaProductTest.test_artifact_route_serves_only_local_beta_files) ... ok
 test_home_and_status_show_internal_no_publish_controls (test_beta_product.LocalBetaProductTest.test_home_and_status_show_internal_no_publish_controls) ... ok
 test_malformed_and_sensitive_input_fail_closed_without_artifacts (test_beta_product.LocalBetaProductTest.test_malformed_and_sensitive_input_fail_closed_without_artifacts) ... ok
@@ -177,6 +180,6 @@ test_summary_rejects_incomparable_quality_scales (test_task_136_beta_session_eco
 test_synthetic_summary_reports_cost_efficiency_quality_and_missingness (test_task_136_beta_session_economics.Task136BetaSessionEconomicsTest.test_synthetic_summary_reports_cost_efficiency_quality_and_missingness) ... ok
 
 ----------------------------------------------------------------------
-Ran 58 tests in 0.371s
+Ran 58 tests in 0.366s
 
 OK

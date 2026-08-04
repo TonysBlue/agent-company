@@ -1,124 +1,24 @@
-test_artifact_registration_integrity_anchor_is_immutable (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_artifact_registration_integrity_anchor_is_immutable) ... ok
-test_bound_completion_requires_review_bound_to_exact_result_and_artifact_set (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_completion_requires_review_bound_to_exact_result_and_artifact_set) ... ok
-test_bound_completion_with_eval_but_without_review_fails_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_completion_with_eval_but_without_review_fails_atomically) ... ok
-test_bound_completion_without_trusted_eval_fails_atomically (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_bound_completion_without_trusted_eval_fails_atomically) ... ok
-test_changed_assurance_profile_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion) ... FAIL
-test_changed_evaluation_threshold_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion) ... FAIL
-test_changed_execution_generation_fences_context_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion) ... FAIL
-test_changed_principal_authority_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion) ... FAIL
-test_context_persists_immutable_execution_assurance_binding (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_context_persists_immutable_execution_assurance_binding) ... ERROR
-test_contradictory_review_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_contradictory_review_fails_closed) ... ok
-test_dispatch_kill_switch_cannot_bypass_completion_gate (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_dispatch_kill_switch_cannot_bypass_completion_gate) ... ok
-test_evaluator_authored_review_is_not_independent (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_evaluator_authored_review_is_not_independent) ... ok
-test_exact_eval_and_independent_review_allow_atomic_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion) ... ok
-test_execution_assurance_fence_survives_service_restart (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_execution_assurance_fence_survives_service_restart) ... ok
-test_existing_binding_schema_is_upgraded_without_data_loss (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_existing_binding_schema_is_upgraded_without_data_loss) ... ok
-test_implementer_authored_review_is_not_independent (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_implementer_authored_review_is_not_independent) ... ok
-test_init_does_not_bless_preexisting_unanchored_review_tamper (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_init_does_not_bless_preexisting_unanchored_review_tamper) ... ok
-test_legacy_build_artifact_keeps_prior_integrity_validation (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_legacy_build_artifact_keeps_prior_integrity_validation) ... ok
-test_missing_evaluator_identity_lineage_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_missing_evaluator_identity_lineage_fails_closed) ... ok
-test_nonpilot_completion_result_shape_is_unchanged (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_nonpilot_completion_result_shape_is_unchanged) ... ok
-test_post_build_review_does_not_stale_g4_redispatch (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_build_review_does_not_stale_g4_redispatch) ... ok
-test_post_build_review_is_excluded_from_bound_build_context (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_post_build_review_is_excluded_from_bound_build_context) ... ok
-test_quarantined_eval_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_quarantined_eval_fails_closed) ... ok
-test_review_body_and_hash_cannot_be_rewritten_after_registration (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_body_and_hash_cannot_be_rewritten_after_registration) ... ok
-test_review_body_hash_and_registration_audit_cannot_be_rewritten (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_body_hash_and_registration_audit_cannot_be_rewritten) ... ok
-test_review_metadata_cannot_be_rewritten_to_fake_independence (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_metadata_cannot_be_rewritten_to_fake_independence) ... ok
-test_review_must_bind_exact_trusted_eval_result (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_must_bind_exact_trusted_eval_result) ... ok
-test_review_self_approval_metadata_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_self_approval_metadata_fails_closed) ... ok
-test_review_without_valid_approval_metadata_fails_closed (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_review_without_valid_approval_metadata_fails_closed) ... ok
-test_revoked_principal_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_revoked_principal_fences_heartbeat_and_completion) ... FAIL
-test_rotated_evaluator_actor_and_authority_remain_nonindependent (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_evaluator_actor_and_authority_remain_nonindependent) ... ok
-test_rotated_principal_credential_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion) ... FAIL
-test_stale_artifact_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion) ... FAIL
-test_stale_post_build_review_does_not_stale_g4_redispatch (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_post_build_review_does_not_stale_g4_redispatch) ... ok
-test_tampered_post_build_review_does_not_block_g4_redispatch (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_tampered_post_build_review_does_not_block_g4_redispatch) ... ok
-test_unbound_completion_result_shape_is_unchanged (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unbound_completion_result_shape_is_unchanged) ... ok
+test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation) ... FAIL
+test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat) ... FAIL
+test_completion_remains_protected_from_unchanged_declared_hash_body_tamper (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_remains_protected_from_unchanged_declared_hash_body_tamper) ... ok
 
 ======================================================================
-ERROR: test_context_persists_immutable_execution_assurance_binding (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_context_persists_immutable_execution_assurance_binding)
+FAIL: test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 260, in test_context_persists_immutable_execution_assurance_binding
-    binding = conn.execute(
-              ^^^^^^^^^^^^^
-sqlite3.OperationalError: no such table: assurance_execution_bindings
-
-======================================================================
-FAIL: test_changed_assurance_profile_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_assurance_profile_fences_heartbeat_and_completion)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 311, in test_changed_assurance_profile_fences_heartbeat_and_completion
-    self._assert_runtime_fence_is_atomic("evaluation policy")
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 218, in _assert_runtime_fence_is_atomic
-    with self.assertRaisesRegex(ValueError, expected):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 344, in test_unchanged_declared_hash_cannot_hide_body_tamper_from_context_compilation
+    with self.assertRaisesRegex(ValueError, "artifact content body hash"):
 AssertionError: ValueError not raised
 
 ======================================================================
-FAIL: test_changed_evaluation_threshold_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_evaluation_threshold_fences_heartbeat_and_completion)
+FAIL: test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 300, in test_changed_evaluation_threshold_fences_heartbeat_and_completion
-    self._assert_runtime_fence_is_atomic("evaluation policy")
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 218, in _assert_runtime_fence_is_atomic
-    with self.assertRaisesRegex(ValueError, expected):
-AssertionError: ValueError not raised
-
-======================================================================
-FAIL: test_changed_execution_generation_fences_context_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_execution_generation_fences_context_heartbeat_and_completion)
-----------------------------------------------------------------------
-ValueError: task context does not match the active fenced execution
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 352, in test_changed_execution_generation_fences_context_heartbeat_and_completion
-    self._assert_runtime_fence_is_atomic("generation")
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 218, in _assert_runtime_fence_is_atomic
-    with self.assertRaisesRegex(ValueError, expected):
-AssertionError: "generation" does not match "task context does not match the active fenced execution"
-
-======================================================================
-FAIL: test_changed_principal_authority_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_changed_principal_authority_fences_heartbeat_and_completion)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 321, in test_changed_principal_authority_fences_heartbeat_and_completion
-    self._assert_runtime_fence_is_atomic("principal authority or credential")
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 218, in _assert_runtime_fence_is_atomic
-    with self.assertRaisesRegex(ValueError, expected):
-AssertionError: ValueError not raised
-
-======================================================================
-FAIL: test_revoked_principal_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_revoked_principal_fences_heartbeat_and_completion)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 342, in test_revoked_principal_fences_heartbeat_and_completion
-    self._assert_runtime_fence_is_atomic("principal authority or credential")
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 218, in _assert_runtime_fence_is_atomic
-    with self.assertRaisesRegex(ValueError, expected):
-AssertionError: ValueError not raised
-
-======================================================================
-FAIL: test_rotated_principal_credential_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_rotated_principal_credential_fences_heartbeat_and_completion)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 332, in test_rotated_principal_credential_fences_heartbeat_and_completion
-    self._assert_runtime_fence_is_atomic("principal authority or credential")
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 218, in _assert_runtime_fence_is_atomic
-    with self.assertRaisesRegex(ValueError, expected):
-AssertionError: ValueError not raised
-
-======================================================================
-FAIL: test_stale_artifact_fences_heartbeat_and_completion (tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_stale_artifact_fences_heartbeat_and_completion)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 289, in test_stale_artifact_fences_heartbeat_and_completion
-    self._assert_runtime_fence_is_atomic("artifact set")
-  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 218, in _assert_runtime_fence_is_atomic
-    with self.assertRaisesRegex(ValueError, expected):
+  File "/home/tony/agent-company/tests/test_completion_assurance_gate.py", line 365, in test_unchanged_declared_hash_cannot_hide_body_tamper_from_heartbeat
+    with self.assertRaisesRegex(ValueError, "artifact content body hash"):
 AssertionError: ValueError not raised
 
 ----------------------------------------------------------------------
-Ran 36 tests in 2.159s
+Ran 3 tests in 0.403s
 
-FAILED (failures=7, errors=1)
+FAILED (failures=2)
