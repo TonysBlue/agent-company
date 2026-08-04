@@ -173,56 +173,14 @@ def _approval_audited(conn: Any, artifact: Any) -> bool:
     return False
 
 
-def _trusted_eval_result(
-    conn: Any, db_path: Path, workspace: Path, initiative_id: str,
-) -> tuple[str, set[str]]:
-    required_tables = {
-        "trusted_eval_runs", "trusted_eval_quarantines",
-        "trusted_eval_manifests", "trusted_eval_contracts",
-    }
-    available = {
-        row["name"] for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        )
-    }
-    if not required_tables <= available:
-        raise CompletionVerificationError(
-            "bound pilot completion requires a valid Trusted Eval"
-        )
-    if conn.execute(
-        "SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?",
-        (initiative_id,),
-    ).fetchone():
-        raise CompletionVerificationError("bound pilot Trusted Eval is quarantined")
-    run = conn.execute(
-        "SELECT * FROM trusted_eval_runs WHERE initiative_id=? AND status='completed' "
-        "ORDER BY attempt DESC LIMIT 1",
-        (initiative_id,),
-    ).fetchone()
-    if run is None or not run["evidence_sha256"]:
-        raise CompletionVerificationError(
-            "bound pilot completion requires a completed content-addressed Trusted Eval"
-        )
-    contract = conn.execute(
-        "SELECT max_attempts FROM trusted_eval_contracts WHERE initiative_id=?",
-        (initiative_id,),
-    ).fetchone()
-    if (
-        contract is None
-        or type(contract["max_attempts"]) is not int
-        or not 1 <= contract["max_attempts"] <= 3
-        or not 1 <= run["attempt"] <= contract["max_attempts"]
-    ):
-        raise CompletionVerificationError(
-            "bound pilot Trusted Eval attempt contract is invalid"
-        )
+def _trusted_eval_run_values(run: Any) -> tuple[dict[str, str], dict[str, Any]]:
     refs = {
         "candidate": run["candidate_sha256"],
         "dataset": run["dataset_sha256"],
         "grader": run["grader_sha256"],
         "environment": run["environment_sha256"],
     }
-    run_values = {
+    values = {
         "initiative_id": run["initiative_id"],
         "attempt": run["attempt"],
         "refs": refs,
@@ -230,12 +188,109 @@ def _trusted_eval_result(
         "status": run["status"],
         "evidence_ref": run["evidence_ref"],
         "evidence_sha256": run["evidence_sha256"],
+    }
+    return refs, values
+
+
+def _trusted_eval_created_at(value: Any) -> datetime:
+    if not isinstance(value, str):
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval creation lineage is invalid"
+        )
+    try:
+        created_at = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval creation lineage is invalid"
+        ) from exc
+    if (
+        created_at.tzinfo is None
+        or created_at.utcoffset() != timezone.utc.utcoffset(created_at)
+        or created_at.microsecond
+        or created_at.isoformat() != value
+    ):
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval creation lineage is invalid"
+        )
+    return created_at
+
+
+def _trusted_eval_manifest_valid(
+    conn: Any, workspace: Path, kind: str, manifest_sha256: str,
+    run_created_at: datetime,
+) -> None:
+    manifest = conn.execute(
+        "SELECT * FROM trusted_eval_manifests "
+        "WHERE kind=? AND manifest_sha256=?",
+        (kind, manifest_sha256),
+    ).fetchone()
+    if manifest is None:
+        raise CompletionVerificationError(
+            f"bound pilot Trusted Eval {kind} manifest is invalid"
+        )
+    try:
+        payload = json.loads(manifest["manifest_json"])
+        manifest_digest = hashlib.sha256(
+            _canonical(payload).encode("ascii")
+        ).hexdigest()
+    except (KeyError, TypeError, UnicodeEncodeError, json.JSONDecodeError) as exc:
+        raise CompletionVerificationError(
+            f"bound pilot Trusted Eval {kind} manifest is invalid"
+        ) from exc
+    if (
+        manifest_digest != manifest_sha256
+        or manifest["manifest_json"] != _canonical(payload)
+        or manifest["manifest_sha256"] != manifest_sha256
+        or _trusted_eval_created_at(manifest["created_at"]) > run_created_at
+        or manifest["protected"] not in {0, 1}
+        or payload != {
+            "schema_version": f"trusted-eval-{kind}/v1",
+            "id": manifest["manifest_id"],
+            "content_sha256": manifest["content_sha256"],
+            "protected": bool(manifest["protected"]),
+        }
+    ):
+        raise CompletionVerificationError(
+            f"bound pilot Trusted Eval {kind} manifest lineage is invalid"
+        )
+    content = workspace / "data" / "trusted-eval-content" / manifest["content_sha256"]
+    if (
+        not content.is_file()
+        or hashlib.sha256(content.read_bytes()).hexdigest()
+        != manifest["content_sha256"]
+    ):
+        raise CompletionVerificationError(
+            f"bound pilot Trusted Eval {kind} content hash is invalid"
+        )
+
+
+def _trusted_eval_run_valid(
+    conn: Any, db_path: Path, workspace: Path, initiative_id: str, run: Any,
+) -> tuple[str, set[str], datetime]:
+    if (
+        run["initiative_id"] != initiative_id
+        or type(run["attempt"]) is not int
+        or run["attempt"] < 1
+        or run["status"] not in {"failed", "abandoned", "completed"}
+        or type(run["seed"]) is not int
+        or not isinstance(run["evidence_ref"], str)
+        or not run["evidence_ref"].strip()
+        or not isinstance(run["evidence_sha256"], str)
+        or len(run["evidence_sha256"]) != 64
+    ):
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval run state is invalid"
+        )
+    created_at = _trusted_eval_created_at(run["created_at"])
+    refs, result_values = _trusted_eval_run_values(run)
+    signed_values = {
+        **result_values,
         "evaluator_principal_id": run["evaluator_principal_id"],
         "result_sha256": run["result_sha256"],
         "created_at": run["created_at"],
     }
     if not _signed(
-        db_path, "trusted-eval-run", run_values, run["integrity_signature"],
+        db_path, "trusted-eval-run", signed_values, run["integrity_signature"],
     ):
         raise CompletionVerificationError(
             "bound pilot Trusted Eval integrity anchor is invalid"
@@ -278,67 +333,103 @@ def _trusted_eval_result(
             "bound pilot Trusted Eval evidence hash is invalid"
         )
     for kind, manifest_sha256 in refs.items():
-        manifest = conn.execute(
-            "SELECT * FROM trusted_eval_manifests "
-            "WHERE kind=? AND manifest_sha256=?",
-            (kind, manifest_sha256),
-        ).fetchone()
-        try:
-            payload = json.loads(manifest["manifest_json"])
-            manifest_digest = hashlib.sha256(
-                _canonical(payload).encode("ascii")
-            ).hexdigest()
-        except (KeyError, TypeError, UnicodeEncodeError, json.JSONDecodeError) as exc:
+        if not isinstance(manifest_sha256, str) or len(manifest_sha256) != 64:
             raise CompletionVerificationError(
                 f"bound pilot Trusted Eval {kind} manifest is invalid"
-            ) from exc
-        if (
-            manifest_digest != manifest_sha256
-            or manifest["manifest_json"] != _canonical(payload)
-            or manifest["protected"] not in {0, 1}
-            or payload != {
-                "schema_version": f"trusted-eval-{kind}/v1",
-                "id": manifest["manifest_id"],
-                "content_sha256": manifest["content_sha256"],
-                "protected": bool(manifest["protected"]),
-            }
-        ):
-            raise CompletionVerificationError(
-                f"bound pilot Trusted Eval {kind} manifest lineage is invalid"
             )
-        content = workspace / "data" / "trusted-eval-content" / manifest["content_sha256"]
-        if (
-            not content.is_file()
-            or hashlib.sha256(content.read_bytes()).hexdigest()
-            != manifest["content_sha256"]
-        ):
-            raise CompletionVerificationError(
-                f"bound pilot Trusted Eval {kind} content hash is invalid"
-            )
-    result_values = {
-        "initiative_id": initiative_id,
-        "attempt": run["attempt"],
-        "refs": refs,
-        "seed": run["seed"],
-        "status": run["status"],
-        "evidence_ref": run["evidence_ref"],
-        "evidence_sha256": run["evidence_sha256"],
-    }
-    if _sha256_text(_canonical(result_values)) != run["result_sha256"]:
+        _trusted_eval_manifest_valid(
+            conn, workspace, kind, manifest_sha256, created_at,
+        )
+    if (
+        not isinstance(run["result_sha256"], str)
+        or len(run["result_sha256"]) != 64
+        or _sha256_text(_canonical(result_values)) != run["result_sha256"]
+    ):
         raise CompletionVerificationError(
             "bound pilot Trusted Eval result lineage is invalid"
         )
-    evaluator_principals = {
-        row["evaluator_principal_id"] for row in conn.execute(
-            "SELECT evaluator_principal_id FROM trusted_eval_runs "
-            "WHERE initiative_id=?",
-            (initiative_id,),
-        ) if row["evaluator_principal_id"]
-    }
-    if not evaluator_principals:
+    return (
+        str(run["result_sha256"]),
+        {str(run["evaluator_principal_id"])},
+        created_at,
+    )
+
+
+def _trusted_eval_ledger(
+    conn: Any, db_path: Path, workspace: Path, initiative_id: str,
+) -> tuple[Any, set[str]]:
+    contract = conn.execute(
+        "SELECT max_attempts,created_at FROM trusted_eval_contracts "
+        "WHERE initiative_id=?",
+        (initiative_id,),
+    ).fetchone()
+    if (
+        contract is None
+        or type(contract["max_attempts"]) is not int
+        or not 1 <= contract["max_attempts"] <= 3
+    ):
         raise CompletionVerificationError(
-            "bound pilot Trusted Eval lacks evaluator identity lineage"
+            "bound pilot Trusted Eval attempt contract is invalid"
         )
+    contract_created_at = _trusted_eval_created_at(contract["created_at"])
+    rows = conn.execute(
+        "SELECT * FROM trusted_eval_runs WHERE initiative_id=? "
+        "ORDER BY attempt,id",
+        (initiative_id,),
+    ).fetchall()
+    if not rows or len(rows) > contract["max_attempts"]:
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval attempt ledger is invalid"
+        )
+    attempts = [row["attempt"] for row in rows]
+    if attempts != list(range(1, len(rows) + 1)):
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval attempt ledger is not contiguous"
+        )
+    evaluator_principals: set[str] = set()
+    previous_created_at = contract_created_at
+    for row in rows:
+        _, principals, created_at = _trusted_eval_run_valid(
+            conn, db_path, workspace, initiative_id, row,
+        )
+        if created_at < previous_created_at:
+            raise CompletionVerificationError(
+                "bound pilot Trusted Eval run creation lineage is invalid"
+            )
+        previous_created_at = created_at
+        evaluator_principals.update(principals)
+    latest = rows[-1]
+    if latest["status"] != "completed":
+        raise CompletionVerificationError(
+            "bound pilot Trusted Eval latest attempt is not completed"
+        )
+    return latest, evaluator_principals
+
+
+def _trusted_eval_result(
+    conn: Any, db_path: Path, workspace: Path, initiative_id: str,
+) -> tuple[str, set[str]]:
+    required_tables = {
+        "trusted_eval_runs", "trusted_eval_quarantines",
+        "trusted_eval_manifests", "trusted_eval_contracts",
+    }
+    available = {
+        row["name"] for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        )
+    }
+    if not required_tables <= available:
+        raise CompletionVerificationError(
+            "bound pilot completion requires a valid Trusted Eval"
+        )
+    if conn.execute(
+        "SELECT 1 FROM trusted_eval_quarantines WHERE initiative_id=?",
+        (initiative_id,),
+    ).fetchone():
+        raise CompletionVerificationError("bound pilot Trusted Eval is quarantined")
+    run, evaluator_principals = _trusted_eval_ledger(
+        conn, db_path, workspace, initiative_id,
+    )
     return str(run["result_sha256"]), evaluator_principals
 
 

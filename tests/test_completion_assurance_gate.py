@@ -163,6 +163,70 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             actor="Trusted Evaluator", principal_id="principal-evaluator",
         )["result_sha256"])
 
+    def _eval_refs(self) -> dict[str, str]:
+        return {
+            row["kind"]: row["manifest_sha256"]
+            for row in self.osys.store.fetch_all(
+                "SELECT kind,manifest_sha256 FROM trusted_eval_manifests"
+            )
+        }
+
+    def _record_additional_eval(
+        self, status: str, seed: int, *, refs: dict[str, str] | None = None,
+    ) -> str:
+        return str(TrustedEvaluator(self.config).record_run(
+            initiative_id=self.initiative_id, refs=refs or self._eval_refs(), seed=seed,
+            status=status, evidence_ref="evidence/trusted-eval.json",
+            max_attempts=3, actor="Trusted Evaluator",
+            principal_id="principal-evaluator",
+        )["result_sha256"])
+
+    def _forged_eval_run(
+        self, run: sqlite3.Row, **changes: object,
+    ) -> dict[str, object]:
+        values: dict[str, object] = {
+            key: run[key] for key in run.keys() if key != "id"
+        }
+        values.update(changes)
+        refs = {
+            "candidate": values["candidate_sha256"],
+            "dataset": values["dataset_sha256"],
+            "grader": values["grader_sha256"],
+            "environment": values["environment_sha256"],
+        }
+        result_values = {
+            "initiative_id": values["initiative_id"],
+            "attempt": values["attempt"],
+            "refs": refs,
+            "seed": values["seed"],
+            "status": values["status"],
+            "evidence_ref": values["evidence_ref"],
+            "evidence_sha256": values["evidence_sha256"],
+        }
+        values["result_sha256"] = hashlib.sha256(json.dumps(
+            result_values, ensure_ascii=True, sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")).hexdigest()
+        signed_values = {
+            **result_values,
+            "evaluator_principal_id": values["evaluator_principal_id"],
+            "result_sha256": values["result_sha256"],
+            "created_at": values["created_at"],
+        }
+        values["integrity_signature"] = integrity_signature(
+            self.config.db_path, "trusted-eval-run", signed_values,
+        )
+        return values
+
+    @staticmethod
+    def _insert_forged_eval_run(conn: sqlite3.Connection, run: dict[str, object]) -> None:
+        columns = tuple(run)
+        conn.execute(
+            f"INSERT INTO trusted_eval_runs({','.join(columns)}) "
+            f"VALUES ({','.join('?' for _ in columns)})",
+            tuple(run[column] for column in columns),
+        )
+
     def _record_review(
         self, result_sha256: str, *, artifact_set_sha256: str | None = None,
         decision: str = "approve", artifact_id: str = "completion-review",
@@ -1101,23 +1165,205 @@ class CompletionAssuranceGateTest(unittest.TestCase):
 
     def test_signed_sql_rejects_nonlatest_completed_trusted_eval_atomically(self) -> None:
         stale_result_sha256 = self._record_eval()
-        evaluator = TrustedEvaluator(self.config)
-        refs = {
-            row["kind"]: row["manifest_sha256"]
-            for row in self.osys.store.fetch_all(
-                "SELECT kind,manifest_sha256 FROM trusted_eval_manifests"
-            )
-        }
-        latest_result_sha256 = str(evaluator.record_run(
-            initiative_id=self.initiative_id, refs=refs, seed=148,
-            status="completed", evidence_ref="evidence/trusted-eval.json",
-            max_attempts=3, actor="Trusted Evaluator",
-            principal_id="principal-evaluator",
-        )["result_sha256"])
+        latest_result_sha256 = self._record_additional_eval("completed", 148)
         self.assertNotEqual(latest_result_sha256, stale_result_sha256)
         self._record_review(stale_result_sha256)
 
         self._assert_signed_sql_completion_rejected(stale_result_sha256)
+
+    def test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically(self) -> None:
+        result_sha256 = self._record_eval()
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            forged = self._forged_eval_run(run, attempt=2)
+            conn.execute(
+                "UPDATE trusted_eval_runs SET attempt=?,result_sha256=?,"
+                "integrity_signature=? WHERE id=?",
+                (
+                    forged["attempt"], forged["result_sha256"],
+                    forged["integrity_signature"], run["id"],
+                ),
+            )
+
+        self._record_review(str(forged["result_sha256"]))
+        self._assert_signed_sql_completion_rejected(str(forged["result_sha256"]))
+
+    def test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        with self.osys.store.connect() as conn:
+            conn.executescript(
+                """
+                DROP TRIGGER trusted_eval_runs_immutable_update;
+                DROP TRIGGER trusted_eval_runs_immutable_delete;
+                ALTER TABLE trusted_eval_runs RENAME TO trusted_eval_runs_original;
+                CREATE TABLE trusted_eval_runs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    initiative_id TEXT NOT NULL,
+                    attempt INTEGER NOT NULL,
+                    candidate_sha256 TEXT NOT NULL,
+                    dataset_sha256 TEXT NOT NULL,
+                    grader_sha256 TEXT NOT NULL,
+                    environment_sha256 TEXT NOT NULL,
+                    seed INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    evidence_ref TEXT NOT NULL,
+                    evidence_sha256 TEXT,
+                    evaluator_principal_id TEXT NOT NULL,
+                    result_sha256 TEXT,
+                    integrity_signature TEXT,
+                    created_at TEXT NOT NULL
+                );
+                INSERT INTO trusted_eval_runs SELECT * FROM trusted_eval_runs_original;
+                DROP TABLE trusted_eval_runs_original;
+                """
+            )
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            forged = self._forged_eval_run(run, seed=148)
+            self._insert_forged_eval_run(conn, forged)
+
+        self._record_review(result_sha256)
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_additional_eval("failed", 148)
+        self._record_review(result_sha256)
+
+        self._assert_denial_is_atomic("latest attempt")
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically(
+        self,
+    ) -> None:
+        self._record_eval()
+        result_sha256 = self._record_additional_eval("completed", 148)
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            conn.execute(
+                "UPDATE trusted_eval_runs SET integrity_signature=? "
+                "WHERE initiative_id=? AND attempt=1",
+                ("0" * 64, self.initiative_id),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically(
+        self,
+    ) -> None:
+        self._record_eval()
+        result_sha256 = self._record_additional_eval("completed", 148)
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=? AND attempt=1",
+                (self.initiative_id,),
+            ).fetchone()
+            forged = self._forged_eval_run(
+                run, evaluator_principal_id="principal-forged-evaluator",
+            )
+            conn.execute(
+                "UPDATE trusted_eval_runs SET evaluator_principal_id=?,"
+                "integrity_signature=? WHERE id=?",
+                (
+                    forged["evaluator_principal_id"],
+                    forged["integrity_signature"], run["id"],
+                ),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically(
+        self,
+    ) -> None:
+        self._record_eval()
+        result_sha256 = self._record_additional_eval("completed", 148)
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=? AND attempt=1",
+                (self.initiative_id,),
+            ).fetchone()
+            forged = self._forged_eval_run(run, status="running")
+            conn.execute(
+                "UPDATE trusted_eval_runs SET status=?,result_sha256=?,"
+                "integrity_signature=? WHERE id=?",
+                (
+                    forged["status"], forged["result_sha256"],
+                    forged["integrity_signature"], run["id"],
+                ),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically(
+        self,
+    ) -> None:
+        self._record_eval()
+        result_sha256 = self._record_additional_eval("completed", 148)
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=? AND attempt=1",
+                (self.initiative_id,),
+            ).fetchone()
+            forged = self._forged_eval_run(
+                run, created_at="not-an-official-timestamp",
+            )
+            conn.execute(
+                "UPDATE trusted_eval_runs SET created_at=?,integrity_signature=? "
+                "WHERE id=?",
+                (
+                    forged["created_at"], forged["integrity_signature"], run["id"],
+                ),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_official_multi_attempt_trusted_eval_ledger_allows_completion(self) -> None:
+        self._record_eval()
+        self._record_additional_eval("abandoned", 148)
+        alternate = b"completion-candidate-final"
+        alternate_sha256 = hashlib.sha256(alternate).hexdigest()
+        (
+            self.root / "data" / "trusted-eval-content" / alternate_sha256
+        ).write_bytes(alternate)
+        refs = self._eval_refs()
+        refs["candidate"] = str(TrustedEvaluator(self.config).register_manifest(
+            "candidate",
+            {
+                "schema_version": "trusted-eval-candidate/v1",
+                "id": "completion-candidate-final",
+                "content_sha256": alternate_sha256,
+                "protected": False,
+            },
+            actor="Trusted Evaluator", principal_id="principal-evaluator",
+        )["manifest_sha256"])
+        result_sha256 = self._record_additional_eval(
+            "completed", 149, refs=refs,
+        )
+        self._record_review(result_sha256)
+
+        completed = self.osys.complete_task(
+            self.task_id, "Company Platform Engineer", "guarded result",
+            [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
+        )
+
+        self.assertEqual(completed["assurance"]["result_sha256"], result_sha256)
 
     def test_signed_sql_rejects_tampered_trusted_eval_manifest_and_content_atomically(
         self,
