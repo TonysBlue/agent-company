@@ -1,146 +1,122 @@
-# Task 148 Final Trusted Eval Ledger Remediation
+# Task 148 Final Issuance-Provenance Remediation
 
 ## Outcome
 
-The final HIGH finding against clean tip
-`334b622615cd66755d15011a1fa95cdecfc985d4` is implemented and verified on exact
-source/test commit `d25f3272ef7ed87674f6e3fe5c6d974af44e7a96`, tree
-`1386710e89156b0621fe49427cc431ab9c0174a3`. Independent review remains pending.
+The remaining HIGH finding against clean tip
+`1f67aec09dd22fcb140192328dd02c1e3c2b591c` is implemented and verified on exact
+source/test commit `8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0`, tree
+`e4a8adcbb60e510d05bf1f58ab053f86f530af55`. The source and tests are committed,
+`main` is aligned to that commit after local integration, no push was performed, and
+independent review remains pending.
 
-The shared verifier in `agent_company/completion_verifier.py` now validates the
-complete `trusted_eval_runs` ledger for the bound initiative before accepting a
-result. The same `completion_assurance` path is already called by the SQLite
-completion-binding semantic UDF/trigger and by runtime completion decisions, so the
-full-ledger rule is shared rather than duplicated.
+The shared `completion_assurance` verifier used by both runtime completion and the
+SQLite completion-binding semantic UDF/trigger now requires durable issuance
+provenance:
 
-The verifier requires:
+- `trusted_eval_contracts` signs the immutable initiative, attempt budget, and
+  creation timestamp;
+- official evaluator credential provision/rotation appends a signed, hash-chained
+  issuance event with principal identity, credential hash, principal creation time,
+  issuance time, sequence, and previous signature;
+- each official run HMAC binds the exact evaluator actor/authority, credential hash,
+  principal creation time, issuance-event signature, and contract signature that
+  were valid when the run was issued;
+- verification requires the contract before the run, the principal before issuance
+  and the run, an exact run-bound issuance event, a valid complete rotation chain,
+  and an active current principal whose current credential is the latest officially
+  issued event;
+- raw current-principal mutation, valid-HMAC fake issuance, contract mutation,
+  post-dated principal provenance, and re-signed impossible chronology all fail
+  closed through both SQL-trigger and runtime paths;
+- official credential rotation preserves old run provenance, and legitimate
+  multi-attempt variation and unbound behavior remain supported.
 
-- one immutable attempt contract with `max_attempts` from 1 through 3;
-- exactly one row for each attempt 1 through the actual latest row, with the row
-  count within budget;
-- every row to carry an official terminal status (`failed`, `abandoned`, or
-  `completed`), an integer seed, canonical result digest, valid HMAC, active Trusted
-  Evaluator/operator principal provenance, content-addressed evidence, and valid
-  manifest JSON/hash/content relationships;
-- canonical UTC second-resolution creation timestamps, contract before or equal to
-  attempt 1, manifests before or equal to the run that uses them, and nondecreasing
-  run chronology;
-- no quarantine and a latest ledger row whose status is `completed`.
-
-No constraint was invented requiring refs, seed, evidence, evaluator identity, or
-status to be equal across attempts. The official `TrustedEvaluator.record_run`
-implementation does not promise those values are constant. The GREEN compatibility
-test varies status, seed, and the final candidate manifest through the official API.
+The migration is additive. New contract/run provenance columns are nullable for
+legacy rows, and initialization does not synthesize signatures or credential
+snapshots for unverifiable historical state. Consequently, an old unsigned active
+completion remains unverifiable rather than being blessed during migration.
 
 ## Fixed Review Target
 
-- Reviewed clean tip: `334b622615cd66755d15011a1fa95cdecfc985d4`
-- Reviewed clean tree: `6f7dcb1581986408fc8ba3e1556c938ee2db3c61`
-- Final source/test commit: `d25f3272ef7ed87674f6e3fe5c6d974af44e7a96`
-- Final source/test tree: `1386710e89156b0621fe49427cc431ab9c0174a3`
-- Subject: `fix: validate trusted eval attempt ledgers`
-- Patch SHA-256 from parent: `001bd896ae01aaa9062724acf0913a0de3b2273e6fa29a7f9818690e7ba8d9c7`
-- Source/tests: committed at the exact target above; no push performed
+- Reviewed clean tip: `1f67aec09dd22fcb140192328dd02c1e3c2b591c`
+- Reviewed clean tree: `1577b213f07c27733ceba1ccf37adf4e6ba58f28`
+- Final source/test commit: `8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0`
+- Final source/test tree: `e4a8adcbb60e510d05bf1f58ab053f86f530af55`
+- Subject: `fix: bind trusted eval issuance provenance`
+- Patch SHA-256 from parent: `d5d8e3c4db67a6c1c2e59d6c8f11d0dd47cc80a587f4e85aabf375f020b39ef0`
+- Current source/evidence status: source and tests committed; prior Task 148 evidence
+  committed in the reviewed parent; this final evidence handoff intentionally
+  uncommitted; `main` aligned to final source commit; no push performed.
 
-The source and tests are committed in that exact object/tree. This updated Task 148
-evidence is a working-tree handoff for inspection and does not alter the source/test
-tree. Unlike the superseded metadata, it records the prior evidence as integrated at
-reviewed parent `334b622`.
+Historical status text in preserved earlier Task 148 evidence and earlier sections
+of `review-log.md` remains historical and is not a current-state claim.
 
 ## Strict TDD Evidence
 
-The final eight tests were replayed against an isolated `git archive` of exact parent
-`334b622`, with the final test file copied into that temporary tree and the parent
-production code left unchanged. Seven adversarial tests failed because the old
-verifier accepted the forged ledger; the official multi-attempt control passed.
-Exact result: 8 tests in 1.249 seconds, `FAILED (failures=7)`, exit status 1.
+Production code was unchanged at `1f67aec` when the first four RED attacks ran:
 
-The attacks cover:
+```text
+python3.11 -m unittest \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_mutated_trusted_eval_contract_budget_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_mutated_trusted_eval_contract_creation_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_principal_created_after_run_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_unrecorded_evaluator_credential_substitution_atomically -v
+```
 
-- a valid-HMAC gap with attempt 1 rewritten to attempt 2;
-- a valid-HMAC duplicate attempt inserted after direct-SQL removal of the uniqueness
-  guard, proving verifier-level fail-closed behavior;
-- stale/latest manipulation where attempt 1 completed but official attempt 2 failed;
-- a bad signature on prior attempt 1 hidden by valid completed attempt 2;
-- a valid-HMAC prior attempt with nonexistent evaluator provenance;
-- a valid-HMAC prior attempt with impossible `running` status;
-- a valid-HMAC prior attempt with a timestamp the official evaluator cannot emit.
+Exact summary: `Ran 4 tests in 0.553s`, `FAILED (failures=4)`, exit status `1`.
+Every attack was accepted, proving the unsigned contract and mutable-current-principal
+findings.
 
-The exact GREEN on final commit `d25f327` passed all eight tests in 1.173 seconds,
-exit status 0. Direct-SQL denial uses the existing atomicity helper, which verifies
-unchanged task, execution, task binding, completion count, audit count, and event
-count. The stale/latest test also exercises runtime `complete_task` denial before
-the signed direct-SQL denial.
+Two additional RED tests then proved that official signed contract issuance and safe
+legacy migration did not exist: `create_contract` raised `AttributeError`, and the
+expected additive integrity column was absent. Exact summary: `Ran 2 tests in
+0.205s`, `FAILED (errors=2)`, exit status `1`.
+
+The final focused GREEN command covered official issuance, unsigned and re-signed
+contract mutation, principal chronology, raw credential and fake-provenance
+substitution, official rotation, safe legacy migration, multi-attempt variation,
+and legitimate completion. Exact result: 12 tests passed in 1.944 seconds, exit
+status `0`. Direct-SQL denial uses the atomicity helper, which proves unchanged task,
+execution, task binding, completion count, audit count, and event count.
 
 ## Final Verification
 
-Focused Phase C/runtime suite:
-
-```text
-python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials tests.test_dashboard tests.test_event_engine -q
-```
-
-Result: 194 tests passed in 21.077 seconds.
-
-Canonical Agent Company suite:
-
-```text
-python3.11 -m unittest discover -s tests -v
-```
-
-Result: 353 tests passed in 49.542 seconds, exit status 0; a final isolated quiet
-confirmation also passed 353 tests in 46.019 seconds. An earlier overlapping
-canonical run reported one temporary Git metadata concurrency error in a Phase D
-unit test after 353 tests; the isolated canonical rerun passed. No D0, D1, D2,
-treatment, protocol, or Phase D runner command was invoked.
-
-PixWeave read-only verification:
-
-```text
-git status --short --branch
-git rev-parse HEAD HEAD^{tree}
-python3.11 -m unittest discover -s tests -v
-```
-
-PixWeave remained clean and aligned with `origin/main` at commit
-`d78094f26eb697c810899a40771a8af6dec7ce19`, tree
-`6f2d526d912fcf283937cd265d298004a31c00b2`; 58 tests passed in 0.312 seconds.
-
-Validation and compilation:
-
-```text
-python3.11 -m agent_company.cli validate
-rg --files -0 agent_company tests -g '*.py' | xargs -0 python3.11 -m py_compile
-python3.11 -m compileall -q agent_company tests
-git diff --check
-```
-
-Validation returned `{"errors": [], "ok": true}`. All four commands passed.
-
-Bandit 1.9.4:
-
-- Agent Company: 0 High, 6 Medium, 26 Low, 12,706 lines, no scan errors.
-- PixWeave: 0 High, 0 Medium, 0 Low, 3,218 lines, no scan errors.
+- Focused Phase C/runtime: 204 tests passed in 25.870 seconds.
+- Canonical Agent Company discovery: 363 tests passed in 54.891 seconds, exit 0.
+- PixWeave read-only suite: 58 tests passed in 0.350 seconds; repository remained
+  clean and aligned with `origin/main` at commit
+  `d78094f26eb697c810899a40771a8af6dec7ce19`, tree
+  `6f2d526d912fcf283937cd265d298004a31c00b2`.
+- Live read-only validation returned `{"errors": [], "ok": true}`.
+- Fresh temporary initialization, assurance initialization, migration/integrity,
+  validation, expanded schemas, and all 10 Trusted Eval triggers passed.
+- `compileall`, `py_compile`, and `git diff --check` passed.
+- Bandit 1.9.4: Agent Company 0 High, 6 Medium, 26 Low across 13,263 lines;
+  PixWeave 0 High, 0 Medium, 0 Low across 3,218 lines; no scan errors.
+- Phase D unit tests only inspected existing controls. No D0, D1, D2, treatment,
+  protocol, or Phase D runner command was invoked.
 
 ## Protected State and Limits
 
 - Phase D protected inventory: 611 files,
-  `387d8bd7c7f774e7a7ee059943de864a49a759d57ceba3432d7520e772cb065f`.
+  `73e4ba77313ae9dd6862e92ca6cc402adabd3cdbd56ed89ddc49cd6b289a6903`.
 - Data inventory: 120 files,
-  `9e431ac06cbc41fb690b1b29fa0d476363627746af0f726b5a6d1105464a1664`.
+  `287e9a02085d1c24b3d0575ff93e70d6f54021eb15affdbf480bf93074daddae`.
 - `data/company.sqlite3` SHA-256:
   `dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48`.
-- Diff from source parent across protected Phase D, data, credentials, and approvals:
+- Diff from reviewed tip across protected Phase D, data, credentials, and approvals:
   empty.
-- Six checked Agent Company/PixWeave systemd units: all inactive.
+- Six checked Agent Company/PixWeave systemd units: all inactive; none started.
 
-No protected Phase D evidence, PixWeave source, data, credentials, approvals, or
-external system was modified. Services remain stopped. No source/evidence was pushed.
-Nothing in this report constitutes approval or independent acceptance.
+No protected Phase D evidence, PixWeave source, live data, credential, approval, or
+external system was modified. No source/evidence was pushed. Nothing in this report
+constitutes approval or independent acceptance.
 
-## Code Hashes
+## Source/Test Hashes
 
-- `agent_company/completion_verifier.py`:
-  `4c7b96bd2dd4367de3ea82d095ac1a3545f91f8c470d3667142ae4e1430bafc2`
-- `tests/test_completion_assurance_gate.py`:
-  `3c4b732d43b5e4147809fcc3d0e7b7e90f4db9ebd9bd943effe8b7123e3e1355`
+- `agent_company/assurance.py`: `826f71e78c7ee002e20e42afe95f6e9d083df72222d712984a9363a0b088951a`
+- `agent_company/completion_verifier.py`: `16ff73e07ec387407157e4a54409f494079a61bb760704bd4951531c0ca5ec5f`
+- `agent_company/trusted_evaluator.py`: `4c56dc4db3f139f57d055fb84c46b24462a5053235cdca5ee8712ae829ab662b`
+- `tests/test_assurance_cli.py`: `9918a975fa1b9255a8910a3fbec5c28cd1167889c35c19a0051710918bff6666`
+- `tests/test_completion_assurance_gate.py`: `e433054854112a694a5ac0a69f1cb7f8f174553da61163fdb3f8f82dfaca5244`
+- `tests/test_trusted_evaluator.py`: `3a196a2725b3cf1bd805ce90eab3f4b305527c74706aeed969b161a1fe541ed2`

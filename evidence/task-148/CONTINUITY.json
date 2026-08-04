@@ -1,49 +1,50 @@
 {
   "schema_version": "agent-company-continuity/v1",
   "role": "Company Platform Engineer",
-  "project_summary": "The final Task 148 Trusted Eval ledger finding against clean tip 334b622 is remediated on exact source/test commit d25f327 and tree 1386710.",
-  "summary": "Strict RED/GREEN TDD now proves every attempt in a bound Trusted Eval ledger is contiguous, in-budget, officially issuable, individually signed, content-addressed, and lineage-valid before SQL-trigger or runtime completion can succeed.",
-  "project_decisions": [
-    "The authoritative source/test target is main commit d25f3272ef7ed87674f6e3fe5c6d974af44e7a96 and tree 1386710e89156b0621fe49427cc431ab9c0174a3, directly parented by reviewed clean tip and integrated Task 148 evidence commit 334b622615cd66755d15011a1fa95cdecfc985d4.",
-    "The existing shared completion verifier remains the single SQL-trigger and runtime completion path; its Trusted Eval component now validates the entire initiative attempt ledger before selecting the latest row.",
-    "Attempts must be exactly 1 through the latest row and no greater than the immutable contract budget; every row must have an official terminal status, integer seed, canonical result digest, valid HMAC, active Trusted Evaluator operator provenance, evidence hash, manifest/content lineage, and nondecreasing official UTC creation lineage.",
-    "The latest ledger row itself must be completed; a later failed or abandoned attempt makes an earlier completed result stale and unusable.",
-    "No equality constraint is imposed across attempts for refs, seeds, evaluator principal identity, evidence, or status because TrustedEvaluator.record_run does not guarantee those values remain constant.",
-    "The official multi-attempt compatibility control varies terminal status, seed, and the final candidate manifest while completing successfully.",
-    "Independent review remains pending and no acceptance is self-issued."
-  ],
+  "summary": "Strict RED/GREEN TDD binds each Trusted Eval contract and run to immutable issuance-time evaluator credential and principal provenance; source/tests are committed on aligned main and independent review is pending.",
+  "project_summary": "The remaining Task 148 issuance-provenance finding against clean tip 1f67aec is remediated on exact source/test commit 8f48f6c and tree e4a8adc.",
   "verified_facts": [
-    "An isolated replay of the final eight tests against exact parent 334b622 ran in 1.249 seconds: seven adversarial tests failed because signed forged ledgers were accepted, while the official multi-attempt compatibility test passed; exit status 1.",
-    "The exact eight-test GREEN on d25f327 ran in 1.173 seconds with all tests passing and exit status 0.",
-    "The focused Phase C/runtime verification ran 194 tests with all passing in 21.077 seconds.",
-    "An overlapping canonical attempt ran 353 tests in 49.554 seconds and reported one temporary Git metadata concurrency error; isolated canonical reruns passed 353 tests in 49.542 seconds verbose and 46.019 seconds quiet.",
-    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 / tree 6f2d526d912fcf283937cd265d298004a31c00b2 and ran 58 tests with all passing in 0.312 seconds.",
-    "Live read-only validation returned errors=[] and ok=true; py_compile, compileall, and git diff --check passed.",
-    "Bandit 1.9.4 found zero High issues in Agent Company and PixWeave; Agent Company was 0 High, 6 Medium, 26 Low across 12706 lines and PixWeave was 0/0/0 across 3218 lines.",
-    "All 611 protected Phase D files and all 120 data files retained their baseline SHA-256 inventories; data/company.sqlite3 remained dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48.",
+    "The exact RED on clean tip 1f67aec ran four contract/current-principal attacks in 0.553 seconds; all four were incorrectly accepted, so the test process exited 1 with four failures.",
+    "Two issuance/migration REDs ran in 0.205 seconds and exited 1 with two errors because signed create_contract and additive provenance columns did not exist.",
+    "The final 12-test issuance-provenance GREEN ran in 1.944 seconds with all passing and exit status 0.",
+    "The focused Phase C/runtime verification ran 204 tests with all passing in 25.870 seconds.",
+    "Canonical Agent Company discovery ran 363 tests with all passing in 54.891 seconds.",
+    "PixWeave remained clean and aligned at d78094f26eb697c810899a40771a8af6dec7ce19 / tree 6f2d526d912fcf283937cd265d298004a31c00b2 and passed 58 tests in 0.350 seconds.",
+    "Live read-only validation returned errors=[] and ok=true; fresh temporary init/assurance-init/migration/validation, py_compile, compileall, and git diff --check passed.",
+    "Bandit 1.9.4 found zero High issues: Agent Company 0 High, 6 Medium, 26 Low across 13263 lines; PixWeave 0/0/0 across 3218 lines.",
+    "All 611 protected Phase D files and all 120 data files retained their final inventories; data/company.sqlite3 remained dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48.",
     "All six checked Agent Company/PixWeave systemd units are inactive; no service was started."
+  ],
+  "project_decisions": [
+    "The authoritative final source/test target is main commit 8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0 and tree e4a8adcbb60e510d05bf1f58ab053f86f530af55, directly parented by clean reviewed tip 1f67aec09dd22fcb140192328dd02c1e3c2b591c.",
+    "Official create_contract signs initiative_id, max_attempts, and created_at; record_run binds the exact contract signature and evaluator actor, authority, credential hash, principal creation time, and credential issuance-event signature into its HMAC.",
+    "Official evaluator provisioning and rotation append a signed sequence/previous-signature credential provenance chain; old run provenance remains valid after official rotation, while raw credential replacement and fake valid-HMAC event insertion fail closed.",
+    "The shared completion verifier remains the single SQL-trigger and runtime path and requires signed contracts, contract-before-run chronology, principal-before-issuance/run chronology, exact run-bound provenance, a complete official rotation chain, and active principal authority.",
+    "Additive migration leaves unverifiable historical contract/run provenance columns null and therefore does not bless historical active completions.",
+    "Legitimate contract creation, official credential rotation, multi-attempt variation, exact bound completion, and unbound behavior remain supported.",
+    "Earlier Task 148 source and evidence are committed in reviewed parent 1f67aec; main is aligned to 8f48f6c; current final evidence files are intentionally uncommitted; independent review remains pending."
   ],
   "known_limits": [
     "No independent acceptance is claimed; a fresh reviewer must review the exact final commit/tree.",
-    "No D0, D1, D2, treatment, protocol, Phase D runner, external system, credential, approval, PixWeave source, protected Phase D evidence, or data mutation was authorized or performed.",
+    "No D0, D1, D2, treatment, protocol, Phase D runner, external system, credential, approval, PixWeave source, protected Phase D evidence, or live data mutation was authorized or performed.",
     "No push or other external action was performed."
   ],
   "open_items": [
-    "A fresh Control & Reliability reviewer must review commit d25f3272ef7ed87674f6e3fe5c6d974af44e7a96 and tree 1386710e89156b0621fe49427cc431ab9c0174a3 before changing independent review status."
+    "A fresh Control & Reliability Reviewer must review commit 8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0 and tree e4a8adcbb60e510d05bf1f58ab053f86f530af55 before changing independent review status."
   ],
   "handoffs": [
     {
       "to_role": "Control & Reliability Reviewer",
       "handoff_type": "control_review",
-      "summary": "The final Task 148 full-ledger finding is implemented and verified on the exact fixed source/test target; independent acceptance is pending.",
-      "decision_needed": "Independently review the full-ledger issuance-semantic verifier, SQL/runtime reuse, valid-HMAC adversarial RED/GREEN provenance, atomic rollback, and official-evaluator compatibility controls.",
+      "summary": "The final Task 148 issuance-provenance finding is implemented and verified on the exact committed source/test target; independent acceptance is pending.",
       "artifact_refs": [
-        "commit:d25f3272ef7ed87674f6e3fe5c6d974af44e7a96",
-        "tree:1386710e89156b0621fe49427cc431ab9c0174a3",
+        "commit:8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0",
+        "tree:e4a8adcbb60e510d05bf1f58ab053f86f530af55",
         "/home/tony/agent-company/evidence/task-148/verification-report.md",
         "/home/tony/agent-company/evidence/task-148/evidence-manifest.json",
         "/home/tony/agent-company/evidence/task-148/review-log.md"
-      ]
+      ],
+      "decision_needed": "Independently review contract signatures, evaluator credential provenance chain and rotation semantics, run-bound snapshots/HMAC, additive no-blessing migration, SQL/runtime verifier reuse, chronology, valid-HMAC attacks, and atomic rollback."
     }
   ]
 }

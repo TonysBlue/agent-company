@@ -2,55 +2,65 @@
   "schema_version": "agent-company-evidence-manifest/v1",
   "repository": "agent-company",
   "task_id": 148,
-  "remediation": "final-trusted-eval-full-attempt-ledger-verification",
-  "reviewed_commit": "334b622615cd66755d15011a1fa95cdecfc985d4",
-  "reviewed_tree": "6f7dcb1581986408fc8ba3e1556c938ee2db3c61",
-  "final_branch_commit": "d25f3272ef7ed87674f6e3fe5c6d974af44e7a96",
-  "final_branch_tree": "1386710e89156b0621fe49427cc431ab9c0174a3",
-  "final_branch_parent": "334b622615cd66755d15011a1fa95cdecfc985d4",
-  "final_branch_subject": "fix: validate trusted eval attempt ledgers",
-  "final_source_test_status": "committed_at_exact_final_target_no_push",
-  "source_test_patch_sha256": "001bd896ae01aaa9062724acf0913a0de3b2273e6fa29a7f9818690e7ba8d9c7",
-  "prior_evidence_integration_status": "integrated_at_reviewed_parent_334b622_not_ahead_or_uncommitted",
-  "current_evidence_handoff_status": "four_updated_task_148_files_in_worktree_outside_final_source_test_tree",
-  "independent_review_status": "pending_fresh_final_branch_tree_review",
+  "remediation": "final-trusted-eval-contract-and-evaluator-issuance-provenance",
+  "reviewed_commit": "1f67aec09dd22fcb140192328dd02c1e3c2b591c",
+  "reviewed_tree": "1577b213f07c27733ceba1ccf37adf4e6ba58f28",
+  "final_branch_commit": "8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0",
+  "final_branch_tree": "e4a8adcbb60e510d05bf1f58ab053f86f530af55",
+  "final_branch_parent": "1f67aec09dd22fcb140192328dd02c1e3c2b591c",
+  "final_branch_subject": "fix: bind trusted eval issuance provenance",
+  "final_source_test_status": "committed_on_main_aligned_to_exact_final_target_no_push",
+  "source_test_patch_sha256": "d5d8e3c4db67a6c1c2e59d6c8f11d0dd47cc80a587f4e85aabf375f020b39ef0",
+  "prior_source_evidence_status": "committed_in_reviewed_parent_1f67aec",
+  "current_evidence_handoff_status": "verification_report_continuity_manifest_and_review_log_modified_uncommitted_after_source_commit",
+  "historical_status_label": "earlier captured Task 148 status text is preserved as historical and is not current state",
+  "independent_review_status": "pending_fresh_final_commit_tree_review",
   "red_test": {
-    "provenance": "isolated git archive of exact parent 334b622 with final test file copied in and parent production code unchanged",
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_official_multi_attempt_trusted_eval_ledger_allows_completion -v",
-    "ran": 8,
-    "passed": 1,
-    "failures": 7,
+    "production_state": "exact clean tip 1f67aec; production unchanged",
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_mutated_trusted_eval_contract_budget_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_mutated_trusted_eval_contract_creation_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_principal_created_after_run_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_unrecorded_evaluator_credential_substitution_atomically -v",
+    "ran": 4,
+    "passed": 0,
+    "failures": 4,
     "errors": 0,
-    "seconds": 1.249,
+    "seconds": 0.553,
     "exit_status": 1,
     "result": "expected_fail",
-    "interpretation": "all seven signed/adversarial ledger attacks were accepted; the official evaluator multi-attempt compatibility control passed"
+    "interpretation": "all four valid signed-completion attacks were accepted by the unsigned-contract/current-principal verifier"
+  },
+  "additional_red_test": {
+    "command": "python3.11 -m unittest tests.test_trusted_evaluator.TrustedEvaluatorTest.test_official_contract_issuance_is_cryptographically_anchored tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_migration_does_not_bless_legacy_unsigned_active_completion -v",
+    "ran": 2,
+    "passed": 0,
+    "failures": 0,
+    "errors": 2,
+    "seconds": 0.205,
+    "exit_status": 1,
+    "result": "expected_fail",
+    "interpretation": "official signed create_contract and additive no-blessing migration columns did not exist"
   },
   "green_test": {
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_official_multi_attempt_trusted_eval_ledger_allows_completion -v",
-    "ran": 8,
-    "passed": 8,
-    "seconds": 1.173,
+    "scope": "signed issuance; unsigned and re-signed contract mutations; contract-after-run chronology; principal/run chronology; raw credential and fake-provenance substitution; official rotation; no-blessing migration; multi-attempt variation; legitimate completion",
+    "ran": 12,
+    "passed": 12,
+    "seconds": 1.944,
     "exit_status": 0,
     "result": "pass",
-    "atomicity": "signed direct-SQL denial helper asserts unchanged task, execution, task binding, completion count, audit count, and event count; stale/latest attack also asserts runtime completion denial"
+    "atomicity": "direct-SQL denial helper asserts unchanged task, execution, task binding, completion count, audit count, and event count"
   },
   "focused_test": {
     "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials tests.test_dashboard tests.test_event_engine -q",
-    "passed": 194,
-    "seconds": 21.077,
+    "passed": 204,
+    "seconds": 25.870,
     "exit_status": 0,
     "result": "pass"
   },
   "canonical_test": {
     "command": "python3.11 -m unittest discover -s tests -v",
-    "passed": 353,
-    "seconds": 49.542,
+    "passed": 363,
+    "seconds": 54.891,
     "exit_status": 0,
     "result": "pass",
-    "quiet_confirmation_seconds": 46.019,
-    "prior_overlapping_observation": "a concurrent canonical attempt ran 353 tests in 49.554 seconds and reported one temporary Git metadata concurrency error; the isolated rerun passed",
-    "phase_d_scope": "unit tests inspected existing controls; no D0/D1/D2 runner, treatment, protocol, or Phase D runner command was invoked"
+    "phase_d_scope": "unit tests inspected existing controls only; no D0/D1/D2 runner, treatment, protocol, or Phase D runner command invoked"
   },
   "pixweave": {
     "command": "python3.11 -m unittest discover -s tests -v",
@@ -58,7 +68,8 @@
     "tree": "6f2d526d912fcf283937cd265d298004a31c00b2",
     "worktree": "clean_main_aligned_with_origin",
     "passed": 58,
-    "seconds": 0.312,
+    "seconds": 0.350,
+    "exit_status": 0,
     "result": "pass"
   },
   "validation": {
@@ -67,6 +78,11 @@
       "errors": [],
       "ok": true,
       "result": "pass"
+    },
+    "fresh_temporary_init_migration_validation": {
+      "result": "pass",
+      "trusted_eval_trigger_count": 10,
+      "legacy_unsigned_backfill": "null_not_blessed"
     },
     "compile": {
       "command": "python3.11 -m compileall -q agent_company tests",
@@ -84,16 +100,16 @@
   "security_scan": {
     "tool": "bandit 1.9.4",
     "agent_company": {
-      "command": "bandit -r agent_company -f json",
+      "command": "/tmp/task148-bandit-venv/bin/bandit -r agent_company -f json",
       "high": 0,
       "medium": 6,
       "low": 26,
-      "loc": 12706,
+      "loc": 13263,
       "errors": [],
       "result": "pass_no_high"
     },
     "pixweave": {
-      "command": "bandit -r /home/tony/products/pixweave/pixweave -f json",
+      "command": "/tmp/task148-bandit-venv/bin/bandit -r /home/tony/products/pixweave/pixweave -f json",
       "high": 0,
       "medium": 0,
       "low": 0,
@@ -109,12 +125,12 @@
         "evidence/phase-d"
       ],
       "file_count": 611,
-      "inventory_sha256": "387d8bd7c7f774e7a7ee059943de864a49a759d57ceba3432d7520e772cb065f",
+      "inventory_sha256": "73e4ba77313ae9dd6862e92ca6cc402adabd3cdbd56ed89ddc49cd6b289a6903",
       "unchanged": true
     },
     "data": {
       "file_count": 120,
-      "inventory_sha256": "9e431ac06cbc41fb690b1b29fa0d476363627746af0f726b5a6d1105464a1664",
+      "inventory_sha256": "287e9a02085d1c24b3d0575ff93e70d6f54021eb15affdbf480bf93074daddae",
       "unchanged": true
     },
     "company_sqlite3_sha256": "dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48",
@@ -131,24 +147,28 @@
     "pushed": false
   },
   "code_sha256": {
-    "agent_company/completion_verifier.py": "4c7b96bd2dd4367de3ea82d095ac1a3545f91f8c470d3667142ae4e1430bafc2",
-    "tests/test_completion_assurance_gate.py": "3c4b732d43b5e4147809fcc3d0e7b7e90f4db9ebd9bd943effe8b7123e3e1355"
+    "agent_company/assurance.py": "826f71e78c7ee002e20e42afe95f6e9d083df72222d712984a9363a0b088951a",
+    "agent_company/completion_verifier.py": "16ff73e07ec387407157e4a54409f494079a61bb760704bd4951531c0ca5ec5f",
+    "agent_company/trusted_evaluator.py": "4c56dc4db3f139f57d055fb84c46b24462a5053235cdca5ee8712ae829ab662b",
+    "tests/test_assurance_cli.py": "9918a975fa1b9255a8910a3fbec5c28cd1167889c35c19a0051710918bff6666",
+    "tests/test_completion_assurance_gate.py": "e433054854112a694a5ac0a69f1cb7f8f174553da61163fdb3f8f82dfaca5244",
+    "tests/test_trusted_evaluator.py": "3a196a2725b3cf1bd805ce90eab3f4b305527c74706aeed969b161a1fe541ed2"
   },
   "artifacts": [
     {
       "path": "verification-report.md",
-      "purpose": "Authoritative final full-ledger controls, target, verification, protected-state, and pending-review report",
-      "sha256": "8acc0d83fef7cb84f168be69782e348ba5d45c22496cf6ddebb93f8345586d60"
+      "purpose": "Authoritative final issuance-provenance controls, exact committed target, verification, protected-state, and pending-review report",
+      "sha256": "753a0ed70fdd4dd6285530fc16a0dc04154578f91475edc6f6a96aece4ea4c57"
     },
     {
       "path": "CONTINUITY.json",
-      "purpose": "Structured handoff for exact final commit/tree and pending independent review",
-      "sha256": "b5ab4dbda800d118403951cc195a81855112fc85ca65a6dfaaf91dc876d3768f"
+      "purpose": "Structured handoff for exact final commit/tree, current committed/aligned status, and pending independent review",
+      "sha256": "09d096659d0a9056406c587f4666ddf0b83a99e332493108065463790742456d"
     },
     {
       "path": "review-log.md",
-      "purpose": "Append-only exact RED/GREEN and final verification record including prior Task 148 history",
-      "sha256": "8d57a2410b54010051a3e487c4a53d5284c76fc2c67b7bc89732fb1eeafc2da7"
+      "purpose": "Append-only exact RED/GREEN/results record; earlier status sections explicitly labeled historical",
+      "sha256": "2d5f000d88d68640005b2134e04e5b41d64cb9668df6d91b3be1d8d5ac052b4c"
     },
     {
       "path": "red-test-output.txt",

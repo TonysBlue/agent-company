@@ -7,6 +7,10 @@ were not rewritten for this follow-up.
 
 Independent acceptance remains pending. Nothing in this log is an approval.
 
+Current-state authority is the final section appended below. Earlier branch, commit,
+verification, and integration statements in this append-only log are preserved and
+must be read as historical captures, not as current status.
+
 ## 2026-08-04 — RED 1: coordinated completion and kill-switch bypasses
 
 Production code was unchanged from `64010df` when this command ran:
@@ -795,3 +799,159 @@ No protected Phase D evidence, PixWeave source, data, credentials, approvals, or
 external system was changed. Services remain stopped. Independent review of exact
 commit `d25f3272ef7ed87674f6e3fe5c6d974af44e7a96` and tree
 `1386710e89156b0621fe49427cc431ab9c0174a3` remains pending.
+
+## 2026-08-04 — Final issuance-provenance RED
+
+Production remained at exact clean tip
+`1f67aec09dd22fcb140192328dd02c1e3c2b591c` when these four direct-SQL attacks
+ran:
+
+```text
+python3.11 -m unittest \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_mutated_trusted_eval_contract_budget_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_mutated_trusted_eval_contract_creation_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_principal_created_after_run_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_unrecorded_evaluator_credential_substitution_atomically -v
+```
+
+Exact captured terminal result:
+
+```text
+test_signed_sql_rejects_mutated_trusted_eval_contract_budget_atomically ... FAIL
+test_signed_sql_rejects_mutated_trusted_eval_contract_creation_atomically ... FAIL
+test_signed_sql_rejects_evaluator_principal_created_after_run_atomically ... FAIL
+test_signed_sql_rejects_unrecorded_evaluator_credential_substitution_atomically ... FAIL
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.553s
+
+FAILED (failures=4)
+```
+
+Exit status `1`, expected RED. Each signed completion was accepted, proving that
+contract budget/creation fields were unsigned and that the verifier trusted mutable
+current evaluator state without run-bound credential/principal provenance. The
+existing denial helper would have proved task/execution/binding/audit/event atomicity
+had a denial occurred; instead, every expected denial was absent.
+
+The issuance and migration REDs then ran with production still lacking the fix:
+
+```text
+python3.11 -m unittest \
+tests.test_trusted_evaluator.TrustedEvaluatorTest.test_official_contract_issuance_is_cryptographically_anchored \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_migration_does_not_bless_legacy_unsigned_active_completion -v
+
+test_official_contract_issuance_is_cryptographically_anchored ... ERROR
+test_migration_does_not_bless_legacy_unsigned_active_completion ... ERROR
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.205s
+
+FAILED (errors=2)
+```
+
+Exit status `1`, expected RED. `TrustedEvaluator.create_contract` did not exist and
+the additive integrity column was absent.
+
+## 2026-08-04 — Final issuance-provenance GREEN and results
+
+Final source/test target:
+
+```text
+commit  8f48f6cc947ad7aa7f91bc5660176b3bcaded4c0
+tree    e4a8adcbb60e510d05bf1f58ab053f86f530af55
+parent  1f67aec09dd22fcb140192328dd02c1e3c2b591c
+subject fix: bind trusted eval issuance provenance
+branch  main aligned to final source commit; ahead of origin/main by 1
+patch SHA-256 d5d8e3c4db67a6c1c2e59d6c8f11d0dd47cc80a587f4e85aabf375f020b39ef0
+```
+
+Final security and compatibility command covered official signed contract issuance,
+unsigned and re-signed contract mutations, contract-after-run chronology, principal
+creation chronology, re-signed post-dated provenance, raw credential substitution,
+fake valid-HMAC provenance insertion, official rotation, safe legacy migration,
+official multi-attempt variation, and legitimate completion.
+
+```text
+----------------------------------------------------------------------
+Ran 12 tests in 1.944s
+
+OK
+elapsed_seconds=2.06 exit_status=0
+```
+
+Focused Phase C/runtime result:
+
+```text
+----------------------------------------------------------------------
+Ran 204 tests in 25.870s
+
+OK
+elapsed_seconds=26.02 exit_status=0
+```
+
+Canonical Agent Company result:
+
+```text
+----------------------------------------------------------------------
+Ran 363 tests in 54.891s
+
+OK
+elapsed_seconds=55.11 exit_status=0
+```
+
+Phase D unit tests only inspected existing denial controls. No D0, D1, D2,
+treatment, protocol, or Phase D runner command was invoked.
+
+PixWeave read-only result:
+
+```text
+branch  main (clean and aligned with origin/main)
+commit  d78094f26eb697c810899a40771a8af6dec7ce19
+tree    6f2d526d912fcf283937cd265d298004a31c00b2
+
+----------------------------------------------------------------------
+Ran 58 tests in 0.350s
+
+OK
+elapsed_seconds=0.55 exit_status=0
+```
+
+Validation, migration, compilation, diff, and security results:
+
+```text
+live read-only validation: {"errors": [], "ok": true}
+fresh temporary init + assurance-init + migration/integrity + validate: pass
+fresh Trusted Eval tables/triggers: expected expanded columns, 10 triggers
+python3.11 -m compileall -q agent_company tests: exit 0
+rg --files -0 agent_company tests -g '*.py' | xargs -0 python3.11 -m py_compile: exit 0
+git diff --check: exit 0
+Bandit 1.9.4 Agent Company: 0 High, 6 Medium, 26 Low, 13263 lines, no errors
+Bandit 1.9.4 PixWeave:      0 High, 0 Medium, 0 Low, 3218 lines, no errors
+```
+
+Protected-state and service results:
+
+```text
+Phase D protected inventory: 611 files
+73e4ba77313ae9dd6862e92ca6cc402adabd3cdbd56ed89ddc49cd6b289a6903
+
+data inventory: 120 files
+287e9a02085d1c24b3d0575ff93e70d6f54021eb15affdbf480bf93074daddae
+
+data/company.sqlite3
+dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48
+
+git diff 1f67aec --name-only -- docs/assurance/phase-d evidence/phase-d data credentials approvals
+exit 0, no output
+
+all six checked Agent Company/PixWeave systemd units
+inactive
+```
+
+Current state: source and tests are committed at the exact final target; earlier
+Task 148 source/evidence is committed in reviewed parent `1f67aec`; `main` is aligned
+to final source commit `8f48f6c`; this report, CONTINUITY, manifest, and appended log
+are intentionally uncommitted evidence handoff changes. No push was performed.
+Independent review of exact commit/tree remains pending. Nothing in this log is an
+approval or independent acceptance.
