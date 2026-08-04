@@ -44,9 +44,9 @@ completion remains unverifiable rather than being blessed during migration.
 - Final source/test tree: `e4a8adcbb60e510d05bf1f58ab053f86f530af55`
 - Subject: `fix: bind trusted eval issuance provenance`
 - Patch SHA-256 from parent: `d5d8e3c4db67a6c1c2e59d6c8f11d0dd47cc80a587f4e85aabf375f020b39ef0`
-- Current source/evidence status: source and tests committed; prior Task 148 evidence
-  committed in the reviewed parent; this final evidence handoff intentionally
-  uncommitted; `main` aligned to final source commit; no push performed.
+- Current source/evidence status: source, tests, and current Task 148 evidence are
+  committed; `main` is aligned to the final evidence tip; historical command captures
+  retain their original status labels; no push performed.
 
 Historical status text in preserved earlier Task 148 evidence and earlier sections
 of `review-log.md` remains historical and is not a current-state claim.

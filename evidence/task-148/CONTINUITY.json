@@ -22,7 +22,7 @@
     "The shared completion verifier remains the single SQL-trigger and runtime path and requires signed contracts, contract-before-run chronology, principal-before-issuance/run chronology, exact run-bound provenance, a complete official rotation chain, and active principal authority.",
     "Additive migration leaves unverifiable historical contract/run provenance columns null and therefore does not bless historical active completions.",
     "Legitimate contract creation, official credential rotation, multi-attempt variation, exact bound completion, and unbound behavior remain supported.",
-    "Earlier Task 148 source and evidence are committed in reviewed parent 1f67aec; main is aligned to 8f48f6c; current final evidence files are intentionally uncommitted; independent review remains pending."
+    "Earlier Task 148 source and evidence are committed in reviewed parent 1f67aec; main is aligned to 8f48f6c; current final evidence is committed at the final evidence tip; independent review remains pending."
   ],
   "known_limits": [
     "No independent acceptance is claimed; a fresh reviewer must review the exact final commit/tree.",

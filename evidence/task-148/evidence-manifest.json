@@ -12,7 +12,7 @@
   "final_source_test_status": "committed_on_main_aligned_to_exact_final_target_no_push",
   "source_test_patch_sha256": "d5d8e3c4db67a6c1c2e59d6c8f11d0dd47cc80a587f4e85aabf375f020b39ef0",
   "prior_source_evidence_status": "committed_in_reviewed_parent_1f67aec",
-  "current_evidence_handoff_status": "verification_report_continuity_manifest_and_review_log_modified_uncommitted_after_source_commit",
+  "current_evidence_handoff_status": "current_task_148_evidence_committed_at_final_evidence_tip_and_main_aligned; historical_command_captures_retain_original_labels",
   "historical_status_label": "earlier captured Task 148 status text is preserved as historical and is not current state",
   "independent_review_status": "pending_fresh_final_commit_tree_review",
   "red_test": {
@@ -158,12 +158,12 @@
     {
       "path": "verification-report.md",
       "purpose": "Authoritative final issuance-provenance controls, exact committed target, verification, protected-state, and pending-review report",
-      "sha256": "753a0ed70fdd4dd6285530fc16a0dc04154578f91475edc6f6a96aece4ea4c57"
+      "sha256": "53e5e470a17e57f9c4592445c653b83f7931ee0b0f22d85738d895e6de8b362f"
     },
     {
       "path": "CONTINUITY.json",
       "purpose": "Structured handoff for exact final commit/tree, current committed/aligned status, and pending independent review",
-      "sha256": "09d096659d0a9056406c587f4666ddf0b83a99e332493108065463790742456d"
+      "sha256": "5126f3a11dd68ca1e735604cfa22937f1c72718ec308db07d20f0449d1487504"
     },
     {
       "path": "review-log.md",
