@@ -6,7 +6,6 @@ import argparse
 import html
 import json
 import os
-import sqlite3
 import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -17,6 +16,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from .config import CompanyConfig, load_config
+from .db import Store
 from .models import ON_DEMAND_CAPABILITIES
 
 
@@ -52,15 +52,14 @@ def _utcnow() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _row_dicts(rows: list[sqlite3.Row]) -> list[dict[str, Any]]:
+def _row_dicts(rows: list[Any]) -> list[dict[str, Any]]:
     return [dict(row) for row in rows]
 
 
-def _connect_readonly(db_path: Path) -> sqlite3.Connection:
-    uri = f"file:{db_path.resolve()}?mode=ro"
-    conn = sqlite3.connect(uri, uri=True)
-    conn.row_factory = sqlite3.Row
-    return conn
+def _connect_readonly(db_path: Path, *, workspace: Path | None = None) -> Any:
+    return Store(
+        db_path.resolve(), workspace=workspace or db_path.resolve().parent.parent,
+    ).connect_readonly()
 
 
 def _mtime(path: Path) -> str | None:
@@ -163,7 +162,7 @@ def _sqlite_snapshot(config: CompanyConfig) -> dict[str, Any]:
         empty["database"]["error"] = "database file not found"
         return empty
     try:
-        with _connect_readonly(config.db_path) as conn:
+        with _connect_readonly(config.db_path, workspace=config.workspace) as conn:
             task_execution_table = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_executions'"
             ).fetchone()
@@ -661,7 +660,7 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
         for agent in agents
     }
     if config.db_path.exists():
-        with _connect_readonly(config.db_path) as conn:
+        with _connect_readonly(config.db_path, workspace=config.workspace) as conn:
             token_usage = _token_usage_snapshot(conn, agents)
             workload = _agent_workload(tasks, sqlite_data["task_executions"], agents, token_usage)
     execution_timeline, average_cycle_duration = _execution_timing(

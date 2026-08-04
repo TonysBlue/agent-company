@@ -163,7 +163,7 @@ class CEORuntime:
         external_delivery_enabled: bool | None = None,
     ):
         self.config = config
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
         self.reasoner = reasoner or HermesOneShotReasoner(config)
         self.sender = sender or HermesWeixinSender(config)
         self.external_delivery_enabled = (

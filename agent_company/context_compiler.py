@@ -38,7 +38,7 @@ def _version(text: str, fallback: str) -> str:
 class ContextCompiler:
     def __init__(self, config: CompanyConfig, *, context_root: Path | None = None):
         self.config = config
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
         self.store.init()
         self.context_root = context_root or config.workspace / "company_context"
 

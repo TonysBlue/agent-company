@@ -167,6 +167,8 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self, result_sha256: str, *, artifact_set_sha256: str | None = None,
         decision: str = "approve", artifact_id: str = "completion-review",
         owner_principal: str = "principal-reviewer",
+        findings: list[str] | None = None,
+        evidence_refs: list[str] | None = None,
     ) -> None:
         actor = self.credentials[owner_principal][0]
         review = {
@@ -182,8 +184,8 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             "repository_id": "agent-company",
             "content": {
                 "decision": decision,
-                "findings": [],
-                "evidence_refs": [
+                "findings": findings or [],
+                "evidence_refs": evidence_refs or [
                     result_sha256,
                     artifact_set_sha256 or self.artifact_set_sha256,
                 ],
@@ -193,6 +195,168 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         self.kernel.approve_artifact(
             artifact_id, 1, actor="CEO", principal_id="principal-ceo",
         )
+
+    def _completion_sql_material(
+        self, result_sha256: str, *,
+        review_ref: str = "completion-review:v1",
+        task_evidence: list[str] | None = None,
+        execution_evidence: list[str] | None = None,
+        completed_at: str = "2026-07-28T12:00:00+00:00",
+    ) -> tuple[dict[str, object], str, str]:
+        task_evidence = task_evidence or [str(self.task_evidence)]
+        execution_evidence = execution_evidence or list(task_evidence)
+        assurance = {
+            "initiative_id": self.initiative_id,
+            "artifact_set_sha256": self.artifact_set_sha256,
+            "result_sha256": result_sha256,
+            "review_decision_ref": review_ref,
+        }
+        task_result_json = json.dumps({
+            "summary": "signed direct SQL completion",
+            "evidence": task_evidence,
+            "assurance": assurance,
+        }, sort_keys=True)
+        evidence_paths_json = json.dumps(execution_evidence, sort_keys=True)
+        review_id, _, version_text = review_ref.rpartition(":v")
+        review = self.osys.store.fetch_one(
+            "SELECT content_sha256 FROM assurance_artifacts "
+            "WHERE artifact_id=? AND version=?",
+            (review_id, int(version_text)),
+        )
+        values: dict[str, object] = {
+            "task_id": self.task_id,
+            "generation": int(self.claim["generation"]),
+            "initiative_id": self.initiative_id,
+            "artifact_set_sha256": self.artifact_set_sha256,
+            "trusted_eval_result_sha256": result_sha256,
+            "review_decision_ref": review_ref,
+            "review_content_sha256": review["content_sha256"],
+            "task_result_sha256": hashlib.sha256(
+                task_result_json.encode("utf-8")
+            ).hexdigest(),
+            "evidence_paths_sha256": hashlib.sha256(
+                evidence_paths_json.encode("utf-8")
+            ).hexdigest(),
+            "completed_at": completed_at,
+            "created_at": completed_at,
+        }
+        return values, task_result_json, evidence_paths_json
+
+    def _completion_insert_statement(
+        self, values: dict[str, object], task_result_json: str,
+        evidence_paths_json: str,
+    ) -> tuple[str, tuple[object, ...]]:
+        available = {
+            row["name"] for row in self.osys.store.fetch_all(
+                "PRAGMA table_info(assurance_completion_bindings)"
+            )
+        }
+        insert_values = dict(values)
+        if "task_result_json" in available:
+            insert_values["task_result_json"] = task_result_json
+        if "evidence_paths_json" in available:
+            insert_values["evidence_paths_json"] = evidence_paths_json
+        insert_values["integrity_signature"] = integrity_signature(
+            self.config.db_path, "completion-binding", values,
+        )
+        columns = tuple(insert_values)
+        statement = (
+            f"INSERT INTO assurance_completion_bindings({','.join(columns)}) "
+            f"VALUES ({','.join('?' for _ in columns)})"
+        )
+        return statement, tuple(insert_values[column] for column in columns)
+
+    def _completion_state(self) -> dict[str, object]:
+        with self.osys.store.connect_readonly() as conn:
+            return {
+                "task": dict(conn.execute(
+                    "SELECT status,result,updated_at FROM tasks WHERE id=?",
+                    (self.task_id,),
+                ).fetchone()),
+                "execution": dict(conn.execute(
+                    "SELECT recovery_status,evidence_paths,updated_at "
+                    "FROM task_executions WHERE task_id=?", (self.task_id,),
+                ).fetchone()),
+                "binding": dict(conn.execute(
+                    "SELECT completion_result_sha256,review_decision_ref,completed_at,"
+                    "updated_at FROM assurance_task_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()),
+                "completions": conn.execute(
+                    "SELECT COUNT(*) FROM assurance_completion_bindings WHERE task_id=?",
+                    (self.task_id,),
+                ).fetchone()[0],
+                "audits": conn.execute("SELECT COUNT(*) FROM audit_log").fetchone()[0],
+                "events": conn.execute("SELECT COUNT(*) FROM execution_events").fetchone()[0],
+            }
+
+    def _refresh_execution_principal_snapshot(self) -> None:
+        with self.osys.store.connect() as conn:
+            binding = conn.execute(
+                "SELECT * FROM assurance_execution_bindings WHERE task_id=?",
+                (self.task_id,),
+            ).fetchone()
+            snapshot = self.gate._execution_snapshot(conn, self.initiative_id)
+            values = {
+                "task_id": binding["task_id"],
+                "generation": binding["generation"],
+                "initiative_id": binding["initiative_id"],
+                "artifact_set_sha256": binding["artifact_set_sha256"],
+                "evaluation_policy_sha256": binding["evaluation_policy_sha256"],
+                "principal_state_sha256": snapshot["principal_state_sha256"],
+                "context_bundle_sha256": binding["context_bundle_sha256"],
+                "fencing_token_sha256": binding["fencing_token_sha256"],
+                "created_at": binding["created_at"],
+            }
+            conn.execute("DROP TRIGGER assurance_execution_bindings_immutable_update")
+            conn.execute(
+                "UPDATE assurance_execution_bindings SET principal_state_sha256=?,"
+                "integrity_signature=? WHERE task_id=? AND generation=?",
+                (
+                    values["principal_state_sha256"],
+                    integrity_signature(
+                        self.config.db_path, "execution-binding", values,
+                    ),
+                    self.task_id, binding["generation"],
+                ),
+            )
+
+    def _assert_signed_sql_completion_rejected(
+        self, result_sha256: str, *,
+        review_ref: str = "completion-review:v1",
+        task_evidence: list[str] | None = None,
+        execution_evidence: list[str] | None = None,
+    ) -> None:
+        values, task_result_json, evidence_paths_json = self._completion_sql_material(
+            result_sha256, review_ref=review_ref, task_evidence=task_evidence,
+            execution_evidence=execution_evidence,
+        )
+        statement, parameters = self._completion_insert_statement(
+            values, task_result_json, evidence_paths_json,
+        )
+        before = self._completion_state()
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "completion.*integrity"):
+            with self.osys.store.connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                conn.execute(statement, parameters)
+                conn.execute(
+                    "UPDATE assurance_task_bindings SET completion_result_sha256=?,"
+                    "review_decision_ref=?,completed_at=?,updated_at=? WHERE task_id=?",
+                    (
+                        result_sha256, review_ref, values["completed_at"],
+                        values["completed_at"], self.task_id,
+                    ),
+                )
+                conn.execute(
+                    "UPDATE task_executions SET recovery_status='completed',"
+                    "evidence_paths=?,updated_at=? WHERE task_id=?",
+                    (evidence_paths_json, values["completed_at"], self.task_id),
+                )
+                conn.execute(
+                    "UPDATE tasks SET status='done',result=?,updated_at=? WHERE id=?",
+                    (task_result_json, values["completed_at"], self.task_id),
+                )
+        self.assertEqual(self._completion_state(), before)
 
     def _assert_denial_is_atomic(self, expected: str) -> None:
         with self.osys.store.connect_readonly() as conn:
@@ -769,6 +933,7 @@ class CompletionAssuranceGateTest(unittest.TestCase):
                 "UPDATE assurance_principals SET authority='reviewer' "
                 "WHERE principal_id='principal-evaluator'"
             )
+        self._refresh_execution_principal_snapshot()
         self._record_review(result_sha256, owner_principal="principal-evaluator")
         self._assert_denial_is_atomic("principal authority or credential")
 
@@ -891,6 +1056,339 @@ class CompletionAssuranceGateTest(unittest.TestCase):
         )
 
         self.assertEqual(self.osys.validate(), [])
+
+    def test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_runs_immutable_update")
+            run = conn.execute(
+                "SELECT * FROM trusted_eval_runs WHERE initiative_id=?",
+                (self.initiative_id,),
+            ).fetchone()
+            forged_values = {
+                "initiative_id": run["initiative_id"],
+                "attempt": run["attempt"],
+                "refs": {
+                    "candidate": run["candidate_sha256"],
+                    "dataset": run["dataset_sha256"],
+                    "grader": run["grader_sha256"],
+                    "environment": run["environment_sha256"],
+                },
+                "seed": run["seed"],
+                "status": run["status"],
+                "evidence_ref": run["evidence_ref"],
+                "evidence_sha256": "0" * 64,
+                "evaluator_principal_id": run["evaluator_principal_id"],
+                "result_sha256": run["result_sha256"],
+                "created_at": run["created_at"],
+            }
+            conn.execute(
+                "UPDATE trusted_eval_runs SET evidence_sha256=?,integrity_signature=? "
+                "WHERE initiative_id=?",
+                (
+                    forged_values["evidence_sha256"],
+                    integrity_signature(
+                        self.config.db_path, "trusted-eval-run", forged_values,
+                    ),
+                    self.initiative_id,
+                ),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_nonlatest_completed_trusted_eval_atomically(self) -> None:
+        stale_result_sha256 = self._record_eval()
+        evaluator = TrustedEvaluator(self.config)
+        refs = {
+            row["kind"]: row["manifest_sha256"]
+            for row in self.osys.store.fetch_all(
+                "SELECT kind,manifest_sha256 FROM trusted_eval_manifests"
+            )
+        }
+        latest_result_sha256 = str(evaluator.record_run(
+            initiative_id=self.initiative_id, refs=refs, seed=148,
+            status="completed", evidence_ref="evidence/trusted-eval.json",
+            max_attempts=3, actor="Trusted Evaluator",
+            principal_id="principal-evaluator",
+        )["result_sha256"])
+        self.assertNotEqual(latest_result_sha256, stale_result_sha256)
+        self._record_review(stale_result_sha256)
+
+        self._assert_signed_sql_completion_rejected(stale_result_sha256)
+
+    def test_signed_sql_rejects_tampered_trusted_eval_manifest_and_content_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER trusted_eval_manifests_immutable_update")
+            conn.execute(
+                "UPDATE trusted_eval_manifests SET manifest_json='{}' "
+                "WHERE kind='dataset'"
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_artifact_registrations_immutable_update")
+            conn.execute(
+                "UPDATE assurance_artifact_registrations SET integrity_signature=? "
+                "WHERE artifact_id='completion-review' AND version=1",
+                ("0" * 64,),
+            )
+            conn.execute("DROP TRIGGER assurance_artifact_lifecycle_immutable_update")
+            conn.execute(
+                "UPDATE assurance_artifact_lifecycle SET integrity_signature=? "
+                "WHERE artifact_id='completion-review' "
+                "AND version=1 AND sequence=2",
+                ("0" * 64,),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_review_with_invalid_approval_signature_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_artifact_approvals_immutable_update")
+            conn.execute(
+                "UPDATE assurance_artifact_approvals SET integrity_signature=? "
+                "WHERE artifact_id='completion-review' AND version=1",
+                ("0" * 64,),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        refs = {
+            row["kind"]: row["manifest_sha256"]
+            for row in self.osys.store.fetch_all(
+                "SELECT kind,manifest_sha256 FROM trusted_eval_manifests"
+            )
+        }
+        historical_result = {
+            "initiative_id": self.initiative_id,
+            "attempt": 2,
+            "refs": refs,
+            "seed": 149,
+            "status": "failed",
+            "evidence_ref": "evidence/trusted-eval.json",
+            "evidence_sha256": hashlib.sha256(
+                (self.root / "evidence" / "trusted-eval.json").read_bytes()
+            ).hexdigest(),
+        }
+        historical_sha256 = hashlib.sha256(json.dumps(
+            historical_result, sort_keys=True, separators=(",", ":"),
+        ).encode("ascii")).hexdigest()
+        created_at = "2026-07-28T11:00:00+00:00"
+        historical_values = {
+            **historical_result,
+            "evaluator_principal_id": "principal-reviewer",
+            "result_sha256": historical_sha256,
+            "created_at": created_at,
+        }
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                """INSERT INTO trusted_eval_runs(
+                       initiative_id,attempt,candidate_sha256,dataset_sha256,
+                       grader_sha256,environment_sha256,seed,status,evidence_ref,
+                       evidence_sha256,evaluator_principal_id,result_sha256,
+                       integrity_signature,created_at
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    self.initiative_id, 2, refs["candidate"], refs["dataset"],
+                    refs["grader"], refs["environment"], 149, "failed",
+                    historical_result["evidence_ref"],
+                    historical_result["evidence_sha256"], "principal-reviewer",
+                    historical_sha256, integrity_signature(
+                        self.config.db_path, "trusted-eval-run", historical_values,
+                    ), created_at,
+                ),
+            )
+        self._refresh_execution_principal_snapshot()
+        self._record_review(result_sha256, owner_principal="principal-reviewer")
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE assurance_principals SET authority='reviewer' "
+                "WHERE principal_id='principal-platform'"
+            )
+        self._refresh_execution_principal_snapshot()
+        self._record_review(result_sha256, owner_principal="principal-platform")
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_task_owner_review_even_with_valid_anchors_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        with self.osys.store.connect() as conn:
+            conn.execute(
+                "UPDATE tasks SET owner='Control & Reliability Reviewer' WHERE id=?",
+                (self.task_id,),
+            )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_any_contradictory_approved_review_atomically(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self._record_review(
+            result_sha256, artifact_id="contradictory-review", findings=["HIGH unresolved"],
+            evidence_refs=[result_sha256],
+        )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_contradictory_exact_refs_and_findings_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self._record_review(
+            result_sha256, artifact_id="contradictory-exact-review",
+            findings=["HIGH unresolved"],
+        )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_approved_reject_decision_atomically(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self._record_review(
+            result_sha256, artifact_id="contradictory-reject-review",
+            decision="reject",
+        )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_rejects_approved_review_missing_exact_refs_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self._record_review(
+            result_sha256, artifact_id="contradictory-missing-ref-review",
+            evidence_refs=[result_sha256],
+        )
+
+        self._assert_signed_sql_completion_rejected(result_sha256)
+
+    def test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        different = self.root / "evidence" / "different-result.md"
+        different.write_text("different evidence\n", encoding="utf-8")
+
+        self._assert_signed_sql_completion_rejected(
+            result_sha256,
+            task_evidence=[str(self.task_evidence)],
+            execution_evidence=[str(different)],
+        )
+
+    def test_completion_insert_fails_closed_without_registered_semantic_udf(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        values, task_result_json, evidence_paths_json = self._completion_sql_material(
+            result_sha256,
+        )
+        statement, parameters = self._completion_insert_statement(
+            values, task_result_json, evidence_paths_json,
+        )
+        before = self._completion_state()
+
+        with sqlite3.connect(self.config.db_path) as conn:
+            with self.assertRaisesRegex(sqlite3.OperationalError, "no such function"):
+                conn.execute(statement, parameters)
+        self.assertEqual(self._completion_state(), before)
+
+    def test_store_context_closes_connections_retained_by_udf_callbacks(self) -> None:
+        descriptor_dir = Path("/proc/self/fd")
+        if not descriptor_dir.is_dir():
+            self.skipTest("descriptor inventory is Linux-specific")
+        before = len(tuple(descriptor_dir.iterdir()))
+
+        for _ in range(64):
+            with self.osys.store.connect_readonly() as conn:
+                self.assertEqual(conn.execute("SELECT 1").fetchone()[0], 1)
+
+        after = len(tuple(descriptor_dir.iterdir()))
+        self.assertLessEqual(after - before, 4)
+
+    def test_validate_and_integrity_reject_signed_evidence_semantic_mismatch(self) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        different = self.root / "evidence" / "different-persisted-result.md"
+        different.write_text("different persisted evidence\n", encoding="utf-8")
+        values, task_result_json, evidence_paths_json = self._completion_sql_material(
+            result_sha256,
+            task_evidence=[str(self.task_evidence)],
+            execution_evidence=[str(different)],
+        )
+        statement, parameters = self._completion_insert_statement(
+            values, task_result_json, evidence_paths_json,
+        )
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_completion_bindings_insert_guard")
+            conn.execute("DROP TRIGGER tasks_bound_pilot_completion_guard")
+            conn.execute(statement, parameters)
+            conn.execute(
+                "UPDATE assurance_task_bindings SET completion_result_sha256=?,"
+                "review_decision_ref=?,completed_at=?,updated_at=? WHERE task_id=?",
+                (
+                    result_sha256, "completion-review:v1", values["completed_at"],
+                    values["completed_at"], self.task_id,
+                ),
+            )
+            conn.execute(
+                "UPDATE task_executions SET recovery_status='completed',evidence_paths=?,"
+                "updated_at=? WHERE task_id=?",
+                (evidence_paths_json, values["completed_at"], self.task_id),
+            )
+            conn.execute(
+                "UPDATE tasks SET status='done',result=?,updated_at=? WHERE id=?",
+                (task_result_json, values["completed_at"], self.task_id),
+            )
+        completion = self.osys.store.fetch_one(
+            "SELECT * FROM assurance_completion_bindings WHERE task_id=?",
+            (self.task_id,),
+        )
+
+        with self.osys.store.connect_readonly() as conn:
+            self.assertFalse(self.gate.completion_binding_valid(conn, completion))
+        self.assertIn(
+            f"Bound pilot task {self.task_id} completion state is inconsistent",
+            self.osys.validate(),
+        )
+        integrity = self.kernel.verify_integrity()
+        self.assertEqual(integrity["status"], "integrity_conflict")
+        self.assertTrue(any(
+            conflict.get("anchor") == "completion_binding"
+            for conflict in integrity["conflicts"]
+        ), integrity)
 
     def test_coordinated_raw_sql_cannot_forge_all_completion_state(self) -> None:
         completed_at = "2026-07-28T12:00:00+00:00"
@@ -2082,9 +2580,76 @@ class CompletionAssuranceGateTest(unittest.TestCase):
             "task_id", "generation", "initiative_id", "artifact_set_sha256",
             "trusted_eval_result_sha256", "review_decision_ref",
             "review_content_sha256", "task_result_sha256",
-            "evidence_paths_sha256", "completed_at", "created_at",
+            "evidence_paths_sha256", "task_result_json", "evidence_paths_json",
+            "completed_at", "created_at",
             "integrity_signature",
         })
+
+    def test_completed_binding_snapshot_migration_precedes_old_immutability_trigger(
+        self,
+    ) -> None:
+        result_sha256 = self._record_eval()
+        self._record_review(result_sha256)
+        self.osys.complete_task(
+            self.task_id, "Company Platform Engineer", "guarded result",
+            [self.task_evidence], fencing_token=str(self.claim["fencing_token"]),
+        )
+        with self.osys.store.connect() as conn:
+            conn.execute("DROP TRIGGER assurance_completion_bindings_insert_guard")
+            conn.execute("DROP TRIGGER assurance_completion_bindings_immutable_update")
+            conn.execute("DROP TRIGGER assurance_completion_bindings_immutable_delete")
+            conn.execute("DROP TRIGGER assurance_task_bindings_claimed_immutable_update")
+            conn.execute("DROP TRIGGER tasks_bound_pilot_completion_guard")
+            conn.execute(
+                """CREATE TABLE legacy_assurance_completion_bindings(
+                       task_id INTEGER PRIMARY KEY,generation INTEGER NOT NULL,
+                       initiative_id TEXT NOT NULL,artifact_set_sha256 TEXT NOT NULL,
+                       trusted_eval_result_sha256 TEXT NOT NULL,
+                       review_decision_ref TEXT NOT NULL,
+                       review_content_sha256 TEXT NOT NULL,
+                       task_result_sha256 TEXT NOT NULL,
+                       evidence_paths_sha256 TEXT NOT NULL,completed_at TEXT NOT NULL,
+                       created_at TEXT NOT NULL,integrity_signature TEXT NOT NULL
+                   )"""
+            )
+            conn.execute(
+                """INSERT INTO legacy_assurance_completion_bindings
+                   SELECT task_id,generation,initiative_id,artifact_set_sha256,
+                          trusted_eval_result_sha256,review_decision_ref,
+                          review_content_sha256,task_result_sha256,
+                          evidence_paths_sha256,completed_at,created_at,
+                          integrity_signature
+                   FROM assurance_completion_bindings"""
+            )
+            conn.execute("DROP TABLE assurance_completion_bindings")
+            conn.execute(
+                "ALTER TABLE legacy_assurance_completion_bindings "
+                "RENAME TO assurance_completion_bindings"
+            )
+            conn.execute(
+                """CREATE TRIGGER assurance_completion_bindings_immutable_update
+                   BEFORE UPDATE ON assurance_completion_bindings
+                   BEGIN SELECT RAISE(ABORT,
+                       'assurance completion binding is immutable'); END"""
+            )
+
+        self.gate.init()
+
+        completion = self.osys.store.fetch_one(
+            "SELECT * FROM assurance_completion_bindings WHERE task_id=?",
+            (self.task_id,),
+        )
+        task = self.osys.store.fetch_one(
+            "SELECT result FROM tasks WHERE id=?", (self.task_id,),
+        )
+        execution = self.osys.store.fetch_one(
+            "SELECT evidence_paths FROM task_executions WHERE task_id=?",
+            (self.task_id,),
+        )
+        self.assertEqual(completion["task_result_json"], task["result"])
+        self.assertEqual(completion["evidence_paths_json"], execution["evidence_paths"])
+        with self.osys.store.connect_readonly() as conn:
+            self.assertTrue(self.gate.completion_binding_valid(conn, completion))
 
 
 if __name__ == "__main__":

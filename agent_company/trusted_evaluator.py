@@ -23,7 +23,7 @@ STATUSES = {"failed", "abandoned", "completed"}
 class TrustedEvaluator:
     def __init__(self, config: CompanyConfig):
         self.config = config
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
         self.kernel = AssuranceKernel(config)
 
     def init(self) -> None:

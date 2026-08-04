@@ -24,7 +24,7 @@ HANDOFF_STATES = {
 
 class ContextKnowledge:
     def __init__(self, config: CompanyConfig):
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
         self.store.init()
 
     def update_role_continuity(

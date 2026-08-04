@@ -22,20 +22,35 @@ def utcnow() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+class StoreConnection(sqlite3.Connection):
+    """Commit or roll back and then release UDF closures at context exit."""
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> bool:
+        suppressed = False
+        try:
+            suppressed = bool(super().__exit__(exc_type, exc, traceback))
+        finally:
+            self.close()
+        return suppressed
+
+
 class Store:
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, *, workspace: Path | None = None):
         self.db_path = db_path
+        self.workspace = workspace or db_path.parent.parent
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
     def connect(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path, factory=StoreConnection)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         self._register_assurance_sql_functions(conn)
         return conn
 
     def connect_readonly(self) -> sqlite3.Connection:
-        conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True)
+        conn = sqlite3.connect(
+            f"file:{self.db_path}?mode=ro", uri=True, factory=StoreConnection,
+        )
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA query_only = ON")
         self._register_assurance_sql_functions(conn)
@@ -43,6 +58,7 @@ class Store:
 
     def _register_assurance_sql_functions(self, conn: sqlite3.Connection) -> None:
         db_path = self.db_path
+        workspace = self.workspace
 
         def sha256_text(value: object) -> str:
             return hashlib.sha256(str(value).encode("utf-8")).hexdigest()
@@ -74,6 +90,47 @@ class Store:
             payload = dict(zip(keys, values[:-1], strict=True))
             return int(verify(db_path, "completion-binding", payload, str(values[-1])))
 
+        def completion_binding_semantics_valid(*values: object) -> int:
+            from .completion_verifier import (
+                COMPLETION_SIGNATURE_KEYS,
+                completion_binding_valid,
+            )
+
+            if len(values) != 14:
+                return 0
+            completion = dict(zip(
+                (
+                    *COMPLETION_SIGNATURE_KEYS,
+                    "task_result_json", "evidence_paths_json", "integrity_signature",
+                ),
+                values,
+                strict=True,
+            ))
+            try:
+                return int(completion_binding_valid(
+                    conn, db_path, workspace, completion, stage="insert",
+                ))
+            except Exception:
+                return 0
+
+        def persisted_completion_valid(
+            task_id: object, task_result: object, task_updated_at: object,
+        ) -> int:
+            from .completion_verifier import completion_binding_valid
+
+            try:
+                completion = conn.execute(
+                    "SELECT * FROM assurance_completion_bindings WHERE task_id=?",
+                    (task_id,),
+                ).fetchone()
+                return int(completion_binding_valid(
+                    conn, db_path, workspace, completion, stage="task_update",
+                    task_result_override=str(task_result),
+                    task_updated_at_override=str(task_updated_at),
+                ))
+            except Exception:
+                return 0
+
         class ArtifactSetSha256:
             def __init__(self) -> None:
                 self.artifacts: list[dict[str, str]] = []
@@ -96,6 +153,14 @@ class Store:
         conn.create_function(
             "assurance_completion_signature_valid", 12,
             completion_signature_valid, deterministic=True,
+        )
+        conn.create_function(
+            "assurance_completion_binding_semantics_valid", 14,
+            completion_binding_semantics_valid,
+        )
+        conn.create_function(
+            "assurance_persisted_completion_valid", 3,
+            persisted_completion_valid,
         )
         conn.create_aggregate(
             "assurance_artifact_set_sha256", 2, ArtifactSetSha256,

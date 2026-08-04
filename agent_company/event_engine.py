@@ -29,7 +29,7 @@ class EventEngine:
 
         self.config = config
         self.osys = CompanyOS(config)
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
         self.ceo_runtime = ceo_runtime or CEORuntime(config)
         self.worker_id = f"{socket.gethostname()}:{os.getpid()}"
 

@@ -17,7 +17,7 @@ from .models import ON_DEMAND_CAPABILITIES
 class CompanyOS:
     def __init__(self, config: CompanyConfig):
         self.config = config
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
 
     def init(self) -> None:
         for path in [self.config.chairman_inbox, self.config.chairman_outbox, self.config.artifacts_dir, self.config.logs_dir]:

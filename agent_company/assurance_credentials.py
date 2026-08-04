@@ -16,7 +16,7 @@ from .db import Store, utcnow
 class CredentialManager:
     def __init__(self, config: CompanyConfig):
         self.config = config
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
         self.kernel = AssuranceKernel(config)
         self.data_dir = config.workspace / "data"
         self.credential_dir = self.data_dir / "assurance-credentials"

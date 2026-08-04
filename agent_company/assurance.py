@@ -138,7 +138,7 @@ class AssuranceKernel:
 
     def __init__(self, config: CompanyConfig):
         self.config = config
-        self.store = Store(config.db_path)
+        self.store = Store(config.db_path, workspace=config.workspace)
 
     def init(self) -> None:
         self.store.init_assurance()
