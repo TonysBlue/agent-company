@@ -2,89 +2,54 @@
   "schema_version": "agent-company-evidence-manifest/v1",
   "repository": "agent-company",
   "task_id": 148,
-  "remediation": "final-review-exact-completion-semantic-verifier",
-  "reviewed_commit": "3cb5b4ad354e59359f76d9958d971b664f189429",
-  "reviewed_tree": "588f2c0de9f9de4dd1887adbbc963ff31407b1fc",
-  "final_branch_commit": "4cde805d6ece9e0b7532b4620007036a3c8f9217",
-  "final_branch_tree": "dc09a890df65cb64b31ac848c241e75572035ff0",
-  "final_branch_parent": "3cb5b4ad354e59359f76d9958d971b664f189429",
-  "final_branch_subject": "fix: close task 148 completion assurance gaps",
-  "final_branch_ref_status": "main_branch_tip_ahead_of_origin_by_one",
-  "source_test_patch_sha256": "fd31ca83fbae1a164ccb81e8b6afe0b9721eb98b4d0128364a3bedbf57ac698d",
-  "evidence_tree_status": "four_task_148_evidence_files_uncommitted_outside_final_source_test_tree",
+  "remediation": "final-trusted-eval-full-attempt-ledger-verification",
+  "reviewed_commit": "334b622615cd66755d15011a1fa95cdecfc985d4",
+  "reviewed_tree": "6f7dcb1581986408fc8ba3e1556c938ee2db3c61",
+  "final_branch_commit": "d25f3272ef7ed87674f6e3fe5c6d974af44e7a96",
+  "final_branch_tree": "1386710e89156b0621fe49427cc431ab9c0174a3",
+  "final_branch_parent": "334b622615cd66755d15011a1fa95cdecfc985d4",
+  "final_branch_subject": "fix: validate trusted eval attempt ledgers",
+  "final_source_test_status": "committed_at_exact_final_target_no_push",
+  "source_test_patch_sha256": "001bd896ae01aaa9062724acf0913a0de3b2273e6fa29a7f9818690e7ba8d9c7",
+  "prior_evidence_integration_status": "integrated_at_reviewed_parent_334b622_not_ahead_or_uncommitted",
+  "current_evidence_handoff_status": "four_updated_task_148_files_in_worktree_outside_final_source_test_tree",
   "independent_review_status": "pending_fresh_final_branch_tree_review",
-  "red_tests": [
-    {
-      "name": "final_review_signed_sql_adversarial_probes",
-      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf -v",
-      "ran": 8,
-      "passed": 1,
-      "failures": 7,
-      "errors": 0,
-      "seconds": 1.28,
-      "exit_status": 1,
-      "result": "expected_fail",
-      "interpretation": "seven signed SQL completion attacks were incorrectly accepted; the raw missing-UDF connection failed closed"
-    },
-    {
-      "name": "completed_binding_snapshot_migration_order",
-      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger -v",
-      "ran": 1,
-      "failures": 0,
-      "errors": 1,
-      "seconds": 0.167,
-      "exit_status": 1,
-      "result": "expected_fail",
-      "error": "sqlite3.IntegrityError: assurance completion binding is immutable"
-    },
-    {
-      "name": "udf_connection_descriptor_lifecycle",
-      "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks -v",
-      "ran": 1,
-      "failures": 1,
-      "errors": 0,
-      "seconds": 0.172,
-      "exit_status": 1,
-      "result": "expected_fail",
-      "error": "AssertionError: 64 not less than or equal to 4"
-    }
-  ],
-  "implementation_regression_observations": [
-    {
-      "suite": "Agent Company canonical",
-      "ran_before_error": 339,
-      "seconds": 148.027,
-      "error": "ValueError: filedescriptor out of range in select()"
-    },
-    {
-      "suite": "Agent Company canonical",
-      "ran_before_error": 339,
-      "seconds": 144.083,
-      "error": "ValueError: filedescriptor out of range in select()"
-    }
-  ],
+  "red_test": {
+    "provenance": "isolated git archive of exact parent 334b622 with final test file copied in and parent production code unchanged",
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_official_multi_attempt_trusted_eval_ledger_allows_completion -v",
+    "ran": 8,
+    "passed": 1,
+    "failures": 7,
+    "errors": 0,
+    "seconds": 1.249,
+    "exit_status": 1,
+    "result": "expected_fail",
+    "interpretation": "all seven signed/adversarial ledger attacks were accepted; the official evaluator multi-attempt compatibility control passed"
+  },
   "green_test": {
-    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_with_invalid_runtime_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_nonlatest_completed_trusted_eval_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_tampered_trusted_eval_manifest_and_content_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_registration_and_lifecycle_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_review_with_invalid_approval_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_build_owner_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_evaluator_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_task_owner_review_even_with_valid_anchors_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_any_contradictory_approved_review_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_contradictory_exact_refs_and_findings_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_reject_decision_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_approved_review_missing_exact_refs_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_requires_task_and_execution_evidence_semantic_equality_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completion_insert_fails_closed_without_registered_semantic_udf tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_and_integrity_reject_signed_evidence_semantic_mismatch tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_store_context_closes_connections_retained_by_udf_callbacks tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_completed_binding_snapshot_migration_precedes_old_immutability_trigger tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_exact_eval_and_independent_review_allow_atomic_completion tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_validate_keeps_never_bound_and_nonpilot_completions_compatible -v",
-    "ran": 19,
-    "passed": 19,
-    "seconds": 2.756,
+    "command": "python3.11 -m unittest tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_official_multi_attempt_trusted_eval_ledger_allows_completion -v",
+    "ran": 8,
+    "passed": 8,
+    "seconds": 1.173,
     "exit_status": 0,
     "result": "pass",
-    "atomicity": "signed direct-SQL denial helpers assert unchanged task, execution, task binding, completion count, audit count, and event count"
+    "atomicity": "signed direct-SQL denial helper asserts unchanged task, execution, task binding, completion count, audit count, and event count; stale/latest attack also asserts runtime completion denial"
   },
   "focused_test": {
     "command": "python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials tests.test_dashboard tests.test_event_engine -q",
-    "passed": 186,
-    "seconds": 20.421,
+    "passed": 194,
+    "seconds": 21.077,
     "exit_status": 0,
     "result": "pass"
   },
   "canonical_test": {
-    "command": "python3.11 -m unittest discover -s tests -q",
-    "passed": 345,
-    "seconds": 50.303,
+    "command": "python3.11 -m unittest discover -s tests -v",
+    "passed": 353,
+    "seconds": 49.542,
     "exit_status": 0,
     "result": "pass",
+    "quiet_confirmation_seconds": 46.019,
+    "prior_overlapping_observation": "a concurrent canonical attempt ran 353 tests in 49.554 seconds and reported one temporary Git metadata concurrency error; the isolated rerun passed",
     "phase_d_scope": "unit tests inspected existing controls; no D0/D1/D2 runner, treatment, protocol, or Phase D runner command was invoked"
   },
   "pixweave": {
@@ -93,7 +58,7 @@
     "tree": "6f2d526d912fcf283937cd265d298004a31c00b2",
     "worktree": "clean_main_aligned_with_origin",
     "passed": 58,
-    "seconds": 0.307,
+    "seconds": 0.312,
     "result": "pass"
   },
   "validation": {
@@ -123,7 +88,7 @@
       "high": 0,
       "medium": 6,
       "low": 26,
-      "loc": 12625,
+      "loc": 12706,
       "errors": [],
       "result": "pass_no_high"
     },
@@ -166,35 +131,24 @@
     "pushed": false
   },
   "code_sha256": {
-    "agent_company/assurance.py": "7e929d35a72a01e84fc10881b6c7c7ab8f17d95537214b208d3391715c63a0c6",
-    "agent_company/assurance_credentials.py": "ca7bfff8bd7c62a31b0e94135c8c7446452291c0c950ceaccfaf709385940505",
-    "agent_company/ceo_runtime.py": "1b3f6fdf730b2d31eb14baa10ab6575d4f8d3cab5facddd2d42cdaaa90940eb5",
-    "agent_company/completion_verifier.py": "a00d22875a0bec1a950f4100a576521a82e945895e82ad42031195a087d9c227",
-    "agent_company/context_compiler.py": "f0c0977fab8f34db4b8f29c6dd26cd6231e6d4fe3ca22b98a133517a57637bb1",
-    "agent_company/context_knowledge.py": "1b39d907b8fec10887cc4f7a15188194f09a08b7860ce06d03e58ad7a71653d7",
-    "agent_company/dashboard.py": "c74a48c45acb572189246f74fe7c5cf8ad45ca6468cf1c4b987802c53ca85b8a",
-    "agent_company/db.py": "4ab85b86c7aabe80885f77b09b3f73c5cf1b092df79858cc9c91e63f48f997ff",
-    "agent_company/event_engine.py": "3d47f7e45b56b11a71d4f874847e5f728e78c1b6857ffae845c83c2b568b8e1f",
-    "agent_company/ops.py": "1b022ba791e85d1fe87a1532c212f019cd4db5ddd1491cfb11f96c5f4d939d2e",
-    "agent_company/pilot_gate.py": "f0b83b2322035942a9f7ca7b8f907a6e370608dbb0acd050fa4fed4c51d381a5",
-    "agent_company/trusted_evaluator.py": "307e127d13f7024b0a0accef095cfd6e483a652c92a0e355d3af7fb72fc86e8c",
-    "tests/test_completion_assurance_gate.py": "1b94fe6a3e50d43fed0ff922a5a74fa93ae10b37178e55b89921305433d528fd"
+    "agent_company/completion_verifier.py": "4c7b96bd2dd4367de3ea82d095ac1a3545f91f8c470d3667142ae4e1430bafc2",
+    "tests/test_completion_assurance_gate.py": "3c4b732d43b5e4147809fcc3d0e7b7e90f4db9ebd9bd943effe8b7123e3e1355"
   },
   "artifacts": [
     {
       "path": "verification-report.md",
-      "purpose": "Authoritative final-review controls, fixed target, verification, and pending independent-review report",
-      "sha256": "fbe53e77a43580bd22331bad16303637548020e1e98ba7b68402d75046f06de1"
+      "purpose": "Authoritative final full-ledger controls, target, verification, protected-state, and pending-review report",
+      "sha256": "8acc0d83fef7cb84f168be69782e348ba5d45c22496cf6ddebb93f8345586d60"
     },
     {
       "path": "CONTINUITY.json",
-      "purpose": "Structured final-review handoff for the exact fixed commit and tree",
-      "sha256": "03385f02f1e18c0fc2121d4f2455cf2aca9ae7672fd7255f73413c2ac931c516"
+      "purpose": "Structured handoff for exact final commit/tree and pending independent review",
+      "sha256": "b5ab4dbda800d118403951cc195a81855112fc85ca65a6dfaaf91dc876d3768f"
     },
     {
       "path": "review-log.md",
-      "purpose": "Append-only exact RED/GREEN and final verification record, including prior Task 148 review history",
-      "sha256": "925217dff4d883de907c12c4c03b6e8f2c0bd2da025971e6cad199172ae198fa"
+      "purpose": "Append-only exact RED/GREEN and final verification record including prior Task 148 history",
+      "sha256": "8d57a2410b54010051a3e487c4a53d5284c76fc2c67b7bc89732fb1eeafc2da7"
     },
     {
       "path": "red-test-output.txt",

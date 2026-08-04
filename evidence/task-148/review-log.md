@@ -603,3 +603,195 @@ external system was modified. Services remain stopped; none was started. Indepen
 review of commit `4cde805d6ece9e0b7532b4620007036a3c8f9217` and tree
 `dc09a890df65cb64b31ac848c241e75572035ff0` remains pending. Nothing in this log
 constitutes approval or independent acceptance.
+
+## 2026-08-04 — Final full-ledger review RED
+
+The final eight tests were replayed against an isolated `git archive` of exact clean
+parent `334b622615cd66755d15011a1fa95cdecfc985d4`, with only the final test file
+copied into the temporary tree. Parent production code was unchanged.
+
+Command:
+
+```text
+python3.11 -m unittest \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically \
+tests.test_completion_assurance_gate.CompletionAssuranceGateTest.test_official_multi_attempt_trusted_eval_ledger_allows_completion -v
+```
+
+Exact result:
+
+```text
+test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically (...) ... FAIL
+test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically (...) ... FAIL
+test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically (...) ... FAIL
+test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically (...) ... FAIL
+test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically (...) ... FAIL
+test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically (...) ... FAIL
+test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically (...) ... FAIL
+test_official_multi_attempt_trusted_eval_ledger_allows_completion (...) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.249s
+
+FAILED (failures=7)
+EXIT_CODE=1
+```
+
+For all seven failures the expected rejection did not occur. The valid official API
+control passed. The attacks prove the old verifier accepted a signed attempt gap, a
+signed duplicate attempt, a stale completed result followed by an official failed
+attempt, an invalid prior HMAC, a valid-HMAC prior row with nonexistent evaluator
+provenance, an impossible status, and an impossible timestamp.
+
+## 2026-08-04 — Final full-ledger GREEN
+
+The shared completion verifier now validates the complete initiative ledger before
+selecting a result: the immutable 1..3 budget, exact attempt sequence 1 through the
+latest row, every row's official terminal status, integer seed, canonical result
+digest, HMAC, evaluator authority/credential provenance, evidence hash,
+manifest/content mapping, UTC creation lineage, and quarantine state. The actual
+latest row must be completed.
+
+It deliberately does not require cross-attempt equality for refs, seeds, evidence,
+evaluator identity, or status because `TrustedEvaluator.record_run` does not promise
+those values are immutable across attempts. The compatibility control varies status,
+seed, and final candidate manifest through the official API.
+
+Exact result on commit `d25f3272ef7ed87674f6e3fe5c6d974af44e7a96`:
+
+```text
+test_signed_sql_rejects_trusted_eval_ledger_attempt_gap_atomically (...) ... ok
+test_signed_sql_rejects_trusted_eval_ledger_duplicate_attempt_atomically (...) ... ok
+test_signed_sql_rejects_trusted_eval_completed_before_latest_attempt_atomically (...) ... ok
+test_signed_sql_rejects_trusted_eval_invalid_prior_signature_atomically (...) ... ok
+test_signed_sql_rejects_trusted_eval_invalid_prior_provenance_atomically (...) ... ok
+test_signed_sql_rejects_trusted_eval_impossible_prior_status_atomically (...) ... ok
+test_signed_sql_rejects_trusted_eval_impossible_created_lineage_atomically (...) ... ok
+test_official_multi_attempt_trusted_eval_ledger_allows_completion (...) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.173s
+
+OK
+EXIT_CODE=0
+```
+
+The stale/latest case also exercises runtime `complete_task` denial. Every signed SQL
+denial uses the existing atomicity helper and leaves task, execution, task binding,
+completion count, audit count, and event count unchanged.
+
+## 2026-08-04 — Final full-ledger verification
+
+Source/test identity:
+
+```text
+commit  d25f3272ef7ed87674f6e3fe5c6d974af44e7a96
+tree    1386710e89156b0621fe49427cc431ab9c0174a3
+parent  334b622615cd66755d15011a1fa95cdecfc985d4
+subject fix: validate trusted eval attempt ledgers
+patch SHA-256 from parent 001bd896ae01aaa9062724acf0913a0de3b2273e6fa29a7f9818690e7ba8d9c7
+branch  main (ahead of origin/main by 1; no push performed)
+```
+
+Focused Phase C/runtime command and exact result:
+
+```text
+python3.11 -m unittest tests.test_completion_assurance_gate tests.test_pilot_gate tests.test_task_execution_continuity tests.test_runner tests.test_context_compiler tests.test_assurance_kernel tests.test_trusted_evaluator tests.test_assurance_credentials tests.test_dashboard tests.test_event_engine -q
+
+----------------------------------------------------------------------
+Ran 194 tests in 21.077s
+
+OK
+EXIT_CODE=0
+```
+
+One overlapping canonical attempt ran 353 tests in 49.554 seconds and reported one
+`PhaseDRedesignError: Git repository metadata changed before the static inspection
+boundary`. A concurrently running canonical process was modifying temporary Git
+metadata. The isolated canonical rerun passed:
+
+```text
+python3.11 -m unittest discover -s tests -v
+
+----------------------------------------------------------------------
+Ran 353 tests in 49.542s
+
+OK
+EXIT_CODE=0
+```
+
+No D0, D1, D2, treatment, protocol, or Phase D runner command was invoked.
+
+Final isolated compact canonical confirmation:
+
+```text
+python3.11 -m unittest discover -s tests -q
+
+----------------------------------------------------------------------
+Ran 353 tests in 46.019s
+
+OK
+EXIT_CODE=0
+```
+
+PixWeave read-only result:
+
+```text
+branch  main (clean and aligned with origin/main)
+commit  d78094f26eb697c810899a40771a8af6dec7ce19
+tree    6f2d526d912fcf283937cd265d298004a31c00b2
+
+----------------------------------------------------------------------
+Ran 58 tests in 0.312s
+
+OK
+```
+
+Validation, compilation, diff, and security results:
+
+```text
+python3.11 -m agent_company.cli validate
+{"errors": [], "ok": true}
+
+rg --files -0 agent_company tests -g '*.py' | xargs -0 python3.11 -m py_compile
+exit 0, no output
+
+python3.11 -m compileall -q agent_company tests
+exit 0, no output
+
+git diff --check
+exit 0, no output
+
+Bandit 1.9.4 Agent Company: 0 High, 6 Medium, 26 Low, 12706 lines, no errors
+Bandit 1.9.4 PixWeave:      0 High, 0 Medium, 0 Low, 3218 lines, no errors
+```
+
+Protected-state and services:
+
+```text
+Phase D: 611 files
+387d8bd7c7f774e7a7ee059943de864a49a759d57ceba3432d7520e772cb065f
+
+data: 120 files
+9e431ac06cbc41fb690b1b29fa0d476363627746af0f726b5a6d1105464a1664
+
+data/company.sqlite3
+dc4639df347b1c76178d8bd51e283e9032deef06668a0804082710a6fa0dbb48
+
+git diff d25f327^ --name-only -- docs/assurance/phase-d evidence/phase-d data credentials approvals
+exit 0, no output
+
+all six checked Agent Company/PixWeave systemd units
+inactive
+```
+
+No protected Phase D evidence, PixWeave source, data, credentials, approvals, or
+external system was changed. Services remain stopped. Independent review of exact
+commit `d25f3272ef7ed87674f6e3fe5c6d974af44e7a96` and tree
+`1386710e89156b0621fe49427cc431ab9c0174a3` remains pending.
