@@ -606,8 +606,8 @@ codex_enabled = true
         args = (task_id, "CEO", source_commit, source_tree, evidence_tip, evidence_tree, {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}, "accepted and no execution can complete")
         result = self.osys.reconcile_task(*args)
         with patch.object(self.osys, "_git_object_type", return_value=None):
-            second = self.osys.reconcile_task(*args)
-        self.assertEqual(result, second)
+            with self.assertRaisesRegex(ValueError, "available exact Git"):
+                self.osys.reconcile_task(*args)
         with self.assertRaisesRegex(ValueError, "immutable reconciliation mismatch"):
             self.osys.reconcile_task(*args[:-1], "different reason")
         with self.assertRaisesRegex(ValueError, "must be zero"):

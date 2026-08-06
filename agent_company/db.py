@@ -131,6 +131,20 @@ class Store:
             except Exception:
                 return 0
 
+        def reconciliation_signature_valid(*values: object) -> int:
+            from .integrity import verify
+
+            if len(values) != 12:
+                return 0
+            keys = (
+                "task_id", "reconciled_at", "actor", "accepted_source_commit",
+                "accepted_source_tree", "evidence_tip_commit", "evidence_tip_tree",
+                "independent_verdict", "reason", "previous_task_state",
+                "previous_execution_state",
+            )
+            payload = dict(zip(keys, values[:-1], strict=True))
+            return int(verify(db_path, "task-reconciliation", payload, str(values[-1])))
+
         class ArtifactSetSha256:
             def __init__(self) -> None:
                 self.artifacts: list[dict[str, str]] = []
@@ -161,6 +175,10 @@ class Store:
         conn.create_function(
             "assurance_persisted_completion_valid", 3,
             persisted_completion_valid,
+        )
+        conn.create_function(
+            "assurance_reconciliation_signature_valid", 12,
+            reconciliation_signature_valid, deterministic=True,
         )
         conn.create_aggregate(
             "assurance_artifact_set_sha256", 2, ArtifactSetSha256,
@@ -491,6 +509,7 @@ class Store:
                     reason TEXT NOT NULL,
                     previous_task_state TEXT NOT NULL,
                     previous_execution_state TEXT NOT NULL,
+                    integrity_signature TEXT NOT NULL,
                     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT
                 );
                 CREATE TRIGGER IF NOT EXISTS task_reconciliations_immutable_update
@@ -780,6 +799,22 @@ class Store:
                     );
                 END;
                 """
+            )
+            reconciliation_columns = {row[1] for row in conn.execute("PRAGMA table_info(task_reconciliations)")}
+            if "integrity_signature" not in reconciliation_columns:
+                conn.execute("ALTER TABLE task_reconciliations ADD COLUMN integrity_signature TEXT")
+            conn.execute(
+                """CREATE TRIGGER IF NOT EXISTS task_reconciliations_require_canonical_insert
+                   BEFORE INSERT ON task_reconciliations
+                   WHEN assurance_reconciliation_signature_valid(
+                       NEW.task_id, NEW.reconciled_at, NEW.actor,
+                       NEW.accepted_source_commit, NEW.accepted_source_tree,
+                       NEW.evidence_tip_commit, NEW.evidence_tip_tree,
+                       NEW.independent_verdict, NEW.reason,
+                       NEW.previous_task_state, NEW.previous_execution_state,
+                       NEW.integrity_signature
+                   ) != 1
+                   BEGIN SELECT RAISE(ABORT, 'task reconciliation integrity signature required'); END"""
             )
             task_columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
             if "acceptance_criteria" not in task_columns:

@@ -1004,6 +1004,8 @@ class AssuranceKernel:
         self.init()
         conflicts = []
         with self.store.connect_readonly() as conn:
+            from .ops import reconciliation_conflicts
+            conflicts.extend(reconciliation_conflicts(conn, self.config.db_path))
             for row in conn.execute(
                 """SELECT artifact_id,version,status,content_json,content_sha256,
                           approved_by_principal,approved_at

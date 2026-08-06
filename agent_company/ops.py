@@ -13,12 +13,65 @@ from .config import CompanyConfig
 from .db import Store, utcnow
 from .governance import DISCLAIMER, classify_reserved_action
 from .models import ON_DEMAND_CAPABILITIES
+from .integrity import reconciliation_signature, verify_reconciliation_signature
+
+
+def reconciliation_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
+    """Shared structural, signature, and audit/event validation for reconciliations."""
+    conflicts: list[dict[str, object]] = []
+    trigger_sql = {
+        "task_reconciliations_require_canonical_insert": "assurance_reconciliation_signature_valid",
+        "task_reconciliations_immutable_update": "task reconciliation is immutable",
+        "task_reconciliations_immutable_delete": "task reconciliation is immutable",
+    }
+    trigger_rows = {
+        row["name"]: (row["sql"] or "")
+        for row in conn.execute(
+            "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'task_reconciliations_%'"
+        )
+    }
+    for name, marker in trigger_sql.items():
+        if name not in trigger_rows or marker not in trigger_rows[name]:
+            conflicts.append({"anchor": "reconciliation_trigger", "trigger": name})
+    table = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_reconciliations'"
+    ).fetchone()
+    if table is None:
+        return conflicts + [{"anchor": "reconciliation_table"}]
+    for row in conn.execute("SELECT * FROM task_reconciliations ORDER BY task_id"):
+        task = conn.execute("SELECT * FROM tasks WHERE id=?", (row["task_id"],)).fetchone()
+        execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (row["task_id"],)).fetchone()
+        try:
+            verdict = json.loads(row["independent_verdict"])
+        except (TypeError, json.JSONDecodeError):
+            verdict = None
+        expected_verdict = {"Critical": 0, "High": 0, "Medium": 0, "Low": 0}
+        valid = (
+            verify_reconciliation_signature(db_path, row)
+            and verdict == expected_verdict
+            and task is not None and execution is not None
+            and task["status"] == "reconciled"
+            and execution["recovery_status"] == "reconciled"
+            and task["result"] is None
+            and conn.execute(
+                "SELECT 1 FROM audit_log WHERE action='reconcile_task_execution' AND entity='task_execution' AND entity_id=?",
+                (str(row["task_id"]),),
+            ).fetchone() is not None
+            and conn.execute(
+                "SELECT 1 FROM execution_events WHERE event_type='task.reconciled' AND entity_type='task' AND entity_id=?",
+                (str(row["task_id"]),),
+            ).fetchone() is not None
+        )
+        if not valid:
+            conflicts.append({"anchor": "task_reconciliation", "task_id": row["task_id"]})
+    return conflicts
 
 
 class CompanyOS:
     def __init__(self, config: CompanyConfig):
         self.config = config
         self.store = Store(config.db_path, workspace=config.workspace)
+        self._identity_registry = config.workspace.resolve() / "config" / "repositories.json"
 
     def init(self) -> None:
         for path in [self.config.chairman_inbox, self.config.chairman_outbox, self.config.artifacts_dir, self.config.logs_dir]:
@@ -30,11 +83,61 @@ class CompanyOS:
         PilotGate(self.config).init()
         TrustedEvaluator(self.config).init()
 
+    def _init_reconciliation_schema(self) -> None:
+        """Create only reconciliation metadata; never run organization/runtime migrations."""
+        from .integrity import ensure_key
+
+        ensure_key(self.config.db_path)
+        with self.store.connect() as conn:
+            conn.executescript(
+                """CREATE TABLE IF NOT EXISTS task_reconciliations (
+                    task_id INTEGER PRIMARY KEY,
+                    reconciled_at TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    accepted_source_commit TEXT NOT NULL,
+                    accepted_source_tree TEXT NOT NULL,
+                    evidence_tip_commit TEXT NOT NULL,
+                    evidence_tip_tree TEXT NOT NULL,
+                    independent_verdict TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    previous_task_state TEXT NOT NULL,
+                    previous_execution_state TEXT NOT NULL,
+                    integrity_signature TEXT NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT
+                );"""
+            )
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(task_reconciliations)")}
+            if "integrity_signature" not in columns:
+                conn.execute("ALTER TABLE task_reconciliations ADD COLUMN integrity_signature TEXT")
+            conn.executescript(
+                """DROP TRIGGER IF EXISTS task_reconciliations_require_canonical_insert;
+                DROP TRIGGER IF EXISTS task_reconciliations_immutable_update;
+                DROP TRIGGER IF EXISTS task_reconciliations_immutable_delete;
+                CREATE TRIGGER task_reconciliations_immutable_update
+                   BEFORE UPDATE ON task_reconciliations BEGIN
+                     SELECT RAISE(ABORT, 'task reconciliation is immutable'); END;
+                CREATE TRIGGER task_reconciliations_immutable_delete
+                   BEFORE DELETE ON task_reconciliations BEGIN
+                     SELECT RAISE(ABORT, 'task reconciliation is immutable'); END;
+                CREATE TRIGGER task_reconciliations_require_canonical_insert
+                   BEFORE INSERT ON task_reconciliations
+                   WHEN assurance_reconciliation_signature_valid(
+                       NEW.task_id, NEW.reconciled_at, NEW.actor,
+                       NEW.accepted_source_commit, NEW.accepted_source_tree,
+                       NEW.evidence_tip_commit, NEW.evidence_tip_tree,
+                       NEW.independent_verdict, NEW.reason,
+                       NEW.previous_task_state, NEW.previous_execution_state,
+                       NEW.integrity_signature
+                   ) != 1
+                   BEGIN SELECT RAISE(ABORT, 'task reconciliation integrity signature required'); END;"""
+            )
+
     def status(self) -> dict[str, object]:
         self.init()
         open_tasks = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='open'")["c"]
         in_progress = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='in_progress'")["c"]
         blocked = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='blocked'")["c"]
+        reconciled = self.store.fetch_one("SELECT COUNT(*) AS c FROM tasks WHERE status='reconciled'")["c"]
         approvals = self.store.fetch_one("SELECT COUNT(*) AS c FROM approvals WHERE status='pending'")["c"]
         cycles = self.store.fetch_one("SELECT COUNT(*) AS c FROM cycles")["c"]
         active_phase = self.store.fetch_one("SELECT * FROM strategic_phases WHERE status='active' ORDER BY id DESC LIMIT 1")
@@ -73,6 +176,7 @@ class CompanyOS:
             "in_progress_tasks": in_progress,
             "active_tasks": active_count,
             "blocked_tasks": blocked,
+            "reconciled_tasks": reconciled,
             "unclaimed_tasks": unclaimed,
             "running_executions": running,
             "pending_approvals": approvals,
@@ -540,11 +644,84 @@ class CompanyOS:
         return result
 
     def _git_object_type(self, object_id: str) -> str | None:
-        result = subprocess.run(
-            ["git", "cat-file", "-t", object_id], cwd=self.config.workspace,
-            text=True, capture_output=True, check=False,
-        )
+        result = self._git_read(["cat-file", "-t", object_id], check=False)
         return result.stdout.strip() if result.returncode == 0 else None
+
+    def _git_read(self, args: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
+        workspace = self.config.workspace.resolve()
+        registry = self._identity_registry
+        if not registry.is_file():
+            registry = workspace / "config" / "repositories.json"
+        if registry.is_file():
+            try:
+                repositories = json.loads(registry.read_text(encoding="utf-8")).get("repositories", [])
+            except (OSError, json.JSONDecodeError, AttributeError):
+                raise ValueError("Git repository identity registry is invalid")
+            expected = next((item.get("local_path") for item in repositories if item.get("id") == "agent-company"), None)
+            if expected is None or Path(str(expected)).resolve() != workspace:
+                raise ValueError("Git workspace is not the canonical repository identity")
+        top = subprocess.run(
+            ["git", "--no-replace-objects", "rev-parse", "--show-toplevel"],
+            cwd=workspace, text=True, capture_output=True, check=False,
+            env=self._git_env(),
+        )
+        if top.returncode != 0 or Path(top.stdout.strip()).resolve() != workspace:
+            raise ValueError("Git workspace is not the canonical repository identity")
+        git_dir = subprocess.run(
+            ["git", "--no-replace-objects", "rev-parse", "--absolute-git-dir"],
+            cwd=workspace, text=True, capture_output=True, check=False,
+            env=self._git_env(),
+        )
+        common_dir = subprocess.run(
+            ["git", "--no-replace-objects", "rev-parse", "--git-common-dir"],
+            cwd=workspace, text=True, capture_output=True, check=False,
+            env=self._git_env(),
+        )
+        expected_git_dir = (workspace / ".git").resolve()
+        common_path = Path(common_dir.stdout.strip())
+        if not common_path.is_absolute():
+            common_path = workspace / common_path
+        if (
+            git_dir.returncode != 0 or common_dir.returncode != 0
+            or Path(git_dir.stdout.strip()).resolve() != expected_git_dir
+            or common_path.resolve() != expected_git_dir
+        ):
+            raise ValueError("Git workspace repository metadata identity is not canonical")
+        return subprocess.run(
+            ["git", "--no-replace-objects", *args], cwd=workspace,
+            text=True, capture_output=True, check=check, env=self._git_env(),
+        )
+
+    @staticmethod
+    def _git_env() -> dict[str, str]:
+        env = dict(os.environ)
+        semantic_keys = (
+            "GIT_REPLACE_REF_BASE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+            "GIT_GRAFT_FILE", "GIT_SHALLOW_FILE", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0",
+            "GIT_CONFIG_VALUE_0", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM",
+        )
+        if any(env.get(key) for key in semantic_keys):
+            raise ValueError("Git semantic environment is not permitted")
+        for key in semantic_keys:
+            env.pop(key, None)
+        env["GIT_CONFIG_GLOBAL"] = os.devnull
+        env["GIT_CONFIG_SYSTEM"] = os.devnull
+        return env
+
+    def _validate_git_pairs(self, hashes: dict[str, str]) -> None:
+        for name, object_id in hashes.items():
+            expected_type = "tree" if name.endswith("tree") else "commit"
+            if self._git_object_type(object_id) != expected_type:
+                raise ValueError(f"{name} is not an available exact Git {expected_type}")
+        for commit_name, tree_name in (
+            ("accepted_source_commit", "accepted_source_tree"),
+            ("evidence_tip_commit", "evidence_tip_tree"),
+        ):
+            actual_tree = self._git_read(
+                ["show", "-s", "--format=%T", hashes[commit_name]], check=True,
+            ).stdout.strip()
+            if actual_tree != hashes[tree_name]:
+                raise ValueError(f"{tree_name} does not match {commit_name}")
 
     def reconcile_task(
         self, task_id: int, actor: str, accepted_source_commit: str,
@@ -552,9 +729,9 @@ class CompanyOS:
         evidence_tip_tree: str, independent_verdict: dict[str, int], reason: str,
     ) -> dict[str, object]:
         """Govern an accepted out-of-band delivery without fabricating completion."""
-        self.init()
         if actor != "CEO":
             raise ValueError("only CEO may reconcile task executions")
+        self._init_reconciliation_schema()
         hashes = {
             "accepted_source_commit": accepted_source_commit,
             "accepted_source_tree": accepted_source_tree,
@@ -573,6 +750,7 @@ class CompanyOS:
             raise ValueError("reason must not be empty")
         verdict_json = json.dumps(independent_verdict, sort_keys=True)
         requested = {**hashes, "independent_verdict": verdict_json, "reason": reason}
+        self._validate_git_pairs(hashes)
         with self.store.connect_readonly() as conn:
             existing = conn.execute("SELECT * FROM task_reconciliations WHERE task_id=?", (task_id,)).fetchone()
             if existing is not None:
@@ -583,21 +761,9 @@ class CompanyOS:
                 execution = conn.execute("SELECT recovery_status FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
                 if task is None or execution is None or task["status"] != "reconciled" or execution["recovery_status"] != "reconciled":
                     raise ValueError(f"task {task_id} reconciliation state is inconsistent")
+                if not verify_reconciliation_signature(self.config.db_path, existing):
+                    raise ValueError(f"task {task_id} reconciliation integrity conflict")
                 return self._reconciliation_response(existing)
-        for name, object_id in hashes.items():
-            expected_type = "tree" if name.endswith("tree") else "commit"
-            if self._git_object_type(object_id) != expected_type:
-                raise ValueError(f"{name} is not an available exact Git {expected_type}")
-        for commit_name, tree_name in (
-            ("accepted_source_commit", "accepted_source_tree"),
-            ("evidence_tip_commit", "evidence_tip_tree"),
-        ):
-            actual_tree = subprocess.run(
-                ["git", "show", "-s", "--format=%T", hashes[commit_name]],
-                cwd=self.config.workspace, text=True, capture_output=True, check=True,
-            ).stdout.strip()
-            if actual_tree != hashes[tree_name]:
-                raise ValueError(f"{tree_name} does not match {commit_name}")
         with self.store.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
@@ -609,6 +775,8 @@ class CompanyOS:
                     raise ValueError(f"task {task_id} immutable reconciliation mismatch")
                 if task is None or execution is None or task["status"] != "reconciled" or execution["recovery_status"] != "reconciled":
                     raise ValueError(f"task {task_id} reconciliation state is inconsistent")
+                if not verify_reconciliation_signature(self.config.db_path, existing):
+                    raise ValueError(f"task {task_id} reconciliation integrity conflict")
                 return self._reconciliation_response(existing)
             if task is None:
                 raise ValueError(f"task not found: {task_id}")
@@ -629,15 +797,23 @@ class CompanyOS:
                 "no_live_execution_can_complete": True,
                 "completed": False,
             }
+            previous_task_state = json.dumps(dict(task), sort_keys=True)
+            previous_execution_state = json.dumps(self._execution_details(execution), sort_keys=True)
+            reconciliation_values = {
+                "task_id": task_id, "reconciled_at": now, "actor": actor,
+                **hashes, "independent_verdict": verdict_json, "reason": reason,
+                "previous_task_state": previous_task_state,
+                "previous_execution_state": previous_execution_state,
+            }
             conn.execute(
                 """INSERT INTO task_reconciliations(
                        task_id,reconciled_at,actor,accepted_source_commit,accepted_source_tree,
                        evidence_tip_commit,evidence_tip_tree,independent_verdict,reason,
-                       previous_task_state,previous_execution_state
-                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                       previous_task_state,previous_execution_state,integrity_signature
+                   ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (task_id, now, actor, *hashes.values(), verdict_json, reason,
-                 json.dumps(dict(task), sort_keys=True),
-                 json.dumps(self._execution_details(execution), sort_keys=True)),
+                 previous_task_state, previous_execution_state,
+                 reconciliation_signature(self.config.db_path, reconciliation_values)),
             )
             execution_updated = conn.execute(
                 "UPDATE task_executions SET recovery_status='reconciled',updated_at=? "
@@ -855,6 +1031,7 @@ class CompanyOS:
             f"- Open tasks: {status['open_tasks']}",
             f"- In-progress tasks: {status['in_progress_tasks']}",
             f"- Blocked tasks: {status['blocked_tasks']}",
+            f"- Reconciled terminal tasks (not completed): {status['reconciled_tasks']}",
             f"- Pending Chairman approvals: {status['pending_approvals']}",
             f"- Completed cycles: {status['cycles']}",
             "",
@@ -887,6 +1064,7 @@ class CompanyOS:
             "strategic_phases", "execution_events", "event_worker_state",
             "assurance_task_bindings", "assurance_claim_bindings",
             "assurance_pilot_claim_history",
+            "task_reconciliations",
         }
         with self.store.connect_readonly() as conn:
             rows = list(conn.execute("SELECT name FROM sqlite_master WHERE type='table'"))
@@ -895,6 +1073,8 @@ class CompanyOS:
             if missing:
                 errors.append(f"Missing tables: {sorted(missing)}")
                 return errors
+            for conflict in reconciliation_conflicts(conn, self.config.db_path):
+                errors.append(f"Task reconciliation integrity conflict: {conflict}")
             completion_bindings_available = "assurance_completion_bindings" in present
             chairman = conn.execute("SELECT kind FROM roles WHERE name='Chairman'").fetchone()
             if chairman is None or chairman["kind"] != "human":

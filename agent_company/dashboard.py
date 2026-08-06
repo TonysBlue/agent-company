@@ -314,6 +314,7 @@ def _task_status_label(value: Any) -> str:
         "in_progress": "进行中",
         "blocked": "阻塞",
         "done": "完成",
+        "reconciled": "已对账（未完成）",
         "cancelled": "已取消",
     }
     return mapping.get(str(value), str(value))
@@ -328,6 +329,7 @@ def _recovery_status_label(value: Any) -> str:
         "completed": "已完成",
         "cancelled": "已取消",
         "unknown": "状态未知 / 已隔离",
+        "reconciled": "已对账（终态，未完成）",
     }
     return mapping.get(str(value), str(value))
 
@@ -398,7 +400,7 @@ def _token_usage_snapshot(conn: sqlite3.Connection, agents: list[str]) -> dict[s
 
 def _agent_workload(tasks: list[dict[str, Any]], executions: list[dict[str, Any]], agents: list[str], token_usage: dict[str, Any]) -> dict[str, Any]:
     outcomes: dict[str, dict[str, int]] = {
-        agent: {"open": 0, "in_progress": 0, "blocked": 0, "done": 0, "cancelled": 0, "total": 0, "retries": 0, "failures": 0}
+        agent: {"open": 0, "in_progress": 0, "blocked": 0, "reconciled": 0, "done": 0, "cancelled": 0, "total": 0, "retries": 0, "failures": 0}
         for agent in agents
     }
     for task in tasks:
@@ -431,6 +433,7 @@ def _agent_workload(tasks: list[dict[str, Any]], executions: list[dict[str, Any]
                 "open": bucket["open"],
                 "in_progress": bucket["in_progress"],
                 "blocked": bucket["blocked"],
+                "reconciled": bucket["reconciled"],
                 "done": bucket["done"],
                 "cancelled": bucket["cancelled"],
                 "total": total,
@@ -648,6 +651,7 @@ def build_snapshot(config: CompanyConfig | None = None) -> dict[str, Any]:
                 "open": 0,
                 "in_progress": 0,
                 "blocked": 0,
+                "reconciled": 0,
                 "done": 0,
                 "cancelled": 0,
                 "total": 0,

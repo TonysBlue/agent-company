@@ -59,3 +59,26 @@ def verify(
     return bool(supplied) and hmac.compare_digest(
         signature(db_path, domain, values), supplied,
     )
+
+
+RECONCILIATION_SIGNATURE_FIELDS = (
+    "task_id", "reconciled_at", "actor", "accepted_source_commit",
+    "accepted_source_tree", "evidence_tip_commit", "evidence_tip_tree",
+    "independent_verdict", "reason", "previous_task_state",
+    "previous_execution_state",
+)
+
+
+def reconciliation_values(row: Any) -> dict[str, Any]:
+    return {field: row[field] for field in RECONCILIATION_SIGNATURE_FIELDS}
+
+
+def reconciliation_signature(db_path: Path, values: dict[str, Any]) -> str:
+    return signature(db_path, "task-reconciliation", values)
+
+
+def verify_reconciliation_signature(db_path: Path, row: Any) -> bool:
+    return verify(
+        db_path, "task-reconciliation", reconciliation_values(row),
+        row["integrity_signature"],
+    )
