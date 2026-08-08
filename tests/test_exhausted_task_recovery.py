@@ -12,6 +12,8 @@ from unittest.mock import patch
 from agent_company.config import load_config
 from agent_company.db import Store
 from agent_company.ops import CompanyOS
+from agent_company.ops import recovery_conflicts
+from agent_company.integrity import approval_binding_signature
 
 
 class ExhaustedTaskRecoveryTest(unittest.TestCase):
@@ -59,6 +61,23 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
             ).lastrowid
             # Keep the governance contract explicit without depending on production ids.
         return int(task_id)
+
+    def _approve_task_145(self) -> int:
+        created_at = "2026-01-01T00:00:00+00:00"
+        summary = "Task 145 Chairman decision package approved"
+        values = {
+            "created_at": created_at, "requested_by": "CEO",
+            "action_type": "internal_task_approval", "summary": summary,
+            "target_task_id": 145, "target_action": "internal_task_approval",
+        }
+        with Store(self.config.db_path).connect() as conn:
+            approval_id = conn.execute(
+                "INSERT INTO approvals(created_at,requested_by,action_type,summary,status,target_task_id,target_action,integrity_signature) "
+                "VALUES (?,?,?,?, 'pending',?,?,?)",
+                (*values.values(), approval_binding_signature(self.config.db_path, values)),
+            ).lastrowid
+        self.osys.decide(approval_id, "approve", "Approved exact Task 145 decision.", "Chairman")
+        return int(approval_id)
 
     def test_requeues_allowlisted_exhausted_task_with_signed_immutable_record(self) -> None:
         task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
@@ -147,14 +166,108 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
         with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
             with self.assertRaisesRegex(ValueError, "145|approval"):
                 self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
-            with Store(self.config.db_path).connect() as conn:
-                conn.execute(
-                    "INSERT INTO approvals(created_at,requested_by,action_type,summary,status,decision) VALUES ('t','CEO','internal_task_approval','Task 145 Chairman decision package approved','approved','approve')"
-                )
+            self._approve_task_145()
             result = self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
         self.assertEqual(result["status"], "open")
         record = Store(self.config.db_path).fetch_one("SELECT scope FROM task_recovery_records WHERE task_id=?", (task_id,))
         self.assertIn("internal readiness", record["scope"])
+
+    def test_task_146_rejects_unrelated_or_malformed_task_145_approval(self) -> None:
+        task_id = self._task("准备受控Beta获批后内部执行就绪检查", "Product Engineer", "product", 146)
+        self._exhausted(task_id)
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute(
+                "INSERT INTO approvals(created_at,requested_by,action_type,summary,status,decision) "
+                "VALUES ('t','CEO','external_publish','Unrelated request mentions Task 145','approved','approve')"
+            )
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            with self.assertRaisesRegex(ValueError, "145|approval"):
+                self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+
+    def test_decide_requires_authenticated_chairman_actor(self) -> None:
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            now = "2026-01-01T00:00:00+00:00"
+            approval_id = conn.execute(
+                "INSERT INTO approvals(created_at,requested_by,action_type,summary,status) "
+                "VALUES (?, 'CEO', 'pricing_change', 'Task 1 requires Chairman decision before continuing: Change price tier', 'pending')",
+                (now,),
+            ).lastrowid
+        with self.assertRaisesRegex(ValueError, "Chairman|actor|auth"):
+            self.osys.decide(approval_id, "approve", "spoofed", actor="CEO")
+
+    def test_signed_approval_and_decision_are_immutable_and_forgery_is_rejected(self) -> None:
+        approval_id = self._approve_task_145()
+        with Store(self.config.db_path).connect() as conn:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable|integrity"):
+                conn.execute("UPDATE approvals SET target_task_id=999 WHERE id=?", (approval_id,))
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable|integrity"):
+                conn.execute("UPDATE approvals SET decided_by='CEO' WHERE id=?", (approval_id,))
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+                conn.execute("DELETE FROM approvals WHERE id=?", (approval_id,))
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "integrity"):
+                conn.execute(
+                    "INSERT INTO approvals(created_at,requested_by,action_type,summary,status,target_task_id,target_action,integrity_signature) "
+                    "VALUES ('t','CEO','internal_task_approval','Task 145 Chairman decision package approved','pending',145,'internal_task_approval','forged')"
+                )
+
+    def test_recovery_evidence_remains_valid_across_later_lifecycle(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET status='in_progress',updated_at='later' WHERE id=?", (task_id,))
+            conn.execute(
+                "UPDATE task_executions SET recovery_status='running',attempt_count=1,updated_at='later' WHERE task_id=?",
+                (task_id,),
+            )
+        with Store(self.config.db_path).connect_readonly() as conn:
+            self.assertEqual(recovery_conflicts(conn, self.config.db_path), [])
+
+    def test_recovery_evidence_supports_reexhaustion_without_duplicate_conflict(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death 1")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET status='blocked',blocked_reason='again' WHERE id=?", (task_id,))
+            conn.execute(
+                "UPDATE task_executions SET recovery_status='exhausted',attempt_count=3,max_attempts=3,"
+                "process_id=4568,process_started_at='start-2',updated_at='later' WHERE task_id=?",
+                (task_id,),
+            )
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            second = self.osys.requeue_exhausted_task(task_id, "CEO", "verified death 2")
+        self.assertEqual(second["status"], "open")
+        self.assertEqual(
+            Store(self.config.db_path).fetch_one("SELECT COUNT(*) AS c FROM task_recovery_records WHERE task_id=?", (task_id,))["c"],
+            2,
+        )
+
+    def test_recovery_detects_signed_task_identity_drift(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER task_recovery_task_identity_immutable")
+            conn.execute("UPDATE tasks SET owner='Product Engineer' WHERE id=?", (task_id,))
+        with Store(self.config.db_path).connect_readonly() as conn:
+            self.assertTrue(any(item.get("task_id") == task_id for item in recovery_conflicts(conn, self.config.db_path)))
+
+    def test_recovery_task_identity_trigger_blocks_scope_drift(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        with Store(self.config.db_path).connect() as conn:
+            for column, value in (
+                ("owner", "Product Engineer"), ("domain", "product"),
+                ("title", "different"), ("acceptance_criteria", "expanded scope"),
+            ):
+                with self.assertRaisesRegex(sqlite3.IntegrityError, "identity.*immutable"):
+                    conn.execute(f"UPDATE tasks SET {column}=? WHERE id=?", (value, task_id))
 
     def test_audit_failure_rolls_back_all_state_and_tampering_fails_closed(self) -> None:
         task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)

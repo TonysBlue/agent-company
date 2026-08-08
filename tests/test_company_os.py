@@ -115,7 +115,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
             )
         self.osys.run_cycle()
         approval = self.osys.chairman_inbox()[0]
-        decision = self.osys.decide(approval["id"], "approve", "Approved for controlled internal continuation.")
+        decision = self.osys.decide(approval["id"], "approve", "Approved for controlled internal continuation.", "Chairman")
         self.assertEqual(decision["decided_by"], "Chairman")
         task = Store(self.config.db_path).fetch_one("SELECT status FROM tasks WHERE title='Change price tier'")
         self.assertEqual(task["status"], "open")
@@ -131,7 +131,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
             )
         self.osys.run_cycle()
         approval = self.osys.chairman_inbox()[0]
-        self.osys.decide(approval["id"], "approve", "Approved for controlled internal continuation.")
+        self.osys.decide(approval["id"], "approve", "Approved for controlled internal continuation.", "Chairman")
 
         cycle = self.osys.run_cycle()
         task_id = Store(self.config.db_path).fetch_one(

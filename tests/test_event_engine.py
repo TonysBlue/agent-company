@@ -88,7 +88,7 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         reserved_id = self._insert_task("Change pricing", "Customer & Revenue", "gtm", 100)
         self.osys.run_cycle()
         approval = self.osys.chairman_inbox()[0]
-        self.osys.decide(approval["id"], "deny", "Do not proceed.")
+        self.osys.decide(approval["id"], "deny", "Do not proceed.", "Chairman")
 
         event_types = [
             row["event_type"]

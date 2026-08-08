@@ -17,6 +17,10 @@ from .integrity import (
     reconciliation_signature,
     recovery_signature,
     verify_reconciliation_signature,
+    approval_binding_signature,
+    approval_decision_signature,
+    verify_approval_binding_signature,
+    verify_approval_decision_signature,
 )
 
 
@@ -72,7 +76,7 @@ def reconciliation_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
 
 
 def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
-    """Validate immutable exhausted-recovery anchors and their audit/event pair."""
+    """Validate historical recovery evidence and exact audit/event bindings."""
     from .integrity import verify_recovery_signature
 
     conflicts: list[dict[str, object]] = []
@@ -86,13 +90,14 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
     triggers = {
         row["name"]: row["sql"] or ""
         for row in conn.execute(
-            "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'task_recovery_records_%'"
+            "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'task_recovery%'"
         )
     }
     for name, marker in {
         "task_recovery_records_immutable_update": "task recovery record is immutable",
         "task_recovery_records_immutable_delete": "task recovery record is immutable",
         "task_recovery_records_require_canonical_insert": "assurance_recovery_signature_valid",
+        "task_recovery_task_identity_immutable": "task recovery identity is immutable",
     }.items():
         if name not in triggers or marker not in triggers[name]:
             conflicts.append({"anchor": "recovery_trigger", "trigger": name})
@@ -106,19 +111,6 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         except (TypeError, json.JSONDecodeError):
             conflicts.append({"anchor": "task_recovery_record", "task_id": row["task_id"]})
             continue
-        event = conn.execute(
-            "SELECT * FROM execution_events WHERE event_type='task.requeued' AND entity_id=? ORDER BY id LIMIT 1",
-            (str(row["task_id"]),),
-        ).fetchone()
-        audit = conn.execute(
-            "SELECT * FROM audit_log WHERE action='requeue_exhausted_task' AND entity_id=? ORDER BY id LIMIT 1",
-            (str(row["task_id"]),),
-        ).fetchone()
-        try:
-            event_payload = json.loads(event["payload"]) if event else None
-            audit_details = json.loads(audit["details"]) if audit else None
-        except (TypeError, json.JSONDecodeError):
-            event_payload = audit_details = None
         expected_payload = {
             "task_id": int(row["task_id"]),
             "status": "open",
@@ -133,18 +125,49 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
             "record_id": int(row["id"]),
             "process_dead_proof": process_dead_proof,
         }
+        # Recovery is an historical append-only fact: later claim, completion,
+        # retry, or re-exhaustion is valid. Only the signed identity and the
+        # exact event/audit pair for this record are immutable anchors.
+        events = conn.execute(
+            "SELECT payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
+            (str(row["task_id"]),),
+        ).fetchall()
+        audits = conn.execute(
+            "SELECT details FROM audit_log WHERE action='requeue_exhausted_task' AND entity='task_execution' AND entity_id=?",
+            (str(row["task_id"]),),
+        ).fetchall()
+        event_payloads = []
+        audit_details_list = []
+        for candidate in events:
+            try:
+                event_payloads.append(json.loads(candidate["payload"]))
+            except (TypeError, json.JSONDecodeError):
+                continue
+        for candidate in audits:
+            try:
+                audit_details_list.append(json.loads(candidate["details"]))
+            except (TypeError, json.JSONDecodeError):
+                continue
+        identity_fields = ("owner", "title", "domain", "acceptance_criteria")
+        try:
+            signed_identity = {field: expected_task.get(field) for field in identity_fields}
+            current_identity = {field: task[field] for field in identity_fields} if task else None
+        except (AttributeError, TypeError):
+            signed_identity = current_identity = None
+        expected_policy_scope = {
+            145: "internal Chairman decision package only; no external actions",
+            146: "internal readiness only after task 145 approval; no external actions",
+        }.get(int(row["task_id"]))
         valid = (
             verify_recovery_signature(db_path, row)
             and task is not None and execution is not None
             and row["actor"] == "CEO"
-            and task["status"] == "open" and task["result"] is None
-            and execution["recovery_status"] == "requeued"
-            and int(execution["attempt_count"]) == 0
-            and execution["process_id"] is None
-            and execution["process_started_at"] is None
-            and expected_task["status"] == "open" and expected_task.get("result") is None
-            and event_payload == expected_payload
-            and audit_details == expected_payload
+            and current_identity == signed_identity
+            and expected_task.get("status") == "open" and expected_task.get("result") is None
+            and expected_execution.get("recovery_status") == "requeued"
+            and expected_policy_scope == row["scope"]
+            and expected_payload in event_payloads
+            and expected_payload in audit_details_list
         )
         if not valid:
             conflicts.append({"anchor": "task_recovery_record", "task_id": row["task_id"]})
@@ -166,6 +189,15 @@ class CompanyOS:
 
         PilotGate(self.config).init()
         TrustedEvaluator(self.config).init()
+
+    def _assert_recovery_integrity(self, conn, task_id: int) -> None:
+        if conn.execute(
+            "SELECT 1 FROM task_recovery_records WHERE task_id=? LIMIT 1", (task_id,)
+        ).fetchone() is not None and any(
+            item.get("task_id") == task_id
+            for item in recovery_conflicts(conn, self.config.db_path)
+        ):
+            raise ValueError(f"task {task_id} recovery identity/integrity conflict")
 
     def _init_reconciliation_schema(self) -> None:
         """Create only reconciliation metadata; never run organization/runtime migrations."""
@@ -292,6 +324,7 @@ class CompanyOS:
                 for task in conn.execute(
                     "SELECT * FROM tasks WHERE status='open' ORDER BY priority DESC, id ASC"
                 ):
+                    self._assert_recovery_integrity(conn, int(task["id"]))
                     lane = self._wip_lane(task["domain"])
                     if lane not in {"product", "commercial"} or lane in occupied:
                         continue
@@ -305,6 +338,8 @@ class CompanyOS:
                             requested_by=task["owner"],
                             action_type=reserved,
                             summary=f"Task {task['id']} requires Chairman decision before continuing: {task['title']}",
+                            target_task_id=int(task["id"]),
+                            target_action=reserved,
                         )
                         conn.execute(
                             "UPDATE tasks SET status='blocked', updated_at=?, blocked_reason=? WHERE id=?",
@@ -361,22 +396,35 @@ class CompanyOS:
         }
 
     def _has_approved_action(self, conn, task_id: int, action_type: str) -> bool:
-        summary_prefix = f"Task {task_id} requires Chairman decision before continuing:"
         row = conn.execute(
             """
-            SELECT 1 FROM approvals
-            WHERE action_type=? AND status='approved' AND summary LIKE ?
+            SELECT * FROM approvals
+            WHERE action_type=? AND status='approved' AND decision='approve'
+              AND target_task_id=? AND target_action=?
             ORDER BY id DESC LIMIT 1
             """,
-            (action_type, f"{summary_prefix}%"),
+            (action_type, task_id, action_type),
         ).fetchone()
-        return row is not None
+        return (
+            row is not None
+            and row["decided_by"] == "Chairman"
+            and verify_approval_binding_signature(self.config.db_path, row)
+            and verify_approval_decision_signature(self.config.db_path, row)
+        )
 
-    def _create_approval(self, conn, requested_by: str, action_type: str, summary: str) -> int:
+    def _create_approval(
+        self, conn, requested_by: str, action_type: str, summary: str,
+        target_task_id: int, target_action: str,
+    ) -> int:
         now = utcnow()
+        values = {
+            "created_at": now, "requested_by": requested_by, "action_type": action_type,
+            "summary": summary, "target_task_id": target_task_id, "target_action": target_action,
+        }
         cur = conn.execute(
-            "INSERT INTO approvals(created_at, requested_by, action_type, summary, status) VALUES (?, ?, ?, ?, 'pending')",
-            (now, requested_by, action_type, summary),
+            "INSERT INTO approvals(created_at, requested_by, action_type, summary, status,target_task_id,target_action,integrity_signature) VALUES (?, ?, ?, ?, 'pending',?,?,?)",
+            (now, requested_by, action_type, summary, target_task_id, target_action,
+             approval_binding_signature(self.config.db_path, values)),
         )
         approval_id = cur.lastrowid
         inbox_file = self.config.chairman_inbox / f"approval-{approval_id}.json"
@@ -385,6 +433,8 @@ class CompanyOS:
             "requested_by": requested_by,
             "action_type": action_type,
             "summary": summary,
+            "target_task_id": target_task_id,
+            "target_action": target_action,
             "allowed_decisions": ["approve", "deny"],
             "disclaimer": DISCLAIMER,
         }
@@ -553,6 +603,7 @@ class CompanyOS:
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None:
                 raise ValueError(f"task not found: {task_id}")
+            self._assert_recovery_integrity(conn, task_id)
             if task["owner"] != actor:
                 raise ValueError(f"task {task_id} is owned by {task['owner']}, not {actor}")
             existing = conn.execute(
@@ -769,6 +820,7 @@ class CompanyOS:
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             if task is None or execution is None:
                 raise ValueError(f"task {task_id} has no exhausted execution")
+            self._assert_recovery_integrity(conn, task_id)
             policy = allowlist[task_id]
             if task["status"] == "reconciled" or execution["recovery_status"] == "reconciled":
                 raise ValueError(f"task {task_id} is reconciled terminal")
@@ -783,14 +835,9 @@ class CompanyOS:
             if existing is not None:
                 if not self._recovery_record_valid(existing):
                     raise ValueError("task recovery record integrity conflict")
-                if any(
-                    conflict.get("task_id") == task_id
-                    for conflict in recovery_conflicts(conn, self.config.db_path)
-                ):
-                    raise ValueError("task recovery audit/event integrity conflict")
-                if existing["reason"] != reason:
-                    raise ValueError("immutable task recovery mismatch")
                 if task["status"] == "open" and execution["recovery_status"] == "requeued":
+                    if existing["reason"] != reason:
+                        raise ValueError("immutable task recovery mismatch")
                     if (
                         json.dumps(dict(task), sort_keys=True) == existing["new_task_state"]
                         and json.dumps(self._execution_details(execution), sort_keys=True)
@@ -798,6 +845,11 @@ class CompanyOS:
                     ):
                         return self._recovery_response(existing)
                     raise ValueError("task recovery record state is inconsistent")
+                if any(
+                    conflict.get("task_id") == task_id
+                    for conflict in recovery_conflicts(conn, self.config.db_path)
+                ):
+                    raise ValueError("task recovery audit/event integrity conflict")
             if task["status"] != "blocked" or execution["recovery_status"] != "exhausted":
                 raise ValueError("recovery requires blocked task and exhausted execution")
             if int(execution["attempt_count"]) < int(execution["max_attempts"]):
@@ -809,10 +861,19 @@ class CompanyOS:
                 raise ValueError("positive process-death proof with matching identity is required")
             if task_id == 146:
                 approved = conn.execute(
-                    """SELECT 1 FROM approvals WHERE status='approved' AND decision='approve'
-                       AND summary LIKE '%Task 145%' ORDER BY id DESC LIMIT 1"""
+                    """SELECT * FROM approvals
+                       WHERE status='approved' AND decision='approve'
+                         AND action_type='internal_task_approval'
+                         AND target_task_id=145 AND target_action='internal_task_approval'
+                       ORDER BY id DESC LIMIT 1"""
                 ).fetchone()
-                if approved is None:
+                if (
+                    approved is None
+                    or not verify_approval_binding_signature(self.config.db_path, approved)
+                    or approved["summary"] != "Task 145 Chairman decision package approved"
+                    or not verify_approval_decision_signature(self.config.db_path, approved)
+                    or approved["decided_by"] != "Chairman"
+                ):
                     raise ValueError("task 146 recovery requires task 145 Chairman approval")
             now = utcnow()
             previous_task_state = json.dumps(dict(task), sort_keys=True)
@@ -1114,6 +1175,7 @@ class CompanyOS:
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None:
                 raise ValueError(f"task not found: {task_id}")
+            self._assert_recovery_integrity(conn, task_id)
             if task["owner"] != actor:
                 raise ValueError(f"task {task_id} is owned by {task['owner']}, not {actor}")
             if task["status"] != "in_progress":
@@ -1193,6 +1255,7 @@ class CompanyOS:
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None:
                 raise ValueError(f"task not found: {task_id}")
+            self._assert_recovery_integrity(conn, task_id)
             if actor not in {"CEO", task["owner"]}:
                 raise ValueError(f"task {task_id} may only be cancelled by CEO or {task['owner']}")
             if task["status"] not in {"open", "in_progress"}:
@@ -1226,7 +1289,9 @@ class CompanyOS:
         rows = self.store.fetch_all("SELECT * FROM approvals WHERE status='pending' ORDER BY id")
         return [dict(row) for row in rows]
 
-    def decide(self, approval_id: int, decision: str, rationale: str) -> dict[str, object]:
+    def decide(self, approval_id: int, decision: str, rationale: str, actor: str) -> dict[str, object]:
+        if actor != "Chairman":
+            raise ValueError("only authenticated Chairman may decide approvals")
         if decision not in {"approve", "deny"}:
             raise ValueError("decision must be approve or deny")
         self.init()
@@ -1236,18 +1301,34 @@ class CompanyOS:
                 raise ValueError(f"approval not found: {approval_id}")
             if row["status"] != "pending":
                 raise ValueError(f"approval already decided: {approval_id}")
+            chairman = conn.execute(
+                "SELECT kind,status FROM roles WHERE name='Chairman'"
+            ).fetchone()
+            if chairman is None or chairman["kind"] != "human" or chairman["status"] != "resident":
+                raise ValueError("Chairman role authentication is invalid")
+            if not verify_approval_binding_signature(self.config.db_path, row):
+                raise ValueError("approval binding integrity conflict")
             outbox_file = self.config.chairman_outbox / f"decision-{approval_id}.json"
             payload = {
                 "approval_id": approval_id,
                 "decision": decision,
                 "rationale": rationale,
-                "decided_by": "Chairman",
+                "decided_by": actor,
                 "decided_at": utcnow(),
             }
             outbox_file.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            status = "approved" if decision == "approve" else "denied"
+            decision_values = {
+                "id": approval_id, "created_at": row["created_at"], "requested_by": row["requested_by"],
+                "action_type": row["action_type"], "summary": row["summary"],
+                "target_task_id": row["target_task_id"], "target_action": row["target_action"],
+                "status": status, "decision": decision, "rationale": rationale,
+                "decided_at": payload["decided_at"], "decided_by": actor,
+            }
             conn.execute(
-                "UPDATE approvals SET status=?, decision=?, rationale=?, decided_at=?, outbox_file=? WHERE id=?",
-                ("approved" if decision == "approve" else "denied", decision, rationale, payload["decided_at"], str(outbox_file), approval_id),
+                "UPDATE approvals SET status=?, decision=?, rationale=?, decided_at=?, outbox_file=?, decided_by=?, decision_integrity_signature=? WHERE id=?",
+                (status, decision, rationale, payload["decided_at"], str(outbox_file), actor,
+                 approval_decision_signature(self.config.db_path, decision_values), approval_id),
             )
             task_rows = conn.execute("SELECT id, blocked_reason FROM tasks WHERE status='blocked'").fetchall()
             for task in task_rows:
@@ -1640,6 +1721,7 @@ class CompanyOS:
         task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
         if task is None:
             raise ValueError(f"task not found: {task_id}")
+        self._assert_recovery_integrity(conn, task_id)
         execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
         if execution is None:
             raise ValueError(f"task {task_id} has no execution state")

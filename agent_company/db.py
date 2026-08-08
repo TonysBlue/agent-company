@@ -158,6 +158,24 @@ class Store:
             payload = dict(zip(keys, values[:-1], strict=True))
             return int(verify(db_path, "task-exhausted-recovery", payload, str(values[-1])))
 
+        def approval_binding_signature_valid(*values: object) -> int:
+            from .integrity import verify
+            if len(values) != 7:
+                return 0
+            keys = ("created_at", "requested_by", "action_type", "summary", "target_task_id", "target_action")
+            return int(verify(db_path, "chairman-approval-binding", dict(zip(keys, values[:-1], strict=True)), str(values[-1])))
+
+        def approval_decision_signature_valid(*values: object) -> int:
+            from .integrity import verify
+            if len(values) != 13:
+                return 0
+            keys = (
+                "id", "created_at", "requested_by", "action_type", "summary",
+                "target_task_id", "target_action", "status", "decision", "rationale",
+                "decided_at", "decided_by",
+            )
+            return int(verify(db_path, "chairman-approval-decision", dict(zip(keys, values[:-1], strict=True)), str(values[-1])))
+
         class ArtifactSetSha256:
             def __init__(self) -> None:
                 self.artifacts: list[dict[str, str]] = []
@@ -196,6 +214,14 @@ class Store:
         conn.create_function(
             "assurance_recovery_signature_valid", 11,
             recovery_signature_valid, deterministic=True,
+        )
+        conn.create_function(
+            "assurance_approval_binding_signature_valid", 7,
+            approval_binding_signature_valid, deterministic=True,
+        )
+        conn.create_function(
+            "assurance_approval_decision_signature_valid", 13,
+            approval_decision_signature_valid, deterministic=True,
         )
         conn.create_aggregate(
             "assurance_artifact_set_sha256", 2, ArtifactSetSha256,
@@ -400,6 +426,15 @@ class Store:
                 event_columns = {row[1] for row in conn.execute("PRAGMA table_info(execution_events)")}
                 if "priority" not in event_columns:
                     conn.execute("ALTER TABLE execution_events ADD COLUMN priority INTEGER NOT NULL DEFAULT 10")
+            if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='approvals'").fetchone():
+                approval_columns = {row[1] for row in conn.execute("PRAGMA table_info(approvals)")}
+                for name, definition in (
+                    ("target_task_id", "INTEGER"), ("target_action", "TEXT"),
+                    ("integrity_signature", "TEXT"), ("decided_by", "TEXT"),
+                    ("decision_integrity_signature", "TEXT"),
+                ):
+                    if name not in approval_columns:
+                        conn.execute(f"ALTER TABLE approvals ADD COLUMN {name} {definition}")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
@@ -448,8 +483,56 @@ class Store:
                     decision TEXT,
                     rationale TEXT,
                     inbox_file TEXT,
-                    outbox_file TEXT
+                    outbox_file TEXT,
+                    target_task_id INTEGER,
+                    target_action TEXT,
+                    integrity_signature TEXT,
+                    decided_by TEXT,
+                    decision_integrity_signature TEXT
                 );
+                DROP TRIGGER IF EXISTS approvals_immutable_binding_update;
+                DROP TRIGGER IF EXISTS approvals_require_canonical_binding_insert;
+                DROP TRIGGER IF EXISTS approvals_require_canonical_decision_update;
+                DROP TRIGGER IF EXISTS approvals_immutable_decision_update;
+                DROP TRIGGER IF EXISTS approvals_immutable_signed_delete;
+                CREATE TRIGGER IF NOT EXISTS approvals_require_canonical_binding_insert
+                    BEFORE INSERT ON approvals
+                    WHEN (NEW.target_task_id IS NOT NULL OR NEW.target_action IS NOT NULL
+                          OR NEW.integrity_signature IS NOT NULL)
+                     AND assurance_approval_binding_signature_valid(
+                         NEW.created_at,NEW.requested_by,NEW.action_type,NEW.summary,
+                         NEW.target_task_id,NEW.target_action,NEW.integrity_signature
+                     ) != 1
+                    BEGIN SELECT RAISE(ABORT, 'chairman approval binding integrity required'); END;
+                CREATE TRIGGER IF NOT EXISTS approvals_immutable_binding_update
+                    BEFORE UPDATE ON approvals
+                    WHEN OLD.integrity_signature IS NOT NULL
+                     AND (NEW.created_at IS NOT OLD.created_at
+                          OR NEW.requested_by IS NOT OLD.requested_by
+                          OR NEW.action_type IS NOT OLD.action_type
+                          OR NEW.summary IS NOT OLD.summary
+                          OR NEW.target_task_id IS NOT OLD.target_task_id
+                          OR NEW.target_action IS NOT OLD.target_action
+                          OR NEW.integrity_signature IS NOT OLD.integrity_signature)
+                    BEGIN SELECT RAISE(ABORT, 'chairman approval binding is immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS approvals_require_canonical_decision_update
+                    BEFORE UPDATE OF status,decision,rationale,decided_at,decided_by,decision_integrity_signature ON approvals
+                    WHEN NEW.status IN ('approved','denied')
+                     AND assurance_approval_decision_signature_valid(
+                         NEW.id,NEW.created_at,NEW.requested_by,NEW.action_type,NEW.summary,
+                         NEW.target_task_id,NEW.target_action,NEW.status,NEW.decision,
+                         NEW.rationale,NEW.decided_at,NEW.decided_by,
+                         NEW.decision_integrity_signature
+                     ) != 1
+                    BEGIN SELECT RAISE(ABORT, 'chairman approval decision integrity required'); END;
+                CREATE TRIGGER IF NOT EXISTS approvals_immutable_decision_update
+                    BEFORE UPDATE ON approvals
+                    WHEN OLD.decision_integrity_signature IS NOT NULL
+                    BEGIN SELECT RAISE(ABORT, 'chairman approval decision is immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS approvals_immutable_signed_delete
+                    BEFORE DELETE ON approvals
+                    WHEN OLD.integrity_signature IS NOT NULL
+                    BEGIN SELECT RAISE(ABORT, 'signed chairman approval is immutable'); END;
                 CREATE TABLE IF NOT EXISTS metrics (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ts TEXT NOT NULL,
@@ -566,6 +649,13 @@ class Store:
                         NEW.new_execution_state, NEW.integrity_signature
                     ) != 1
                     BEGIN SELECT RAISE(ABORT, 'task recovery record integrity signature required'); END;
+                CREATE TRIGGER IF NOT EXISTS task_recovery_task_identity_immutable
+                    BEFORE UPDATE OF owner,title,domain,acceptance_criteria ON tasks
+                    WHEN EXISTS (SELECT 1 FROM task_recovery_records WHERE task_id=OLD.id)
+                     AND (NEW.owner IS NOT OLD.owner OR NEW.title IS NOT OLD.title
+                          OR NEW.domain IS NOT OLD.domain
+                          OR NEW.acceptance_criteria IS NOT OLD.acceptance_criteria)
+                    BEGIN SELECT RAISE(ABORT, 'task recovery identity is immutable'); END;
                 CREATE TABLE IF NOT EXISTS task_contexts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id INTEGER NOT NULL,

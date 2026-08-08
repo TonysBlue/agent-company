@@ -104,3 +104,45 @@ def verify_recovery_signature(db_path: Path, row: Any) -> bool:
         db_path, "task-exhausted-recovery", recovery_values(row),
         row["integrity_signature"],
     )
+
+
+APPROVAL_BINDING_FIELDS = (
+    "created_at", "requested_by", "action_type", "summary", "target_task_id",
+    "target_action",
+)
+
+
+def approval_binding_values(row: Any) -> dict[str, Any]:
+    return {field: row[field] for field in APPROVAL_BINDING_FIELDS}
+
+
+def approval_binding_signature(db_path: Path, values: dict[str, Any]) -> str:
+    return signature(db_path, "chairman-approval-binding", values)
+
+
+def verify_approval_binding_signature(db_path: Path, row: Any) -> bool:
+    return verify(
+        db_path, "chairman-approval-binding", approval_binding_values(row),
+        row["integrity_signature"],
+    )
+
+
+APPROVAL_DECISION_FIELDS = (
+    "id", "created_at", "requested_by", "action_type", "summary", "target_task_id",
+    "target_action", "status", "decision", "rationale", "decided_at", "decided_by",
+)
+
+
+def approval_decision_values(row: Any) -> dict[str, Any]:
+    return {field: row[field] for field in APPROVAL_DECISION_FIELDS}
+
+
+def approval_decision_signature(db_path: Path, values: dict[str, Any]) -> str:
+    return signature(db_path, "chairman-approval-decision", values)
+
+
+def verify_approval_decision_signature(db_path: Path, row: Any) -> bool:
+    return verify(
+        db_path, "chairman-approval-decision", approval_decision_values(row),
+        row["decision_integrity_signature"],
+    )

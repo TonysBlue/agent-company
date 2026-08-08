@@ -144,6 +144,7 @@ def build_parser() -> argparse.ArgumentParser:
     decide = sub.add_parser("decide", help="Record a Chairman decision")
     decide.add_argument("approval_id", type=int)
     decide.add_argument("decision", choices=["approve", "deny"])
+    decide.add_argument("--actor", required=True, help="Authenticated Chairman actor")
     decide.add_argument("--rationale", default="Chairman decision recorded.")
     sub.add_parser("report", help="Print operating report")
     dashboard = sub.add_parser("dashboard", help="Run read-only operations dashboard")
@@ -349,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "chairman-inbox":
             print(json.dumps(osys.chairman_inbox(), indent=2, sort_keys=True))
         elif args.command == "decide":
-            print(json.dumps(osys.decide(args.approval_id, args.decision, args.rationale), indent=2, sort_keys=True))
+            print(json.dumps(osys.decide(args.approval_id, args.decision, args.rationale, args.actor), indent=2, sort_keys=True))
         elif args.command == "report":
             print(osys.report(), end="")
         elif args.command == "dashboard":

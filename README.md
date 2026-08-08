@@ -58,7 +58,7 @@ python3.11 -m agent_company.cli token-record --agent "Product Engineer" --input-
 python3.11 -m agent_company.cli token-list --agent "Product Engineer"
 python3.11 -m agent_company.cli token-summary
 python3.11 -m agent_company.cli chairman-inbox
-python3.11 -m agent_company.cli decide 1 approve --rationale "Proceed internally only."
+python3.11 -m agent_company.cli decide 1 approve --actor Chairman --rationale "Proceed internally only."
 python3.11 -m agent_company.cli report
 python3.11 -m agent_company.cli dashboard --host 0.0.0.0 --port 18080
 python3.11 -m agent_company.cli demo
