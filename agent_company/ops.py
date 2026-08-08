@@ -757,6 +757,7 @@ class CompanyOS:
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             if task is None:
                 raise ValueError(f"task not found: {task_id}")
+            self._assert_recovery_integrity(conn, task_id)
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
             details = self._execution_details(execution) if execution else None
             return {
@@ -1061,6 +1062,7 @@ class CompanyOS:
         requested = {**hashes, "independent_verdict": verdict_json, "reason": reason}
         self._validate_git_pairs(hashes)
         with self.store.connect_readonly() as conn:
+            self._assert_recovery_integrity(conn, task_id)
             existing = conn.execute("SELECT * FROM task_reconciliations WHERE task_id=?", (task_id,)).fetchone()
             if existing is not None:
                 stored = {key: existing[key] for key in requested}
@@ -1077,6 +1079,7 @@ class CompanyOS:
             conn.execute("BEGIN IMMEDIATE")
             task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+            self._assert_recovery_integrity(conn, task_id)
             existing = conn.execute("SELECT * FROM task_reconciliations WHERE task_id=?", (task_id,)).fetchone()
             if existing is not None:
                 stored = {key: existing[key] for key in requested}
