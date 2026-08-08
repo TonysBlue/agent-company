@@ -13,7 +13,11 @@ from .config import CompanyConfig
 from .db import Store, utcnow
 from .governance import DISCLAIMER, classify_reserved_action
 from .models import ON_DEMAND_CAPABILITIES
-from .integrity import reconciliation_signature, verify_reconciliation_signature
+from .integrity import (
+    reconciliation_signature,
+    recovery_signature,
+    verify_reconciliation_signature,
+)
 
 
 def reconciliation_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
@@ -64,6 +68,86 @@ def reconciliation_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         )
         if not valid:
             conflicts.append({"anchor": "task_reconciliation", "task_id": row["task_id"]})
+    return conflicts
+
+
+def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
+    """Validate immutable exhausted-recovery anchors and their audit/event pair."""
+    from .integrity import verify_recovery_signature
+
+    conflicts: list[dict[str, object]] = []
+    table = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
+    ).fetchone()
+    if table is None:
+        # Legacy stores are upgraded by Store.init; read-only validation must not
+        # mutate them or report a missing optional migration as tampering.
+        return []
+    triggers = {
+        row["name"]: row["sql"] or ""
+        for row in conn.execute(
+            "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'task_recovery_records_%'"
+        )
+    }
+    for name, marker in {
+        "task_recovery_records_immutable_update": "task recovery record is immutable",
+        "task_recovery_records_immutable_delete": "task recovery record is immutable",
+        "task_recovery_records_require_canonical_insert": "assurance_recovery_signature_valid",
+    }.items():
+        if name not in triggers or marker not in triggers[name]:
+            conflicts.append({"anchor": "recovery_trigger", "trigger": name})
+    for row in conn.execute("SELECT * FROM task_recovery_records ORDER BY id"):
+        task = conn.execute("SELECT * FROM tasks WHERE id=?", (row["task_id"],)).fetchone()
+        execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (row["task_id"],)).fetchone()
+        try:
+            expected_execution = json.loads(row["new_execution_state"])
+            expected_task = json.loads(row["new_task_state"])
+            process_dead_proof = json.loads(row["process_dead_proof"])
+        except (TypeError, json.JSONDecodeError):
+            conflicts.append({"anchor": "task_recovery_record", "task_id": row["task_id"]})
+            continue
+        event = conn.execute(
+            "SELECT * FROM execution_events WHERE event_type='task.requeued' AND entity_id=? ORDER BY id LIMIT 1",
+            (str(row["task_id"]),),
+        ).fetchone()
+        audit = conn.execute(
+            "SELECT * FROM audit_log WHERE action='requeue_exhausted_task' AND entity_id=? ORDER BY id LIMIT 1",
+            (str(row["task_id"]),),
+        ).fetchone()
+        try:
+            event_payload = json.loads(event["payload"]) if event else None
+            audit_details = json.loads(audit["details"]) if audit else None
+        except (TypeError, json.JSONDecodeError):
+            event_payload = audit_details = None
+        expected_payload = {
+            "task_id": int(row["task_id"]),
+            "status": "open",
+            "recovered_at": row["recovered_at"],
+            "actor": row["actor"],
+            "reason": row["reason"],
+            "scope": row["scope"],
+            "completed": False,
+            "recovery_status": expected_execution.get("recovery_status"),
+            "attempt_count": expected_execution.get("attempt_count"),
+            "generation": expected_execution.get("generation"),
+            "record_id": int(row["id"]),
+            "process_dead_proof": process_dead_proof,
+        }
+        valid = (
+            verify_recovery_signature(db_path, row)
+            and task is not None and execution is not None
+            and row["actor"] == "CEO"
+            and task["status"] == "open" and task["result"] is None
+            and execution["recovery_status"] == "requeued"
+            and int(execution["attempt_count"]) == 0
+            and execution["process_id"] is None
+            and execution["process_started_at"] is None
+            and expected_task["status"] == "open" and expected_task.get("result") is None
+            and event_payload == expected_payload
+            and audit_details == expected_payload
+        )
+        if not valid:
+            conflicts.append({"anchor": "task_recovery_record", "task_id": row["task_id"]})
     return conflicts
 
 
@@ -631,17 +715,181 @@ class CompanyOS:
             }
 
     def recover_task(self, task_id: int, actor: str, reason: str) -> dict[str, object]:
-        self.init()
         if actor != "CEO":
             raise ValueError("only CEO may recover task executions")
         if not reason.strip():
             raise ValueError("reason must not be empty")
+        self.init()
+        with self.store.connect_readonly() as conn:
+            exhausted = conn.execute(
+                "SELECT recovery_status FROM task_executions WHERE task_id=?", (task_id,)
+            ).fetchone()
+        if exhausted is not None and exhausted["recovery_status"] == "exhausted":
+            return self.requeue_exhausted_task(task_id, actor, reason)
         with self.store.connect() as conn:
             result = self._recover_execution(conn, task_id, actor, reason.strip(), require_stale=False)
             if result is None:
                 raise ValueError(f"task {task_id} has no recoverable execution")
         self.store.notify_worker()
         return result
+
+    def requeue_exhausted_task(self, task_id: int, actor: str, reason: str) -> dict[str, object]:
+        """Requeue only the two explicitly governed exhausted internal tasks.
+
+        This is deliberately separate from stale-lease recovery: exhausted work is
+        never reopened by a cycle and requires CEO authorization plus positive,
+        identity-checked process-death proof.
+        """
+        if actor != "CEO":
+            raise ValueError("only CEO may requeue exhausted tasks")
+        reason = reason.strip()
+        if not reason:
+            raise ValueError("reason must not be empty")
+        allowlist = {
+            145: {
+                "owner": "Customer & Revenue",
+                "domain": "commercial",
+                "scope": "internal Chairman decision package only; no external actions",
+                "title": "登记受控Beta真实客户验证董事长决策事项",
+            },
+            146: {
+                "owner": "Product Engineer",
+                "domain": "product",
+                "scope": "internal readiness only after task 145 approval; no external actions",
+                "title": "准备受控Beta获批后内部执行就绪检查",
+            },
+        }
+        if task_id not in allowlist:
+            raise ValueError("task is not on the exhausted recovery allowlist")
+        from .integrity import ensure_key
+        ensure_key(self.config.db_path)
+        with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+            if task is None or execution is None:
+                raise ValueError(f"task {task_id} has no exhausted execution")
+            policy = allowlist[task_id]
+            if task["status"] == "reconciled" or execution["recovery_status"] == "reconciled":
+                raise ValueError(f"task {task_id} is reconciled terminal")
+            if (
+                task["owner"] != policy["owner"] or task["domain"] != policy["domain"]
+                or task["title"] != policy["title"]
+            ):
+                raise ValueError(f"task {task_id} does not match recovery allowlist")
+            existing = conn.execute(
+                "SELECT * FROM task_recovery_records WHERE task_id=? ORDER BY id DESC LIMIT 1", (task_id,)
+            ).fetchone()
+            if existing is not None:
+                if not self._recovery_record_valid(existing):
+                    raise ValueError("task recovery record integrity conflict")
+                if any(
+                    conflict.get("task_id") == task_id
+                    for conflict in recovery_conflicts(conn, self.config.db_path)
+                ):
+                    raise ValueError("task recovery audit/event integrity conflict")
+                if existing["reason"] != reason:
+                    raise ValueError("immutable task recovery mismatch")
+                if task["status"] == "open" and execution["recovery_status"] == "requeued":
+                    if (
+                        json.dumps(dict(task), sort_keys=True) == existing["new_task_state"]
+                        and json.dumps(self._execution_details(execution), sort_keys=True)
+                        == existing["new_execution_state"]
+                    ):
+                        return self._recovery_response(existing)
+                    raise ValueError("task recovery record state is inconsistent")
+            if task["status"] != "blocked" or execution["recovery_status"] != "exhausted":
+                raise ValueError("recovery requires blocked task and exhausted execution")
+            if int(execution["attempt_count"]) < int(execution["max_attempts"]):
+                raise ValueError("execution retry attempts are not exhausted")
+            process = self._process_status(self._execution_details(execution))
+            if execution["process_id"] is None or not execution["process_started_at"]:
+                raise ValueError("recorded process PID and start identity are required")
+            if process.get("alive") is not False or process.get("reason") != "process not found":
+                raise ValueError("positive process-death proof with matching identity is required")
+            if task_id == 146:
+                approved = conn.execute(
+                    """SELECT 1 FROM approvals WHERE status='approved' AND decision='approve'
+                       AND summary LIKE '%Task 145%' ORDER BY id DESC LIMIT 1"""
+                ).fetchone()
+                if approved is None:
+                    raise ValueError("task 146 recovery requires task 145 Chairman approval")
+            now = utcnow()
+            previous_task_state = json.dumps(dict(task), sort_keys=True)
+            previous_execution_state = json.dumps(self._execution_details(execution), sort_keys=True)
+            process_proof = json.dumps({
+                "pid": int(execution["process_id"]),
+                "recorded_start_identity": execution["process_started_at"],
+                "alive": False,
+                "identity_checked": True,
+                "observed_reason": process["reason"],
+            }, sort_keys=True)
+            # The queued state has no executor identity; claim_task supplies a
+            # real executor and fencing token later. No result or completion is written.
+            task_updated = conn.execute(
+                "UPDATE tasks SET status='open', updated_at=?, blocked_reason=NULL WHERE id=? AND status='blocked'",
+                (now, task_id),
+            ).rowcount
+            execution_updated = conn.execute(
+                "UPDATE task_executions SET recovery_status='requeued', attempt_count=0, checkpoint=NULL, next_action=NULL, last_error=NULL, process_id=NULL, process_started_at=NULL, session_ref=NULL, fencing_token=NULL, updated_at=? WHERE task_id=? AND recovery_status='exhausted'",
+                (now, task_id),
+            ).rowcount
+            if task_updated != 1 or execution_updated != 1:
+                raise ValueError("task recovery state changed concurrently")
+            new_task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
+            new_execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+            values = {
+                "task_id": task_id, "recovered_at": now, "actor": actor,
+                "reason": reason, "scope": policy["scope"], "process_dead_proof": process_proof,
+                "previous_task_state": previous_task_state,
+                "previous_execution_state": previous_execution_state,
+                "new_task_state": json.dumps(dict(new_task), sort_keys=True),
+                "new_execution_state": json.dumps(self._execution_details(new_execution), sort_keys=True),
+            }
+            conn.execute(
+                """INSERT INTO task_recovery_records(
+                   task_id,recovered_at,actor,reason,scope,process_dead_proof,
+                   previous_task_state,previous_execution_state,new_task_state,
+                   new_execution_state,integrity_signature
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (*values.values(), recovery_signature(self.config.db_path, values)),
+            )
+            record = conn.execute(
+                "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+            ).fetchone()
+            response = self._recovery_response(record)
+            audited = {
+                **response,
+                "record_id": int(record["id"]),
+                "process_dead_proof": json.loads(record["process_dead_proof"]),
+            }
+            self.store.audit(conn, actor, "requeue_exhausted_task", "task_execution", task_id, audited)
+            self.store.enqueue_event(conn, "task.requeued", "task", task_id, audited)
+        self.store.notify_worker()
+        return response
+
+    # Compatibility spelling for operators who describe this action as recovery.
+    def recover_exhausted_task(self, task_id: int, actor: str, reason: str) -> dict[str, object]:
+        return self.requeue_exhausted_task(task_id, actor, reason)
+
+    def _recovery_record_valid(self, row) -> bool:
+        from .integrity import verify_recovery_signature
+        return verify_recovery_signature(self.config.db_path, row)
+
+    @staticmethod
+    def _recovery_response(row) -> dict[str, object]:
+        try:
+            execution = json.loads(row["new_execution_state"])
+        except (TypeError, json.JSONDecodeError):
+            execution = {}
+        return {
+            "task_id": int(row["task_id"]), "status": "open",
+            "recovered_at": row["recovered_at"], "actor": row["actor"],
+            "reason": row["reason"], "scope": row["scope"], "completed": False,
+            "recovery_status": execution.get("recovery_status"),
+            "attempt_count": execution.get("attempt_count"),
+            "generation": execution.get("generation"),
+        }
 
     def _git_object_type(self, object_id: str) -> str | None:
         result = self._git_read(["cat-file", "-t", object_id], check=False)
@@ -1075,6 +1323,8 @@ class CompanyOS:
                 return errors
             for conflict in reconciliation_conflicts(conn, self.config.db_path):
                 errors.append(f"Task reconciliation integrity conflict: {conflict}")
+            for conflict in recovery_conflicts(conn, self.config.db_path):
+                errors.append(f"Task recovery integrity conflict: {conflict}")
             completion_bindings_available = "assurance_completion_bindings" in present
             chairman = conn.execute("SELECT kind FROM roles WHERE name='Chairman'").fetchone()
             if chairman is None or chairman["kind"] != "human":
@@ -1607,18 +1857,18 @@ class CompanyOS:
             return {"alive": None, "reason": "no process recorded"}
         pid = int(execution["process_id"])
         expected_start = execution.get("process_started_at")
-        if expected_start:
-            actual_start = _process_start_identity(pid)
-            if actual_start is None:
-                return {"alive": False, "reason": "process not found"}
-            if actual_start != expected_start:
-                return {"alive": False, "reason": "process identity mismatch", "actual_start_identity": actual_start}
         try:
             os.kill(pid, 0)
         except ProcessLookupError:
             return {"alive": False, "reason": "process not found"}
         except PermissionError:
-            return {"alive": True, "reason": "permission denied but process exists"}
+            return {"alive": None, "reason": "process liveness unknown: permission denied"}
+        if expected_start:
+            actual_start = _process_start_identity(pid)
+            if actual_start is None:
+                return {"alive": None, "reason": "process start identity unknown"}
+            if actual_start != expected_start:
+                return {"alive": False, "reason": "process identity mismatch", "actual_start_identity": actual_start}
         return {"alive": True, "reason": "process exists"}
 
 

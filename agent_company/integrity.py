@@ -82,3 +82,25 @@ def verify_reconciliation_signature(db_path: Path, row: Any) -> bool:
         db_path, "task-reconciliation", reconciliation_values(row),
         row["integrity_signature"],
     )
+
+
+TASK_RECOVERY_SIGNATURE_FIELDS = (
+    "task_id", "recovered_at", "actor", "reason", "scope",
+    "process_dead_proof", "previous_task_state", "previous_execution_state",
+    "new_task_state", "new_execution_state",
+)
+
+
+def recovery_values(row: Any) -> dict[str, Any]:
+    return {field: row[field] for field in TASK_RECOVERY_SIGNATURE_FIELDS}
+
+
+def recovery_signature(db_path: Path, values: dict[str, Any]) -> str:
+    return signature(db_path, "task-exhausted-recovery", values)
+
+
+def verify_recovery_signature(db_path: Path, row: Any) -> bool:
+    return verify(
+        db_path, "task-exhausted-recovery", recovery_values(row),
+        row["integrity_signature"],
+    )

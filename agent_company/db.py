@@ -145,6 +145,19 @@ class Store:
             payload = dict(zip(keys, values[:-1], strict=True))
             return int(verify(db_path, "task-reconciliation", payload, str(values[-1])))
 
+        def recovery_signature_valid(*values: object) -> int:
+            from .integrity import verify
+
+            if len(values) != 11:
+                return 0
+            keys = (
+                "task_id", "recovered_at", "actor", "reason", "scope",
+                "process_dead_proof", "previous_task_state", "previous_execution_state",
+                "new_task_state", "new_execution_state",
+            )
+            payload = dict(zip(keys, values[:-1], strict=True))
+            return int(verify(db_path, "task-exhausted-recovery", payload, str(values[-1])))
+
         class ArtifactSetSha256:
             def __init__(self) -> None:
                 self.artifacts: list[dict[str, str]] = []
@@ -179,6 +192,10 @@ class Store:
         conn.create_function(
             "assurance_reconciliation_signature_valid", 12,
             reconciliation_signature_valid, deterministic=True,
+        )
+        conn.create_function(
+            "assurance_recovery_signature_valid", 11,
+            recovery_signature_valid, deterministic=True,
         )
         conn.create_aggregate(
             "assurance_artifact_set_sha256", 2, ArtifactSetSha256,
@@ -518,6 +535,37 @@ class Store:
                 CREATE TRIGGER IF NOT EXISTS task_reconciliations_immutable_delete
                     BEFORE DELETE ON task_reconciliations
                     BEGIN SELECT RAISE(ABORT, 'task reconciliation is immutable'); END;
+                CREATE TABLE IF NOT EXISTS task_recovery_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    recovered_at TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    scope TEXT NOT NULL,
+                    process_dead_proof TEXT NOT NULL,
+                    previous_task_state TEXT NOT NULL,
+                    previous_execution_state TEXT NOT NULL,
+                    new_task_state TEXT NOT NULL,
+                    new_execution_state TEXT NOT NULL,
+                    integrity_signature TEXT NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT,
+                    UNIQUE(task_id, previous_execution_state)
+                );
+                CREATE TRIGGER IF NOT EXISTS task_recovery_records_immutable_update
+                    BEFORE UPDATE ON task_recovery_records
+                    BEGIN SELECT RAISE(ABORT, 'task recovery record is immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS task_recovery_records_immutable_delete
+                    BEFORE DELETE ON task_recovery_records
+                    BEGIN SELECT RAISE(ABORT, 'task recovery record is immutable'); END;
+                CREATE TRIGGER IF NOT EXISTS task_recovery_records_require_canonical_insert
+                    BEFORE INSERT ON task_recovery_records
+                    WHEN assurance_recovery_signature_valid(
+                        NEW.task_id, NEW.recovered_at, NEW.actor, NEW.reason, NEW.scope,
+                        NEW.process_dead_proof, NEW.previous_task_state,
+                        NEW.previous_execution_state, NEW.new_task_state,
+                        NEW.new_execution_state, NEW.integrity_signature
+                    ) != 1
+                    BEGIN SELECT RAISE(ABORT, 'task recovery record integrity signature required'); END;
                 CREATE TABLE IF NOT EXISTS task_contexts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id INTEGER NOT NULL,
