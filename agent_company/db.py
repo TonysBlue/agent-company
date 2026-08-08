@@ -148,12 +148,12 @@ class Store:
         def recovery_signature_valid(*values: object) -> int:
             from .integrity import verify
 
-            if len(values) != 11:
+            if len(values) != 14:
                 return 0
             keys = (
-                "task_id", "recovered_at", "actor", "reason", "scope",
+                "id", "task_id", "recovered_at", "actor", "reason", "scope",
                 "process_dead_proof", "previous_task_state", "previous_execution_state",
-                "new_task_state", "new_execution_state",
+                "new_task_state", "new_execution_state", "audit_log_id", "event_id",
             )
             payload = dict(zip(keys, values[:-1], strict=True))
             return int(verify(db_path, "task-exhausted-recovery", payload, str(values[-1])))
@@ -212,7 +212,7 @@ class Store:
             reconciliation_signature_valid, deterministic=True,
         )
         conn.create_function(
-            "assurance_recovery_signature_valid", 11,
+            "assurance_recovery_signature_valid", 14,
             recovery_signature_valid, deterministic=True,
         )
         conn.create_function(
@@ -435,6 +435,15 @@ class Store:
                 ):
                     if name not in approval_columns:
                         conn.execute(f"ALTER TABLE approvals ADD COLUMN {name} {definition}")
+            # Add recovery provenance columns before parsing triggers on legacy stores.
+            if conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
+            ).fetchone():
+                recovery_columns = {row[1] for row in conn.execute("PRAGMA table_info(task_recovery_records)")}
+                if "audit_log_id" not in recovery_columns:
+                    conn.execute("ALTER TABLE task_recovery_records ADD COLUMN audit_log_id INTEGER")
+                if "event_id" not in recovery_columns:
+                    conn.execute("ALTER TABLE task_recovery_records ADD COLUMN event_id INTEGER")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
@@ -630,6 +639,8 @@ class Store:
                     previous_execution_state TEXT NOT NULL,
                     new_task_state TEXT NOT NULL,
                     new_execution_state TEXT NOT NULL,
+                    audit_log_id INTEGER,
+                    event_id INTEGER,
                     integrity_signature TEXT NOT NULL,
                     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT,
                     UNIQUE(task_id, previous_execution_state)
@@ -643,10 +654,11 @@ class Store:
                 CREATE TRIGGER IF NOT EXISTS task_recovery_records_require_canonical_insert
                     BEFORE INSERT ON task_recovery_records
                     WHEN assurance_recovery_signature_valid(
-                        NEW.task_id, NEW.recovered_at, NEW.actor, NEW.reason, NEW.scope,
+                        NEW.id, NEW.task_id, NEW.recovered_at, NEW.actor, NEW.reason, NEW.scope,
                         NEW.process_dead_proof, NEW.previous_task_state,
                         NEW.previous_execution_state, NEW.new_task_state,
-                        NEW.new_execution_state, NEW.integrity_signature
+                        NEW.new_execution_state, NEW.audit_log_id, NEW.event_id,
+                        NEW.integrity_signature
                     ) != 1
                     BEGIN SELECT RAISE(ABORT, 'task recovery record integrity signature required'); END;
                 CREATE TRIGGER IF NOT EXISTS task_recovery_task_identity_immutable
@@ -954,6 +966,41 @@ class Store:
                    ) != 1
                    BEGIN SELECT RAISE(ABORT, 'task reconciliation integrity signature required'); END"""
             )
+            conn.executescript(
+                """
+                DROP TRIGGER IF EXISTS task_recovery_records_require_canonical_insert;
+                CREATE TRIGGER task_recovery_records_require_canonical_insert
+                    BEFORE INSERT ON task_recovery_records
+                    WHEN assurance_recovery_signature_valid(
+                        NEW.id, NEW.task_id, NEW.recovered_at, NEW.actor, NEW.reason, NEW.scope,
+                        NEW.process_dead_proof, NEW.previous_task_state,
+                        NEW.previous_execution_state, NEW.new_task_state,
+                        NEW.new_execution_state, NEW.audit_log_id, NEW.event_id,
+                        NEW.integrity_signature
+                    ) != 1
+                    BEGIN SELECT RAISE(ABORT, 'task recovery record integrity signature required'); END;
+                DROP TRIGGER IF EXISTS recovery_audit_provenance_immutable_update;
+                DROP TRIGGER IF EXISTS recovery_audit_provenance_immutable_delete;
+                DROP TRIGGER IF EXISTS recovery_event_provenance_immutable_update;
+                DROP TRIGGER IF EXISTS recovery_event_provenance_immutable_delete;
+                CREATE TRIGGER recovery_audit_provenance_immutable_update
+                    BEFORE UPDATE OF ts,actor,action,entity,entity_id,details ON audit_log
+                    WHEN OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution'
+                    BEGIN SELECT RAISE(ABORT, 'recovery audit provenance is immutable'); END;
+                CREATE TRIGGER recovery_audit_provenance_immutable_delete
+                    BEFORE DELETE ON audit_log
+                    WHEN OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution'
+                    BEGIN SELECT RAISE(ABORT, 'recovery audit provenance is immutable'); END;
+                CREATE TRIGGER recovery_event_provenance_immutable_update
+                    BEFORE UPDATE OF created_at,available_at,event_type,entity_type,entity_id,payload ON execution_events
+                    WHEN OLD.event_type='task.requeued' AND OLD.entity_type='task'
+                    BEGIN SELECT RAISE(ABORT, 'recovery event provenance is immutable'); END;
+                CREATE TRIGGER recovery_event_provenance_immutable_delete
+                    BEFORE DELETE ON execution_events
+                    WHEN OLD.event_type='task.requeued' AND OLD.entity_type='task'
+                    BEGIN SELECT RAISE(ABORT, 'recovery event provenance is immutable'); END;
+                """
+            )
             task_columns = {row[1] for row in conn.execute("PRAGMA table_info(tasks)")}
             if "acceptance_criteria" not in task_columns:
                 conn.execute("ALTER TABLE tasks ADD COLUMN acceptance_criteria TEXT")
@@ -1132,11 +1179,18 @@ class Store:
         with self.connect() as conn:
             return self._migrate_organization(conn)
 
-    def audit(self, conn: sqlite3.Connection, actor: str, action: str, entity: str, entity_id: Any, details: dict[str, Any]) -> None:
-        conn.execute(
-            "INSERT INTO audit_log(ts, actor, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)",
-            (utcnow(), actor, action, entity, str(entity_id) if entity_id is not None else None, json.dumps(details, sort_keys=True)),
-        )
+    def audit(self, conn: sqlite3.Connection, actor: str, action: str, entity: str, entity_id: Any, details: dict[str, Any], timestamp: str | None = None, row_id: int | None = None) -> int:
+        if row_id is None:
+            cursor = conn.execute(
+                "INSERT INTO audit_log(ts, actor, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?, ?)",
+                (timestamp or utcnow(), actor, action, entity, str(entity_id) if entity_id is not None else None, json.dumps(details, sort_keys=True)),
+            )
+        else:
+            cursor = conn.execute(
+                "INSERT INTO audit_log(id,ts, actor, action, entity, entity_id, details) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (row_id, timestamp or utcnow(), actor, action, entity, str(entity_id) if entity_id is not None else None, json.dumps(details, sort_keys=True)),
+            )
+        return int(cursor.lastrowid)
 
     @property
     def worker_wake_path(self) -> Path:
@@ -1155,23 +1209,30 @@ class Store:
         payload: dict[str, Any],
         priority: int = 10,
         available_at: str | None = None,
+        timestamp: str | None = None,
+        event_id: int | None = None,
     ) -> int:
-        now = utcnow()
-        cursor = conn.execute(
-            """INSERT INTO execution_events(
+        now = timestamp or utcnow()
+        if event_id is None:
+            cursor = conn.execute(
+                """INSERT INTO execution_events(
                    created_at, available_at, event_type, entity_type,
                    entity_id, payload, status, priority
                ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)""",
-            (
-                now,
-                available_at or now,
-                event_type,
-                entity_type,
-                str(entity_id) if entity_id is not None else None,
-                json.dumps(payload, sort_keys=True),
-                priority,
-            ),
-        )
+                (now, available_at or now, event_type, entity_type,
+                 str(entity_id) if entity_id is not None else None,
+                 json.dumps(payload, sort_keys=True), priority),
+            )
+        else:
+            cursor = conn.execute(
+                """INSERT INTO execution_events(
+                   id,created_at, available_at, event_type, entity_type,
+                   entity_id, payload, status, priority
+               ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)""",
+                (event_id, now, available_at or now, event_type, entity_type,
+                 str(entity_id) if entity_id is not None else None,
+                 json.dumps(payload, sort_keys=True), priority),
+            )
         return int(cursor.lastrowid)
 
     def notify_worker(self) -> bool:

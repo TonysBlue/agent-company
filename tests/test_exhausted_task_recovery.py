@@ -312,6 +312,68 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
         self.assertEqual(results, ["ok", "ok"])
         self.assertEqual(Store(self.config.db_path).fetch_one("SELECT COUNT(*) AS c FROM task_recovery_records WHERE task_id=?", (task_id,))["c"], 1)
 
+    def test_signed_recovery_binds_durable_audit_and_event_row_ids(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one("SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,))
+        self.assertIsNotNone(record["audit_log_id"])
+        self.assertIsNotNone(record["event_id"])
+        audit = Store(self.config.db_path).fetch_one("SELECT * FROM audit_log WHERE id=?", (record["audit_log_id"],))
+        event = Store(self.config.db_path).fetch_one("SELECT * FROM execution_events WHERE id=?", (record["event_id"],))
+        self.assertEqual(json.loads(audit["details"])["audit_log_id"], record["audit_log_id"])
+        self.assertEqual(json.loads(event["payload"])["event_id"], record["event_id"])
+        self.assertEqual(audit["ts"], record["recovered_at"])
+        self.assertEqual(event["created_at"], record["recovered_at"])
+
+    def test_recovery_provenance_replacement_or_deletion_fails_closed(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one("SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,))
+        with Store(self.config.db_path).connect() as conn:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable|provenance"):
+                conn.execute("DELETE FROM audit_log WHERE id=?", (record["audit_log_id"],))
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable|provenance"):
+                conn.execute("UPDATE execution_events SET payload=payload WHERE id=?", (record["event_id"],))
+            conn.execute("DROP TRIGGER recovery_audit_provenance_immutable_delete")
+            conn.execute("DELETE FROM audit_log WHERE id=?", (record["audit_log_id"],))
+            conn.execute(
+                "INSERT INTO audit_log(ts,actor,action,entity,entity_id,details) VALUES (?,?,?,?,?,?)",
+                (record["recovered_at"], record["actor"], "requeue_exhausted_task", "task_execution", str(task_id),
+                 json.dumps({**{k: record[k] for k in ("task_id", "recovered_at", "actor", "reason", "scope")}, "record_id": record["id"]}, sort_keys=True)),
+            )
+        self.assertTrue(any(item.get("task_id") == task_id for item in recovery_conflicts(Store(self.config.db_path).connect_readonly(), self.config.db_path)))
+
+    def test_recovery_uses_one_canonical_timestamp_for_audit_and_event(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}), \
+             patch("agent_company.ops.utcnow", return_value="2026-08-08T12:00:00+00:00"), \
+             patch("agent_company.db.utcnow", side_effect=["2099-01-01T00:00:00+00:00", "2099-01-01T00:00:01+00:00"]):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one("SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,))
+        audit = Store(self.config.db_path).fetch_one("SELECT ts FROM audit_log WHERE id=?", (record["audit_log_id"],))
+        event = Store(self.config.db_path).fetch_one("SELECT created_at FROM execution_events WHERE id=?", (record["event_id"],))
+        self.assertEqual((record["recovered_at"], audit["ts"], event["created_at"]), ("2026-08-08T12:00:00+00:00",) * 3)
+
+    def test_requeue_requires_null_task_result_and_rolls_back_atomically(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("UPDATE tasks SET result=? WHERE id=?", (json.dumps({"malformed": True}), task_id))
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            with self.assertRaisesRegex(ValueError, "result.*NULL|result.*present"):
+                self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        state = Store(self.config.db_path).fetch_one("SELECT status,result FROM tasks WHERE id=?", (task_id,))
+        execution = Store(self.config.db_path).fetch_one("SELECT recovery_status FROM task_executions WHERE task_id=?", (task_id,))
+        self.assertEqual(state["status"], "blocked")
+        self.assertEqual(state["result"], json.dumps({"malformed": True}))
+        self.assertEqual(execution["recovery_status"], "exhausted")
+        self.assertIsNone(Store(self.config.db_path).fetch_one("SELECT 1 FROM task_recovery_records WHERE task_id=?", (task_id,)))
+
 
 if __name__ == "__main__":
     unittest.main()

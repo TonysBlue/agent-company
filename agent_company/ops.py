@@ -90,7 +90,7 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
     triggers = {
         row["name"]: row["sql"] or ""
         for row in conn.execute(
-            "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND name LIKE 'task_recovery%'"
+            "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND (name LIKE 'task_recovery%' OR name LIKE 'recovery_%')"
         )
     }
     for name, marker in {
@@ -98,6 +98,10 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         "task_recovery_records_immutable_delete": "task recovery record is immutable",
         "task_recovery_records_require_canonical_insert": "assurance_recovery_signature_valid",
         "task_recovery_task_identity_immutable": "task recovery identity is immutable",
+        "recovery_audit_provenance_immutable_update": "recovery audit provenance is immutable",
+        "recovery_audit_provenance_immutable_delete": "recovery audit provenance is immutable",
+        "recovery_event_provenance_immutable_update": "recovery event provenance is immutable",
+        "recovery_event_provenance_immutable_delete": "recovery event provenance is immutable",
     }.items():
         if name not in triggers or marker not in triggers[name]:
             conflicts.append({"anchor": "recovery_trigger", "trigger": name})
@@ -123,17 +127,19 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
             "attempt_count": expected_execution.get("attempt_count"),
             "generation": expected_execution.get("generation"),
             "record_id": int(row["id"]),
+            "audit_log_id": int(row["audit_log_id"] or -1),
+            "event_id": int(row["event_id"] or -1),
             "process_dead_proof": process_dead_proof,
         }
         # Recovery is an historical append-only fact: later claim, completion,
         # retry, or re-exhaustion is valid. Only the signed identity and the
         # exact event/audit pair for this record are immutable anchors.
         events = conn.execute(
-            "SELECT created_at,payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
+            "SELECT id,created_at,payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
             (str(row["task_id"]),),
         ).fetchall()
         audits = conn.execute(
-            "SELECT ts,actor,details FROM audit_log WHERE action='requeue_exhausted_task' AND entity='task_execution' AND entity_id=?",
+            "SELECT id,ts,actor,details FROM audit_log WHERE action='requeue_exhausted_task' AND entity='task_execution' AND entity_id=?",
             (str(row["task_id"]),),
         ).fetchall()
         event_bindings = []
@@ -167,11 +173,17 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
             and expected_execution.get("recovery_status") == "requeued"
             and expected_policy_scope == row["scope"]
             and any(
-                payload == expected_payload and event["created_at"] == row["recovered_at"]
+                int(event["id"]) == int(row["event_id"] or -1)
+                and payload == expected_payload
+                and payload.get("event_id") == int(row["event_id"])
+                and event["created_at"] == row["recovered_at"]
                 for event, payload in event_bindings
             )
             and any(
+                int(audit["id"]) == int(row["audit_log_id"] or -1)
+                and
                 details == expected_payload
+                and details.get("audit_log_id") == int(row["audit_log_id"])
                 and audit["ts"] == row["recovered_at"]
                 and audit["actor"] == row["actor"]
                 for audit, details in audit_bindings
@@ -833,6 +845,8 @@ class CompanyOS:
             policy = allowlist[task_id]
             if task["status"] == "reconciled" or execution["recovery_status"] == "reconciled":
                 raise ValueError(f"task {task_id} is reconciled terminal")
+            if task["result"] is not None:
+                raise ValueError("requeue requires task.result NULL; malformed result is fail-closed")
             if (
                 task["owner"] != policy["owner"] or task["domain"] != policy["domain"]
                 or task["title"] != policy["title"]
@@ -908,33 +922,48 @@ class CompanyOS:
                 raise ValueError("task recovery state changed concurrently")
             new_task = conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
             new_execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (task_id,)).fetchone()
+            def next_id(table: str) -> int:
+                sequence = conn.execute(
+                    "SELECT seq FROM sqlite_sequence WHERE name=?", (table,)
+                ).fetchone()
+                return int(sequence["seq"] or 0) + 1 if sequence else 1
+
+            record_id = next_id("task_recovery_records")
+            audit_id = next_id("audit_log")
+            event_id = next_id("execution_events")
+            audited = {
+                "task_id": task_id, "status": "open", "recovered_at": now, "actor": actor,
+                "reason": reason, "scope": policy["scope"], "completed": False,
+                "recovery_status": "requeued", "attempt_count": 0,
+                "generation": int(new_execution["generation"]), "record_id": record_id,
+                "audit_log_id": audit_id, "event_id": event_id,
+                "process_dead_proof": json.loads(process_proof),
+            }
             values = {
-                "task_id": task_id, "recovered_at": now, "actor": actor,
-                "reason": reason, "scope": policy["scope"], "process_dead_proof": process_proof,
-                "previous_task_state": previous_task_state,
-                "previous_execution_state": previous_execution_state,
+                **{key: audited[key] for key in ("task_id", "recovered_at", "actor", "reason", "scope")},
+                "process_dead_proof": process_proof,
+                "previous_task_state": previous_task_state, "previous_execution_state": previous_execution_state,
                 "new_task_state": json.dumps(dict(new_task), sort_keys=True),
                 "new_execution_state": json.dumps(self._execution_details(new_execution), sort_keys=True),
+                "id": record_id, "audit_log_id": audit_id, "event_id": event_id,
             }
+            self.store.audit(conn, actor, "requeue_exhausted_task", "task_execution", task_id, audited, timestamp=now, row_id=audit_id)
+            self.store.enqueue_event(conn, "task.requeued", "task", task_id, audited, timestamp=now, event_id=event_id)
             conn.execute(
                 """INSERT INTO task_recovery_records(
-                   task_id,recovered_at,actor,reason,scope,process_dead_proof,
+                   id,task_id,recovered_at,actor,reason,scope,process_dead_proof,
                    previous_task_state,previous_execution_state,new_task_state,
-                   new_execution_state,integrity_signature
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
-                (*values.values(), recovery_signature(self.config.db_path, values)),
+                   new_execution_state,audit_log_id,event_id,integrity_signature
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (record_id, task_id, now, actor, reason, policy["scope"], process_proof,
+                 previous_task_state, previous_execution_state, values["new_task_state"],
+                 values["new_execution_state"], audit_id, event_id,
+                 recovery_signature(self.config.db_path, values)),
             )
             record = conn.execute(
                 "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
             ).fetchone()
             response = self._recovery_response(record)
-            audited = {
-                **response,
-                "record_id": int(record["id"]),
-                "process_dead_proof": json.loads(record["process_dead_proof"]),
-            }
-            self.store.audit(conn, actor, "requeue_exhausted_task", "task_execution", task_id, audited)
-            self.store.enqueue_event(conn, "task.requeued", "task", task_id, audited)
         self.store.notify_worker()
         return response
 

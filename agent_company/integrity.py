@@ -85,9 +85,9 @@ def verify_reconciliation_signature(db_path: Path, row: Any) -> bool:
 
 
 TASK_RECOVERY_SIGNATURE_FIELDS = (
-    "task_id", "recovered_at", "actor", "reason", "scope",
+    "id", "task_id", "recovered_at", "actor", "reason", "scope",
     "process_dead_proof", "previous_task_state", "previous_execution_state",
-    "new_task_state", "new_execution_state",
+    "new_task_state", "new_execution_state", "audit_log_id", "event_id",
 )
 
 
