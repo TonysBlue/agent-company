@@ -17,6 +17,56 @@ from .models import ON_DEMAND_CAPABILITIES, RACI, ROLES, SEED_TASKS
 ORGANIZATION_MIGRATION_VERSION = "lean-org-v1"
 CEO_RUNTIME_SCHEMA_VERSION = "ceo-runtime-schema/v1"
 
+# Recovery provenance triggers are part of the governed schema contract.  Keep
+# their definitions centralized so initialization can always replace a
+# same-name trigger that was dropped or modified out-of-band, and validators
+# can compare canonical SQL rather than trusting trigger names alone.
+RECOVERY_TRIGGER_DEFINITIONS = {
+    "task_recovery_records_immutable_update": """CREATE TRIGGER task_recovery_records_immutable_update
+        BEFORE UPDATE ON task_recovery_records
+        BEGIN SELECT RAISE(ABORT, 'task recovery record is immutable'); END""",
+    "task_recovery_records_immutable_delete": """CREATE TRIGGER task_recovery_records_immutable_delete
+        BEFORE DELETE ON task_recovery_records
+        BEGIN SELECT RAISE(ABORT, 'task recovery record is immutable'); END""",
+    "task_recovery_records_require_canonical_insert": """CREATE TRIGGER task_recovery_records_require_canonical_insert
+        BEFORE INSERT ON task_recovery_records
+        WHEN assurance_recovery_signature_valid(
+            NEW.id, NEW.task_id, NEW.recovered_at, NEW.actor, NEW.reason, NEW.scope,
+            NEW.process_dead_proof, NEW.previous_task_state,
+            NEW.previous_execution_state, NEW.new_task_state,
+            NEW.new_execution_state, NEW.audit_log_id, NEW.event_id,
+            NEW.integrity_signature
+        ) != 1
+        BEGIN SELECT RAISE(ABORT, 'task recovery record integrity signature required'); END""",
+    "task_recovery_task_identity_immutable": """CREATE TRIGGER task_recovery_task_identity_immutable
+        BEFORE UPDATE OF owner,title,domain,acceptance_criteria ON tasks
+        WHEN EXISTS (SELECT 1 FROM task_recovery_records WHERE task_id=OLD.id)
+         AND (NEW.owner IS NOT OLD.owner OR NEW.title IS NOT OLD.title
+              OR NEW.domain IS NOT OLD.domain
+              OR NEW.acceptance_criteria IS NOT OLD.acceptance_criteria)
+        BEGIN SELECT RAISE(ABORT, 'task recovery identity is immutable'); END""",
+    "recovery_audit_provenance_immutable_update": """CREATE TRIGGER recovery_audit_provenance_immutable_update
+        BEFORE UPDATE OF ts,actor,action,entity,entity_id,details ON audit_log
+        WHEN OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution'
+        BEGIN SELECT RAISE(ABORT, 'recovery audit provenance is immutable'); END""",
+    "recovery_audit_provenance_immutable_delete": """CREATE TRIGGER recovery_audit_provenance_immutable_delete
+        BEFORE DELETE ON audit_log
+        WHEN OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution'
+        BEGIN SELECT RAISE(ABORT, 'recovery audit provenance is immutable'); END""",
+    "recovery_event_provenance_immutable_update": """CREATE TRIGGER recovery_event_provenance_immutable_update
+        BEFORE UPDATE OF created_at,available_at,event_type,entity_type,entity_id,payload ON execution_events
+        WHEN OLD.event_type='task.requeued' AND OLD.entity_type='task'
+        BEGIN SELECT RAISE(ABORT, 'recovery event provenance is immutable'); END""",
+    "recovery_event_provenance_immutable_delete": """CREATE TRIGGER recovery_event_provenance_immutable_delete
+        BEFORE DELETE ON execution_events
+        WHEN OLD.event_type='task.requeued' AND OLD.entity_type='task'
+        BEGIN SELECT RAISE(ABORT, 'recovery event provenance is immutable'); END""",
+}
+
+
+def _normalized_sql(sql: str) -> str:
+    return " ".join(sql.lower().split())
+
 
 def utcnow() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
@@ -233,6 +283,19 @@ class Store:
 
         ensure_key(self.db_path)
         with self.connect() as conn:
+            operational = {
+                row["name"] for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            if {"tasks", "task_executions"} <= operational:
+                from .ops import recovery_conflicts
+
+                recovery_issues = recovery_conflicts(conn, self.db_path)
+                if recovery_issues:
+                    raise sqlite3.IntegrityError(
+                        "governed recovery history/provenance schema is not canonical"
+                    )
             principal_columns = {
                 row[1] for row in conn.execute("PRAGMA table_info(assurance_principals)")
             } if conn.execute(
@@ -419,6 +482,19 @@ class Store:
 
     def init(self) -> None:
         with self.connect() as conn:
+            recovery_table_present_before = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
+            ).fetchone() is not None
+            operational_schema_present = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'"
+            ).fetchone() is not None
+            governed_execution_present = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_executions'"
+            ).fetchone() is not None
+            if operational_schema_present and governed_execution_present and not recovery_table_present_before:
+                raise sqlite3.IntegrityError(
+                    "governed recovery history schema is missing; refusing initialization"
+                )
             # Older databases need this column before triggers referencing it are parsed.
             if conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='execution_events'"
@@ -440,10 +516,16 @@ class Store:
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
             ).fetchone():
                 recovery_columns = {row[1] for row in conn.execute("PRAGMA table_info(task_recovery_records)")}
-                if "audit_log_id" not in recovery_columns:
-                    conn.execute("ALTER TABLE task_recovery_records ADD COLUMN audit_log_id INTEGER")
-                if "event_id" not in recovery_columns:
-                    conn.execute("ALTER TABLE task_recovery_records ADD COLUMN event_id INTEGER")
+                for name, definition in {
+                    "task_id": "INTEGER", "recovered_at": "TEXT", "actor": "TEXT",
+                    "reason": "TEXT", "scope": "TEXT", "process_dead_proof": "TEXT",
+                    "previous_task_state": "TEXT", "previous_execution_state": "TEXT",
+                    "new_task_state": "TEXT", "new_execution_state": "TEXT",
+                    "audit_log_id": "INTEGER", "event_id": "INTEGER",
+                    "integrity_signature": "TEXT",
+                }.items():
+                    if name not in recovery_columns:
+                        conn.execute(f"ALTER TABLE task_recovery_records ADD COLUMN {name} {definition}")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
@@ -1022,6 +1104,10 @@ class Store:
             event_columns = {row[1] for row in conn.execute("PRAGMA table_info(execution_events)")}
             if "priority" not in event_columns:
                 conn.execute("ALTER TABLE execution_events ADD COLUMN priority INTEGER NOT NULL DEFAULT 10")
+            # CREATE TRIGGER IF NOT EXISTS is intentionally not used here:
+            # trigger names are not a trust boundary when an existing trigger
+            # can have been replaced with a permissive definition.
+            self._repair_recovery_triggers(conn)
             conn.execute(
                 "INSERT OR IGNORE INTO ceo_runtime_migrations(version, applied_at) VALUES (?, ?)",
                 (CEO_RUNTIME_SCHEMA_VERSION, utcnow()),
@@ -1073,6 +1159,12 @@ class Store:
                            AND execution_events.status IN ('pending', 'processing')
                      )"""
             )
+
+    @staticmethod
+    def _repair_recovery_triggers(conn: sqlite3.Connection) -> None:
+        for name, definition in RECOVERY_TRIGGER_DEFINITIONS.items():
+            conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+            conn.execute(definition)
 
     def _seed(self, conn: sqlite3.Connection) -> None:
         self._migrate_organization(conn)

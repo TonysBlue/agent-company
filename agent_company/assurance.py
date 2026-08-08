@@ -1001,10 +1001,31 @@ class AssuranceKernel:
         return {"artifact_id": artifact_id, "version": version, "status": "superseded", "invalidated": sorted(invalidated), "mode": "shadow"}
 
     def verify_integrity(self) -> dict[str, Any]:
-        self.init()
         conflicts = []
+        # Integrity is a read-only assertion.  Do not let initialization
+        # recreate a deleted/modified governed recovery history and thereby
+        # bless tampering.  Fresh stores are initialized; existing stores are
+        # preflighted first and remain fail-closed on schema/trigger drift.
+        from .ops import recovery_conflicts, reconciliation_conflicts
+        if self.config.db_path.is_file():
+            try:
+                with self.store.connect_readonly() as preflight:
+                    operational = {
+                        row["name"] for row in preflight.execute(
+                            "SELECT name FROM sqlite_master WHERE type='table'"
+                        )
+                    }
+                    recovery_preflight = (
+                        recovery_conflicts(preflight, self.config.db_path)
+                        if {"tasks", "task_executions"} <= operational else []
+                    )
+            except Exception as exc:
+                recovery_preflight = [{"anchor": "recovery_schema", "error": str(exc)}]
+            conflicts.extend(recovery_preflight)
+            if any(item.get("anchor") in {"recovery_schema", "recovery_trigger"} for item in recovery_preflight):
+                return {"status": "integrity_conflict", "conflicts": conflicts}
+        self.init()
         with self.store.connect_readonly() as conn:
-            from .ops import recovery_conflicts, reconciliation_conflicts
             conflicts.extend(reconciliation_conflicts(conn, self.config.db_path))
             conflicts.extend(recovery_conflicts(conn, self.config.db_path))
             for row in conn.execute(

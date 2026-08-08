@@ -347,6 +347,72 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
             )
         self.assertTrue(any(item.get("task_id") == task_id for item in recovery_conflicts(Store(self.config.db_path).connect_readonly(), self.config.db_path)))
 
+    def test_init_repairs_modified_recovery_triggers_unconditionally(self) -> None:
+        """A same-name permissive trigger must not survive Store initialization."""
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER task_recovery_records_immutable_update")
+            conn.execute(
+                """CREATE TRIGGER task_recovery_records_immutable_update
+                   BEFORE UPDATE ON task_recovery_records BEGIN SELECT 1; END"""
+            )
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+                conn.execute("UPDATE task_recovery_records SET reason='tampered' WHERE task_id=?", (task_id,))
+
+    def test_recovery_conflicts_reject_same_name_noncanonical_provenance_trigger(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER recovery_audit_provenance_immutable_delete")
+            conn.execute(
+                """CREATE TRIGGER recovery_audit_provenance_immutable_delete
+                   BEFORE DELETE ON audit_log
+                   WHEN OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution'
+                   AND 0=1
+                   BEGIN SELECT RAISE(ABORT, 'recovery audit provenance is immutable'); END"""
+            )
+        with Store(self.config.db_path).connect_readonly() as conn:
+            self.assertTrue(any(item.get("trigger") == "recovery_audit_provenance_immutable_delete" for item in recovery_conflicts(conn, self.config.db_path)))
+
+    def test_validate_requires_recovery_history_table(self) -> None:
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TABLE task_recovery_records")
+        errors = self.osys.validate()
+        self.assertTrue(any("task_recovery_records" in error for error in errors))
+
+    def test_assurance_integrity_reports_deleted_recovery_history(self) -> None:
+        from agent_company.assurance import AssuranceKernel
+
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TABLE task_recovery_records")
+        result = AssuranceKernel(self.config).verify_integrity()
+        self.assertTrue(any(conflict.get("anchor") == "recovery_schema" for conflict in result["conflicts"]))
+
+    def test_init_does_not_recreate_deleted_governed_recovery_history(self) -> None:
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TABLE task_recovery_records")
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "recovery history"):
+            self.osys.init()
+
+    def test_assurance_init_rejects_deleted_governed_recovery_history(self) -> None:
+        from agent_company.assurance import AssuranceKernel
+
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TABLE task_recovery_records")
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "recovery history"):
+            AssuranceKernel(self.config).init()
+
     def test_recovery_uses_one_canonical_timestamp_for_audit_and_event(self) -> None:
         task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
         self._exhausted(task_id)

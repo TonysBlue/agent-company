@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 from .config import CompanyConfig
-from .db import Store, utcnow
+from .db import RECOVERY_TRIGGER_DEFINITIONS, Store, _normalized_sql, utcnow
 from .governance import DISCLAIMER, classify_reserved_action
 from .models import ON_DEMAND_CAPABILITIES
 from .integrity import (
@@ -83,27 +83,27 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
     table = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
     ).fetchone()
+    required_columns = {
+        "id", "task_id", "recovered_at", "actor", "reason", "scope",
+        "process_dead_proof", "previous_task_state", "previous_execution_state",
+        "new_task_state", "new_execution_state", "audit_log_id", "event_id",
+        "integrity_signature",
+    }
     if table is None:
-        # Legacy stores are upgraded by Store.init; read-only validation must not
-        # mutate them or report a missing optional migration as tampering.
-        return []
+        return [{"anchor": "recovery_schema", "missing": ["task_recovery_records"]}]
+    actual_columns = {row[1] for row in conn.execute("PRAGMA table_info(task_recovery_records)")}
+    missing_columns = sorted(required_columns - actual_columns)
+    if missing_columns:
+        conflicts.append({"anchor": "recovery_schema", "missing": missing_columns})
+        return conflicts
     triggers = {
         row["name"]: row["sql"] or ""
         for row in conn.execute(
             "SELECT name,sql FROM sqlite_master WHERE type='trigger' AND (name LIKE 'task_recovery%' OR name LIKE 'recovery_%')"
         )
     }
-    for name, marker in {
-        "task_recovery_records_immutable_update": "task recovery record is immutable",
-        "task_recovery_records_immutable_delete": "task recovery record is immutable",
-        "task_recovery_records_require_canonical_insert": "assurance_recovery_signature_valid",
-        "task_recovery_task_identity_immutable": "task recovery identity is immutable",
-        "recovery_audit_provenance_immutable_update": "recovery audit provenance is immutable",
-        "recovery_audit_provenance_immutable_delete": "recovery audit provenance is immutable",
-        "recovery_event_provenance_immutable_update": "recovery event provenance is immutable",
-        "recovery_event_provenance_immutable_delete": "recovery event provenance is immutable",
-    }.items():
-        if name not in triggers or marker not in triggers[name]:
+    for name, definition in RECOVERY_TRIGGER_DEFINITIONS.items():
+        if name not in triggers or _normalized_sql(triggers[name]) != _normalized_sql(definition):
             conflicts.append({"anchor": "recovery_trigger", "trigger": name})
     for row in conn.execute("SELECT * FROM task_recovery_records ORDER BY id"):
         task = conn.execute("SELECT * FROM tasks WHERE id=?", (row["task_id"],)).fetchone()
@@ -211,12 +211,10 @@ class CompanyOS:
         TrustedEvaluator(self.config).init()
 
     def _assert_recovery_integrity(self, conn, task_id: int) -> None:
-        if conn.execute(
-            "SELECT 1 FROM task_recovery_records WHERE task_id=? LIMIT 1", (task_id,)
-        ).fetchone() is not None and any(
-            item.get("task_id") == task_id
-            for item in recovery_conflicts(conn, self.config.db_path)
-        ):
+        conflicts = recovery_conflicts(conn, self.config.db_path)
+        if any(item.get("anchor") in {"recovery_schema", "recovery_trigger"} for item in conflicts):
+            raise ValueError("governed recovery schema/provenance trigger integrity conflict")
+        if any(item.get("task_id") == task_id for item in conflicts):
             raise ValueError(f"task {task_id} recovery identity/integrity conflict")
 
     def _init_reconciliation_schema(self) -> None:
@@ -1434,6 +1432,7 @@ class CompanyOS:
             "assurance_task_bindings", "assurance_claim_bindings",
             "assurance_pilot_claim_history",
             "task_reconciliations",
+            "task_recovery_records",
         }
         with self.store.connect_readonly() as conn:
             rows = list(conn.execute("SELECT name FROM sqlite_master WHERE type='table'"))
