@@ -129,23 +129,23 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         # retry, or re-exhaustion is valid. Only the signed identity and the
         # exact event/audit pair for this record are immutable anchors.
         events = conn.execute(
-            "SELECT payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
+            "SELECT created_at,payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
             (str(row["task_id"]),),
         ).fetchall()
         audits = conn.execute(
-            "SELECT details FROM audit_log WHERE action='requeue_exhausted_task' AND entity='task_execution' AND entity_id=?",
+            "SELECT ts,actor,details FROM audit_log WHERE action='requeue_exhausted_task' AND entity='task_execution' AND entity_id=?",
             (str(row["task_id"]),),
         ).fetchall()
-        event_payloads = []
-        audit_details_list = []
+        event_bindings = []
+        audit_bindings = []
         for candidate in events:
             try:
-                event_payloads.append(json.loads(candidate["payload"]))
+                event_bindings.append((candidate, json.loads(candidate["payload"])))
             except (TypeError, json.JSONDecodeError):
                 continue
         for candidate in audits:
             try:
-                audit_details_list.append(json.loads(candidate["details"]))
+                audit_bindings.append((candidate, json.loads(candidate["details"])))
             except (TypeError, json.JSONDecodeError):
                 continue
         identity_fields = ("owner", "title", "domain", "acceptance_criteria")
@@ -166,8 +166,16 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
             and expected_task.get("status") == "open" and expected_task.get("result") is None
             and expected_execution.get("recovery_status") == "requeued"
             and expected_policy_scope == row["scope"]
-            and expected_payload in event_payloads
-            and expected_payload in audit_details_list
+            and any(
+                payload == expected_payload and event["created_at"] == row["recovered_at"]
+                for event, payload in event_bindings
+            )
+            and any(
+                details == expected_payload
+                and audit["ts"] == row["recovered_at"]
+                and audit["actor"] == row["actor"]
+                for audit, details in audit_bindings
+            )
         )
         if not valid:
             conflicts.append({"anchor": "task_recovery_record", "task_id": row["task_id"]})
