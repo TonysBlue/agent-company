@@ -440,6 +440,87 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
         self.assertEqual(execution["recovery_status"], "exhausted")
         self.assertIsNone(Store(self.config.db_path).fetch_one("SELECT 1 FROM task_recovery_records WHERE task_id=?", (task_id,)))
 
+    def test_recovery_conflicts_bind_available_at_and_survive_trigger_restore(self) -> None:
+        """The immutable recovery event schedule is part of the signed binding."""
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one("SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,))
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER recovery_event_provenance_immutable_update")
+            conn.execute(
+                "UPDATE execution_events SET available_at='2099-01-01T00:00:00+00:00' WHERE id=?",
+                (record["event_id"],),
+            )
+            from agent_company.db import Store as DbStore
+            DbStore._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(
+            any(item.get("anchor") == "task_recovery_record" and item.get("task_id") == task_id for item in conflicts),
+            conflicts,
+        )
+
+    def test_recovery_conflicts_reject_weakened_same_name_schema(self) -> None:
+        """Column-name compatibility is insufficient for governed recovery history."""
+        from agent_company.db import RECOVERY_TRIGGER_DEFINITIONS
+
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("ALTER TABLE task_recovery_records RENAME TO task_recovery_records_legacy")
+            conn.execute(
+                """CREATE TABLE task_recovery_records (
+                    id INTEGER, task_id INTEGER, recovered_at TEXT, actor TEXT, reason TEXT,
+                    scope TEXT, process_dead_proof TEXT, previous_task_state TEXT,
+                    previous_execution_state TEXT, new_task_state TEXT, new_execution_state TEXT,
+                    audit_log_id INTEGER, event_id INTEGER, integrity_signature TEXT
+                )"""
+            )
+            for name in RECOVERY_TRIGGER_DEFINITIONS:
+                conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+            for name, definition in RECOVERY_TRIGGER_DEFINITIONS.items():
+                conn.execute(definition)
+            conn.execute("DROP TABLE task_recovery_records_legacy")
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("anchor") == "recovery_schema" for item in conflicts), conflicts)
+
+    def test_store_init_migrates_recognized_legacy_recovery_unique_layout(self) -> None:
+        """The d0 recovery layout is recognized and upgraded to the canonical key."""
+        self.osys.init()
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("ALTER TABLE task_recovery_records RENAME TO task_recovery_records_legacy")
+            conn.execute(
+                """CREATE TABLE task_recovery_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    recovered_at TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    scope TEXT NOT NULL,
+                    process_dead_proof TEXT NOT NULL,
+                    previous_task_state TEXT NOT NULL,
+                    previous_execution_state TEXT NOT NULL,
+                    new_task_state TEXT NOT NULL,
+                    new_execution_state TEXT NOT NULL,
+                    audit_log_id INTEGER,
+                    event_id INTEGER,
+                    integrity_signature TEXT NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT,
+                    UNIQUE(task_id, previous_execution_state)
+                )"""
+            )
+            conn.execute("DROP TABLE task_recovery_records_legacy")
+        Store(self.config.db_path).init()
+        with Store(self.config.db_path).connect_readonly() as conn:
+            indexes = conn.execute("PRAGMA index_list(task_recovery_records)").fetchall()
+            unique_columns = [
+                tuple(row[2] for row in conn.execute(f"PRAGMA index_info('{idx['name']}')").fetchall())
+                for idx in indexes if idx["unique"]
+            ]
+        self.assertIn(("task_id", "previous_task_state"), unique_columns)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -63,6 +63,103 @@ RECOVERY_TRIGGER_DEFINITIONS = {
         BEGIN SELECT RAISE(ABORT, 'recovery event provenance is immutable'); END""",
 }
 
+RECOVERY_SCHEMA_COLUMNS = {
+    "id": ("INTEGER", 0, 1),
+    "task_id": ("INTEGER", 1, 0),
+    "recovered_at": ("TEXT", 1, 0),
+    "actor": ("TEXT", 1, 0),
+    "reason": ("TEXT", 1, 0),
+    "scope": ("TEXT", 1, 0),
+    "process_dead_proof": ("TEXT", 1, 0),
+    "previous_task_state": ("TEXT", 1, 0),
+    "previous_execution_state": ("TEXT", 1, 0),
+    "new_task_state": ("TEXT", 1, 0),
+    "new_execution_state": ("TEXT", 1, 0),
+    "audit_log_id": ("INTEGER", 0, 0),
+    "event_id": ("INTEGER", 0, 0),
+    "integrity_signature": ("TEXT", 1, 0),
+}
+RECOVERY_SCHEMA_COLUMN_ORDER = tuple(RECOVERY_SCHEMA_COLUMNS)
+
+
+def recovery_schema_status(conn: sqlite3.Connection) -> str:
+    """Return canonical, recognized-legacy, invalid, or missing recovery schema."""
+    table = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
+    ).fetchone()
+    if table is None:
+        return "missing"
+    table_sql = _normalized_sql(table["sql"] or "")
+    if "id integer primary key autoincrement" not in table_sql:
+        return "invalid"
+    info = conn.execute("PRAGMA table_info(task_recovery_records)").fetchall()
+    if tuple(row[1] for row in info) != RECOVERY_SCHEMA_COLUMN_ORDER:
+        return "invalid"
+    shape = {
+        row[1]: (str(row[2]).upper(), int(row[3]), int(row[5]))
+        for row in info
+    }
+    if shape != RECOVERY_SCHEMA_COLUMNS:
+        return "invalid"
+    foreign_keys = conn.execute("PRAGMA foreign_key_list(task_recovery_records)").fetchall()
+    if not any(
+        row[2] == "tasks" and row[3] == "task_id" and row[4] == "id"
+        and str(row[6]).upper() == "RESTRICT"
+        for row in foreign_keys
+    ):
+        return "invalid"
+    unique_sets = []
+    for index in conn.execute("PRAGMA index_list(task_recovery_records)").fetchall():
+        if int(index[2]):
+            unique_sets.append(tuple(
+                item[2] for item in conn.execute(f"PRAGMA index_info('{index[1]}')").fetchall()
+            ))
+    if unique_sets == [("task_id", "previous_task_state")]:
+        return "canonical"
+    if unique_sets == [("task_id", "previous_execution_state")]:
+        return "legacy"
+    return "invalid"
+
+
+def migrate_legacy_recovery_schema(conn: sqlite3.Connection) -> None:
+    """Migrate only the known d0 recovery layout; reject all other replacements."""
+    if recovery_schema_status(conn) != "legacy":
+        return
+    # SQLite rewrites trigger references during RENAME; remove governed
+    # triggers first and let Store.init recreate their canonical definitions.
+    for name in RECOVERY_TRIGGER_DEFINITIONS:
+        conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+    conn.execute("ALTER TABLE task_recovery_records RENAME TO task_recovery_records_legacy")
+    conn.executescript(
+        """CREATE TABLE task_recovery_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id INTEGER NOT NULL,
+            recovered_at TEXT NOT NULL,
+            actor TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            scope TEXT NOT NULL,
+            process_dead_proof TEXT NOT NULL,
+            previous_task_state TEXT NOT NULL,
+            previous_execution_state TEXT NOT NULL,
+            new_task_state TEXT NOT NULL,
+            new_execution_state TEXT NOT NULL,
+            audit_log_id INTEGER,
+            event_id INTEGER,
+            integrity_signature TEXT NOT NULL,
+            FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT,
+            UNIQUE(task_id, previous_task_state)
+        );
+        INSERT INTO task_recovery_records
+            (id,task_id,recovered_at,actor,reason,scope,process_dead_proof,
+             previous_task_state,previous_execution_state,new_task_state,
+             new_execution_state,audit_log_id,event_id,integrity_signature)
+        SELECT id,task_id,recovered_at,actor,reason,scope,process_dead_proof,
+               previous_task_state,previous_execution_state,new_task_state,
+               new_execution_state,audit_log_id,event_id,integrity_signature
+        FROM task_recovery_records_legacy;
+        DROP TABLE task_recovery_records_legacy;"""
+    )
+
 
 def _normalized_sql(sql: str) -> str:
     return " ".join(sql.lower().split())
@@ -495,6 +592,14 @@ class Store:
                 raise sqlite3.IntegrityError(
                     "governed recovery history schema is missing; refusing initialization"
                 )
+            if recovery_table_present_before:
+                recovery_status = recovery_schema_status(conn)
+                if recovery_status == "legacy":
+                    migrate_legacy_recovery_schema(conn)
+                elif recovery_status != "canonical":
+                    raise sqlite3.IntegrityError(
+                        "governed recovery history schema is not canonical"
+                    )
             # Older databases need this column before triggers referencing it are parsed.
             if conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='execution_events'"
@@ -1104,6 +1209,15 @@ class Store:
             event_columns = {row[1] for row in conn.execute("PRAGMA table_info(execution_events)")}
             if "priority" not in event_columns:
                 conn.execute("ALTER TABLE execution_events ADD COLUMN priority INTEGER NOT NULL DEFAULT 10")
+            # The bootstrap DDL above preserves the historical layout for
+            # compatibility; immediately normalize the one recognized legacy
+            # uniqueness key before any governed consumer validates it.
+            if recovery_schema_status(conn) == "legacy":
+                migrate_legacy_recovery_schema(conn)
+            elif recovery_schema_status(conn) != "canonical":
+                raise sqlite3.IntegrityError(
+                    "governed recovery history schema is not canonical"
+                )
             # CREATE TRIGGER IF NOT EXISTS is intentionally not used here:
             # trigger names are not a trust boundary when an existing trigger
             # can have been replaced with a permissive definition.

@@ -10,7 +10,13 @@ from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 from .config import CompanyConfig
-from .db import RECOVERY_TRIGGER_DEFINITIONS, Store, _normalized_sql, utcnow
+from .db import (
+    RECOVERY_TRIGGER_DEFINITIONS,
+    Store,
+    _normalized_sql,
+    recovery_schema_status,
+    utcnow,
+)
 from .governance import DISCLAIMER, classify_reserved_action
 from .models import ON_DEMAND_CAPABILITIES
 from .integrity import (
@@ -83,18 +89,13 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
     table = conn.execute(
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
     ).fetchone()
-    required_columns = {
-        "id", "task_id", "recovered_at", "actor", "reason", "scope",
-        "process_dead_proof", "previous_task_state", "previous_execution_state",
-        "new_task_state", "new_execution_state", "audit_log_id", "event_id",
-        "integrity_signature",
-    }
     if table is None:
         return [{"anchor": "recovery_schema", "missing": ["task_recovery_records"]}]
-    actual_columns = {row[1] for row in conn.execute("PRAGMA table_info(task_recovery_records)")}
-    missing_columns = sorted(required_columns - actual_columns)
-    if missing_columns:
-        conflicts.append({"anchor": "recovery_schema", "missing": missing_columns})
+    schema_status = recovery_schema_status(conn)
+    if schema_status != "canonical":
+        conflicts.append({"anchor": "recovery_schema", "status": schema_status})
+        # Do not query rows through an untrusted replacement schema. This keeps
+        # validation/integrity reporting deterministic and fail-closed.
         return conflicts
     triggers = {
         row["name"]: row["sql"] or ""
@@ -135,7 +136,7 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         # retry, or re-exhaustion is valid. Only the signed identity and the
         # exact event/audit pair for this record are immutable anchors.
         events = conn.execute(
-            "SELECT id,created_at,payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
+            "SELECT id,created_at,available_at,payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
             (str(row["task_id"]),),
         ).fetchall()
         audits = conn.execute(
@@ -177,6 +178,7 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
                 and payload == expected_payload
                 and payload.get("event_id") == int(row["event_id"])
                 and event["created_at"] == row["recovered_at"]
+                and event["available_at"] == row["recovered_at"]
                 for event, payload in event_bindings
             )
             and any(
