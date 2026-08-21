@@ -633,6 +633,79 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
             integrity,
         )
 
+    def test_wholesale_sqlite_recovery_erasure_is_detected_by_external_ledger(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        ledger = self.config.db_path.parent / "task-recovery-ledger.jsonl"
+        self.assertTrue(ledger.is_file())
+        self.assertEqual(ledger.stat().st_mode & 0o777, 0o600)
+        with Store(self.config.db_path).connect() as conn:
+            for trigger in (
+                "task_recovery_records_immutable_delete",
+                "task_recovery_provenance_immutable_delete",
+                "recovery_audit_provenance_immutable_delete",
+                "recovery_event_provenance_immutable_delete",
+            ):
+                conn.execute(f"DROP TRIGGER {trigger}")
+            conn.execute("DELETE FROM execution_events WHERE event_type='task.requeued'")
+            conn.execute("DELETE FROM audit_log WHERE action='requeue_exhausted_task'")
+            conn.execute("DELETE FROM task_recovery_provenance")
+            conn.execute("DELETE FROM task_recovery_records")
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("anchor") == "recovery_external_ledger" for item in conflicts), conflicts)
+
+    def test_recovery_fails_closed_when_external_ledger_append_fails(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}), \
+             patch("agent_company.ops.append_recovery_ledger", side_effect=OSError("ledger unavailable")):
+            with self.assertRaisesRegex(OSError, "ledger unavailable"):
+                self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        task = Store(self.config.db_path).fetch_one("SELECT status FROM tasks WHERE id=?", (task_id,))
+        record = Store(self.config.db_path).fetch_one("SELECT 1 FROM task_recovery_records WHERE task_id=?", (task_id,))
+        self.assertEqual(task["status"], "blocked")
+        self.assertIsNone(record)
+
+    def test_noncanonical_and_duplicate_key_recovery_json_is_detected(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one("SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,))
+        event = Store(self.config.db_path).fetch_one("SELECT payload FROM execution_events WHERE id=?", (record["event_id"],))
+        parsed = json.loads(event["payload"])
+        duplicate = '{"task_id":145,"task_id":145,' + json.dumps(parsed, sort_keys=True)[1:]
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER recovery_event_provenance_immutable_update")
+            conn.execute("UPDATE execution_events SET payload=? WHERE id=?", (duplicate, record["event_id"]))
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("task_id") == task_id for item in conflicts), conflicts)
+
+    def test_provenance_schema_rejects_lexical_check_spoof(self) -> None:
+        from agent_company.db import recovery_provenance_schema_status
+        with Store(self.config.db_path).connect() as conn:
+            for name in tuple(__import__("agent_company.db", fromlist=["RECOVERY_TRIGGER_DEFINITIONS"]).RECOVERY_TRIGGER_DEFINITIONS):
+                conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+            conn.execute("ALTER TABLE task_recovery_provenance RENAME TO old_provenance")
+            conn.execute("""CREATE TABLE task_recovery_provenance (
+                recovery_record_id INTEGER PRIMARY KEY,
+                task_id INTEGER NOT NULL,
+                audit_log_id INTEGER NOT NULL UNIQUE,
+                event_id INTEGER NOT NULL UNIQUE,
+                record_integrity_signature TEXT NOT NULL,
+                event_priority INTEGER NOT NULL DEFAULT 10,
+                integrity_signature TEXT NOT NULL /* check(event_priority=10) */
+            )""")
+            conn.execute("DROP TABLE old_provenance")
+        with Store(self.config.db_path).connect_readonly() as conn:
+            self.assertEqual(recovery_provenance_schema_status(conn), "invalid")
+
     def test_replaced_recovery_row_is_detected_after_trigger_restore(self) -> None:
         task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
         self._exhausted(task_id)

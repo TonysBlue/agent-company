@@ -32,6 +32,9 @@ from .integrity import (
     approval_decision_signature,
     verify_approval_binding_signature,
     verify_approval_decision_signature,
+    append_recovery_ledger,
+    read_recovery_ledger,
+    IntegrityError as RecoveryLedgerError,
 )
 
 
@@ -133,6 +136,22 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
     anchors_by_id = {int(row["recovery_record_id"]): row for row in anchors}
     audits_by_id = {int(row["id"]): row for row in audits}
     events_by_id = {int(row["id"]): row for row in events}
+    try:
+        ledger_values = [entry["values"] for entry in read_recovery_ledger(db_path)]
+    except (OSError, ValueError, RecoveryLedgerError):
+        ledger_values = []
+        conflicts.append({"anchor": "recovery_external_ledger", "status": "invalid"})
+    sqlite_values = [{
+        "recovery_record_id": int(row["recovery_record_id"]),
+        "task_id": int(row["task_id"]),
+        "audit_log_id": int(row["audit_log_id"]),
+        "event_id": int(row["event_id"]),
+        "record_integrity_signature": row["record_integrity_signature"],
+        "event_priority": int(row["event_priority"]),
+        "integrity_signature": row["integrity_signature"],
+    } for row in anchors]
+    if ledger_values != sqlite_values:
+        conflicts.append({"anchor": "recovery_external_ledger", "status": "mismatch"})
 
     for anchor in anchors:
         record = records_by_id.get(int(anchor["recovery_record_id"]))
@@ -192,11 +211,7 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         # exact event/audit pair for this record are immutable anchors.
         event = events_by_id.get(int(row["event_id"] or -1))
         audit = audits_by_id.get(int(row["audit_log_id"] or -1))
-        try:
-            event_payload = json.loads(event["payload"]) if event else None
-            audit_payload = json.loads(audit["details"]) if audit else None
-        except (TypeError, json.JSONDecodeError):
-            event_payload = audit_payload = None
+        canonical_payload = json.dumps(expected_payload, sort_keys=True)
         identity_fields = ("owner", "title", "domain", "acceptance_criteria")
         try:
             signed_identity = {field: expected_task.get(field) for field in identity_fields}
@@ -216,13 +231,13 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
             and expected_execution.get("recovery_status") == "requeued"
             and expected_policy_scope == row["scope"]
             and event is not None
-            and event_payload == expected_payload
+            and event["payload"] == canonical_payload
             and event["entity_id"] == str(row["task_id"])
             and event["created_at"] == row["recovered_at"]
             and event["available_at"] == row["recovered_at"]
             and int(event["priority"]) == RECOVERY_EVENT_PRIORITY
             and audit is not None
-            and audit_payload == expected_payload
+            and audit["details"] == canonical_payload
             and audit["entity_id"] == str(row["task_id"])
             and audit["ts"] == row["recovered_at"]
             and audit["actor"] == row["actor"]
@@ -1022,7 +1037,43 @@ class CompanyOS:
             record = conn.execute(
                 "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
             ).fetchone()
+            external_values = {
+                **provenance_values,
+                "integrity_signature": recovery_provenance_signature(
+                    self.config.db_path, provenance_values,
+                ),
+            }
             response = self._recovery_response(record)
+        # SQLite is committed before the independent append. If append fails,
+        # compensate SQLite to the exact signed pre-state and surface failure.
+        try:
+            append_recovery_ledger(self.config.db_path, external_values)
+        except Exception:
+            with self.store.connect() as conn:
+                conn.execute("BEGIN IMMEDIATE")
+                for name in (
+                    "task_recovery_records_immutable_delete",
+                    "task_recovery_provenance_immutable_delete",
+                    "recovery_audit_provenance_immutable_delete",
+                    "recovery_event_provenance_immutable_delete",
+                ):
+                    conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+                conn.execute("DELETE FROM execution_events WHERE id=?", (event_id,))
+                conn.execute("DELETE FROM audit_log WHERE id=?", (audit_id,))
+                conn.execute("DELETE FROM task_recovery_provenance WHERE recovery_record_id=?", (record_id,))
+                conn.execute("DELETE FROM task_recovery_records WHERE id=?", (record_id,))
+                previous_task = json.loads(previous_task_state)
+                previous_execution = json.loads(previous_execution_state)
+                conn.execute(
+                    "UPDATE tasks SET status=?,updated_at=?,blocked_reason=?,result=? WHERE id=?",
+                    (previous_task["status"], previous_task["updated_at"], previous_task.get("blocked_reason"), previous_task.get("result"), task_id),
+                )
+                conn.execute(
+                    """UPDATE task_executions SET recovery_status=?,attempt_count=?,checkpoint=?,next_action=?,last_error=?,process_id=?,process_started_at=?,session_ref=?,fencing_token=?,updated_at=? WHERE task_id=?""",
+                    (previous_execution["recovery_status"], previous_execution["attempt_count"], previous_execution.get("checkpoint"), previous_execution.get("next_action"), previous_execution.get("last_error"), previous_execution.get("process_id"), previous_execution.get("process_started_at"), previous_execution.get("session_ref"), previous_execution.get("fencing_token"), execution["updated_at"], task_id),
+                )
+                Store._repair_recovery_triggers(conn)
+            raise
         self.store.notify_worker()
         return response
 

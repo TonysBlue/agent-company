@@ -7,6 +7,7 @@ import hmac
 import json
 import os
 import secrets
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,75 @@ def ensure_key(db_path: Path) -> bytes:
     if len(key) != 32:
         raise IntegrityError("assurance integrity key is invalid")
     return key
+
+
+def recovery_ledger_path(db_path: Path) -> Path:
+    return db_path.parent / "task-recovery-ledger.jsonl"
+
+
+def _canonical_json(value: Any) -> str:
+    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+
+
+def _strict_json(text: str) -> Any:
+    def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in items:
+            if key in result:
+                raise IntegrityError("duplicate JSON key")
+            result[key] = value
+        return result
+    return json.loads(text, object_pairs_hook=pairs)
+
+
+def ensure_recovery_ledger(db_path: Path) -> Path:
+    path = recovery_ledger_path(db_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.is_symlink() or path.exists() and not path.is_file():
+        raise IntegrityError("recovery ledger must be a regular file")
+    if not path.exists():
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        os.close(fd)
+    info = path.stat()
+    if stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1:
+        raise IntegrityError("recovery ledger must be an owner-only regular file")
+    return path
+
+
+def read_recovery_ledger(db_path: Path) -> list[dict[str, Any]]:
+    path = ensure_recovery_ledger(db_path)
+    entries: list[dict[str, Any]] = []
+    previous = "0" * 64
+    for raw in path.read_text(encoding="ascii").splitlines():
+        entry = _strict_json(raw)
+        if not isinstance(entry, dict) or raw != _canonical_json(entry):
+            raise IntegrityError("recovery ledger is not canonical JSON")
+        values = entry.get("values")
+        signed = {"sequence": len(entries) + 1, "previous_sha256": previous, "values": values}
+        if (
+            not isinstance(values, dict)
+            or entry.get("sequence") != signed["sequence"]
+            or entry.get("previous_sha256") != previous
+            or not verify(db_path, "task-recovery-external-ledger", signed, entry.get("integrity_signature"))
+        ):
+            raise IntegrityError("recovery ledger integrity mismatch")
+        previous = hashlib.sha256(raw.encode("ascii")).hexdigest()
+        entries.append(entry)
+    return entries
+
+
+def append_recovery_ledger(db_path: Path, values: dict[str, Any]) -> None:
+    entries = read_recovery_ledger(db_path)
+    previous = hashlib.sha256(_canonical_json(entries[-1]).encode("ascii")).hexdigest() if entries else "0" * 64
+    signed = {"sequence": len(entries) + 1, "previous_sha256": previous, "values": values}
+    entry = {**signed, "integrity_signature": signature(db_path, "task-recovery-external-ledger", signed)}
+    path = ensure_recovery_ledger(db_path)
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_NOFOLLOW)
+    try:
+        os.write(fd, (_canonical_json(entry) + "\n").encode("ascii"))
+        os.fsync(fd)
+    finally:
+        os.close(fd)
 
 
 def signature(db_path: Path, domain: str, values: dict[str, Any]) -> str:

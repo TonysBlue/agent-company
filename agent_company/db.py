@@ -141,6 +141,15 @@ RECOVERY_PROVENANCE_SCHEMA_COLUMNS = {
     "event_priority": ("INTEGER", 1, 0),
     "integrity_signature": ("TEXT", 1, 0),
 }
+RECOVERY_PROVENANCE_TABLE_SQL = """CREATE TABLE task_recovery_provenance (
+                    recovery_record_id INTEGER PRIMARY KEY,
+                    task_id INTEGER NOT NULL,
+                    audit_log_id INTEGER NOT NULL UNIQUE,
+                    event_id INTEGER NOT NULL UNIQUE,
+                    record_integrity_signature TEXT NOT NULL,
+                    event_priority INTEGER NOT NULL CHECK(event_priority=10),
+                    integrity_signature TEXT NOT NULL
+                )"""
 
 
 def _unique_constraint_sets(
@@ -204,7 +213,7 @@ def recovery_provenance_schema_status(conn: sqlite3.Connection) -> str:
     if table is None:
         return "missing"
     table_sql = _normalized_sql(table["sql"] or "")
-    if "check(event_priority=10)" not in table_sql:
+    if table_sql != _normalized_sql(RECOVERY_PROVENANCE_TABLE_SQL):
         return "invalid"
     info = conn.execute("PRAGMA table_info(task_recovery_provenance)").fetchall()
     if tuple(row[1] for row in info) != tuple(RECOVERY_PROVENANCE_SCHEMA_COLUMNS):
@@ -734,6 +743,8 @@ class Store:
             )
 
     def init(self) -> None:
+        from .integrity import ensure_recovery_ledger
+        ensure_recovery_ledger(self.db_path)
         with self.connect() as conn:
             conn.execute("BEGIN IMMEDIATE")
             recovery_table_present_before = conn.execute(
