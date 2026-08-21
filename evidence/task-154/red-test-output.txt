@@ -1,0 +1,68 @@
+Command (replayed in a disposable detached worktree at the clean baseline):
+python3.11 -m unittest -v \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_payloads_bind_all_signed_state_and_reject_substitution \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_audit_replay_is_rejected_and_detected_after_trigger_bypass \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_event_replay_is_rejected_and_detected_after_trigger_bypass \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_deleted_recovery_triplet_is_detected_by_durable_anchor \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_replaced_recovery_row_is_detected_after_trigger_restore \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_duplicate_recovery_row_is_detected_after_trigger_restore \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_schema_rejects_partial_unique_index \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_schema_rejects_nonconstraint_unique_index \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_event_priority_is_canonical_immutable_and_validated
+
+Baseline: c76d28854e43fffe6733b59d5f9e3861afb645bb
+Exit code: 1
+
+test_recovery_payloads_bind_all_signed_state_and_reject_substitution ... FAIL
+test_recovery_audit_replay_is_rejected_and_detected_after_trigger_bypass ... FAIL
+test_recovery_event_replay_is_rejected_and_detected_after_trigger_bypass ... FAIL
+test_deleted_recovery_triplet_is_detected_by_durable_anchor ... FAIL
+test_replaced_recovery_row_is_detected_after_trigger_restore ... ok
+test_duplicate_recovery_row_is_detected_after_trigger_restore ... ok
+test_recovery_schema_rejects_partial_unique_index ... FAIL
+test_recovery_schema_rejects_nonconstraint_unique_index ... FAIL
+test_recovery_event_priority_is_canonical_immutable_and_validated ... FAIL
+
+======================================================================
+FAIL: test_recovery_payloads_bind_all_signed_state_and_reject_substitution
+----------------------------------------------------------------------
+AssertionError: None != <signed previous_task_state> : previous_task_state
+
+======================================================================
+FAIL: test_recovery_audit_replay_is_rejected_and_detected_after_trigger_bypass
+----------------------------------------------------------------------
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_recovery_event_replay_is_rejected_and_detected_after_trigger_bypass
+----------------------------------------------------------------------
+AssertionError: IntegrityError not raised
+
+======================================================================
+FAIL: test_deleted_recovery_triplet_is_detected_by_durable_anchor
+----------------------------------------------------------------------
+AssertionError: False is not true : []
+
+======================================================================
+FAIL: test_recovery_schema_rejects_partial_unique_index
+----------------------------------------------------------------------
+AssertionError: 'canonical' != 'invalid'
+
+======================================================================
+FAIL: test_recovery_schema_rejects_nonconstraint_unique_index
+----------------------------------------------------------------------
+AssertionError: 'canonical' != 'invalid'
+
+======================================================================
+FAIL: test_recovery_event_priority_is_canonical_immutable_and_validated
+----------------------------------------------------------------------
+AssertionError: IntegrityError not raised
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.332s
+
+FAILED (failures=7)
+
+Baseline interpretation: recovery-row replacement and duplication already failed
+closed through the signed recovery row. The uncovered H3 deletion case removed the
+record plus its audit/event rows after trigger bypass and returned no conflicts.

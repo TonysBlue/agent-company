@@ -1,0 +1,96 @@
+{
+  "artifacts": [
+    {
+      "path": "verification-report.md",
+      "purpose": "Reviewable Task 154 outcome, implementation audit, strict TDD record, verification, acceptance mapping, and remaining risks",
+      "sha256": "d48f4ad75a7ca93696ef89a6688600441e66118860e82061935ee98b2db0e794"
+    },
+    {
+      "path": "CONTINUITY.json",
+      "purpose": "Structured Company Platform Engineer continuity and independent control-review handoff",
+      "sha256": "200c88d9128a2a5a0aeb3846f2fc048f70c746c8158781beecf1185a4a2f66be"
+    },
+    {
+      "path": "red-test-output.txt",
+      "purpose": "Clean-base strict RED replay of all nine finding-specific probes",
+      "sha256": "db7f4037821ba6ebca331c7f506add12eefea75b15553060fe5cad2caea5fa4a"
+    },
+    {
+      "path": "green-test-output.txt",
+      "purpose": "Finding-specific GREEN, focused/full regressions, isolated integrity, compile, diff, and security-check results",
+      "sha256": "e96b6c0078780e53813f79ab4d6801c047c5a74a5ae0b2608a06e08a7580677d"
+    }
+  ],
+  "base_commit": "c76d28854e43fffe6733b59d5f9e3861afb645bb",
+  "base_tree": "567a32cf7351b0f295f534006903602755661d3f",
+  "canonical_test": {
+    "command": "python3.11 -m unittest discover -s tests",
+    "passed": 409,
+    "result": "pass",
+    "seconds": 69.203
+  },
+  "code_sha256": {
+    "agent_company/assurance.py": "ef686b958b8d159e0610a0d685c233e8f9de30186868caccff018e0e470f4263",
+    "agent_company/db.py": "ba0d5f9b050a132bfc8feb10c72fb7d888723340598c77ac6e3ea6f828769e9b",
+    "agent_company/integrity.py": "2fc125de07ce8c302ea675cf1520d4d42844a747b3204892b8fe4df8f9003569",
+    "agent_company/ops.py": "d7fda5b10c79eb2b7b82a831a946ed676b7e84abc9e06ce19e3cb01aedd6162e",
+    "tests/test_exhausted_task_recovery.py": "ec0e0a414d3dcc68ae1b58d675675fb4199feb58d7a3f0fdc69994e56c140eec"
+  },
+  "external_actions": [
+    "required git push only"
+  ],
+  "focused_test": {
+    "command": "python3.11 -m unittest -v tests.test_exhausted_task_recovery",
+    "passed": 36,
+    "result": "pass",
+    "seconds": 1.650
+  },
+  "green_test": {
+    "command": "nine exact finding-specific unittest probes listed in green-test-output.txt",
+    "passed": 9,
+    "result": "pass",
+    "seconds": 0.347
+  },
+  "isolated_integrity": {
+    "clean_assurance": "ok",
+    "clean_sqlite_integrity": "ok",
+    "clean_validation_errors": [],
+    "deleted_provenance_assurance": "integrity_conflict",
+    "deleted_provenance_sqlite_integrity": "ok",
+    "deleted_provenance_validation_failed_closed": true,
+    "result": "pass"
+  },
+  "live_state": {
+    "database_mtime": 1786164268,
+    "database_sha256": "275ead1d61a0a0271e13b4aae92747750cf30bbb3f2e0a871e1e6afb4773c9a5",
+    "database_size": 438964224,
+    "database_unchanged": true,
+    "scoped_services": "inactive"
+  },
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "seconds": 0.292,
+    "tree": "6f2d526d912fcf283937cd265d298004a31c00b2",
+    "worktree": "clean"
+  },
+  "red_test": {
+    "errors": 0,
+    "exit_status": 1,
+    "failures": 7,
+    "passed_controls": 2,
+    "ran": 9,
+    "result": "expected_fail",
+    "seconds": 0.332
+  },
+  "repository": "agent-company",
+  "schema_version": "agent-company-evidence-manifest/v1",
+  "security_tools_unavailable": [
+    "bandit",
+    "ruff",
+    "mypy",
+    "semgrep"
+  ],
+  "task_id": 154
+}

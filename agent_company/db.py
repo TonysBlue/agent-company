@@ -47,20 +47,72 @@ RECOVERY_TRIGGER_DEFINITIONS = {
         BEGIN SELECT RAISE(ABORT, 'task recovery identity is immutable'); END""",
     "recovery_audit_provenance_immutable_update": """CREATE TRIGGER recovery_audit_provenance_immutable_update
         BEFORE UPDATE OF ts,actor,action,entity,entity_id,details ON audit_log
-        WHEN OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution'
+        WHEN (OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution')
+          OR (NEW.action='requeue_exhausted_task' AND NEW.entity='task_execution')
         BEGIN SELECT RAISE(ABORT, 'recovery audit provenance is immutable'); END""",
     "recovery_audit_provenance_immutable_delete": """CREATE TRIGGER recovery_audit_provenance_immutable_delete
         BEFORE DELETE ON audit_log
         WHEN OLD.action='requeue_exhausted_task' AND OLD.entity='task_execution'
         BEGIN SELECT RAISE(ABORT, 'recovery audit provenance is immutable'); END""",
+    "recovery_audit_provenance_require_canonical_insert": """CREATE TRIGGER recovery_audit_provenance_require_canonical_insert
+        BEFORE INSERT ON audit_log
+        WHEN NEW.action='requeue_exhausted_task' AND NEW.entity='task_execution'
+         AND NOT EXISTS (
+             SELECT 1 FROM task_recovery_records record
+             WHERE record.audit_log_id=NEW.id
+               AND CAST(record.task_id AS TEXT)=NEW.entity_id
+               AND record.recovered_at=NEW.ts
+               AND record.actor=NEW.actor
+               AND NEW.details=assurance_recovery_payload(
+                   record.id,record.task_id,record.recovered_at,record.actor,
+                   record.reason,record.scope,record.process_dead_proof,
+                   record.previous_task_state,record.previous_execution_state,
+                   record.new_task_state,record.new_execution_state,
+                   record.audit_log_id,record.event_id,record.integrity_signature
+               )
+         )
+        BEGIN SELECT RAISE(ABORT, 'recovery audit provenance must be one-to-one'); END""",
     "recovery_event_provenance_immutable_update": """CREATE TRIGGER recovery_event_provenance_immutable_update
-        BEFORE UPDATE OF created_at,available_at,event_type,entity_type,entity_id,payload ON execution_events
-        WHEN OLD.event_type='task.requeued' AND OLD.entity_type='task'
+        BEFORE UPDATE OF created_at,available_at,event_type,entity_type,entity_id,payload,priority ON execution_events
+        WHEN (OLD.event_type='task.requeued' AND OLD.entity_type='task')
+          OR (NEW.event_type='task.requeued' AND NEW.entity_type='task')
         BEGIN SELECT RAISE(ABORT, 'recovery event provenance is immutable'); END""",
     "recovery_event_provenance_immutable_delete": """CREATE TRIGGER recovery_event_provenance_immutable_delete
         BEFORE DELETE ON execution_events
         WHEN OLD.event_type='task.requeued' AND OLD.entity_type='task'
         BEGIN SELECT RAISE(ABORT, 'recovery event provenance is immutable'); END""",
+    "recovery_event_provenance_require_canonical_insert": """CREATE TRIGGER recovery_event_provenance_require_canonical_insert
+        BEFORE INSERT ON execution_events
+        WHEN NEW.event_type='task.requeued' AND NEW.entity_type='task'
+         AND NOT EXISTS (
+             SELECT 1 FROM task_recovery_records record
+             WHERE record.event_id=NEW.id
+               AND CAST(record.task_id AS TEXT)=NEW.entity_id
+               AND record.recovered_at=NEW.created_at
+               AND record.recovered_at=NEW.available_at
+               AND NEW.priority=10
+               AND NEW.payload=assurance_recovery_payload(
+                   record.id,record.task_id,record.recovered_at,record.actor,
+                   record.reason,record.scope,record.process_dead_proof,
+                   record.previous_task_state,record.previous_execution_state,
+                   record.new_task_state,record.new_execution_state,
+                   record.audit_log_id,record.event_id,record.integrity_signature
+               )
+         )
+        BEGIN SELECT RAISE(ABORT, 'recovery event provenance must be one-to-one'); END""",
+    "task_recovery_provenance_immutable_update": """CREATE TRIGGER task_recovery_provenance_immutable_update
+        BEFORE UPDATE ON task_recovery_provenance
+        BEGIN SELECT RAISE(ABORT, 'task recovery provenance is immutable'); END""",
+    "task_recovery_provenance_immutable_delete": """CREATE TRIGGER task_recovery_provenance_immutable_delete
+        BEFORE DELETE ON task_recovery_provenance
+        BEGIN SELECT RAISE(ABORT, 'task recovery provenance is immutable'); END""",
+    "task_recovery_provenance_require_canonical_insert": """CREATE TRIGGER task_recovery_provenance_require_canonical_insert
+        BEFORE INSERT ON task_recovery_provenance
+        WHEN assurance_recovery_provenance_signature_valid(
+            NEW.recovery_record_id,NEW.task_id,NEW.audit_log_id,NEW.event_id,
+            NEW.record_integrity_signature,NEW.event_priority,NEW.integrity_signature
+        ) != 1
+        BEGIN SELECT RAISE(ABORT, 'task recovery provenance integrity signature required'); END""",
 }
 
 RECOVERY_SCHEMA_COLUMNS = {
@@ -80,6 +132,35 @@ RECOVERY_SCHEMA_COLUMNS = {
     "integrity_signature": ("TEXT", 1, 0),
 }
 RECOVERY_SCHEMA_COLUMN_ORDER = tuple(RECOVERY_SCHEMA_COLUMNS)
+RECOVERY_PROVENANCE_SCHEMA_COLUMNS = {
+    "recovery_record_id": ("INTEGER", 0, 1),
+    "task_id": ("INTEGER", 1, 0),
+    "audit_log_id": ("INTEGER", 1, 0),
+    "event_id": ("INTEGER", 1, 0),
+    "record_integrity_signature": ("TEXT", 1, 0),
+    "event_priority": ("INTEGER", 1, 0),
+    "integrity_signature": ("TEXT", 1, 0),
+}
+
+
+def _unique_constraint_sets(
+    conn: sqlite3.Connection, table: str,
+) -> list[tuple[str, ...]] | None:
+    constraints: list[tuple[str, ...]] = []
+    for index in conn.execute(f"PRAGMA index_list('{table}')").fetchall():
+        if not int(index[2]):
+            continue
+        if str(index[3]).lower() != "u" or int(index[4]) != 0:
+            return None
+        xinfo = conn.execute(f"PRAGMA index_xinfo('{index[1]}')").fetchall()
+        key_rows = [row for row in xinfo if int(row[5]) == 1]
+        if any(
+            row[2] is None or int(row[3]) != 0 or str(row[4]).upper() != "BINARY"
+            for row in key_rows
+        ):
+            return None
+        constraints.append(tuple(str(row[2]) for row in key_rows))
+    return constraints
 
 
 def recovery_schema_status(conn: sqlite3.Connection) -> str:
@@ -108,17 +189,40 @@ def recovery_schema_status(conn: sqlite3.Connection) -> str:
         for row in foreign_keys
     ):
         return "invalid"
-    unique_sets = []
-    for index in conn.execute("PRAGMA index_list(task_recovery_records)").fetchall():
-        if int(index[2]):
-            unique_sets.append(tuple(
-                item[2] for item in conn.execute(f"PRAGMA index_info('{index[1]}')").fetchall()
-            ))
+    unique_sets = _unique_constraint_sets(conn, "task_recovery_records")
     if unique_sets == [("task_id", "previous_task_state")]:
         return "canonical"
     if unique_sets == [("task_id", "previous_execution_state")]:
         return "legacy"
     return "invalid"
+
+
+def recovery_provenance_schema_status(conn: sqlite3.Connection) -> str:
+    table = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='task_recovery_provenance'"
+    ).fetchone()
+    if table is None:
+        return "missing"
+    table_sql = _normalized_sql(table["sql"] or "")
+    if "check(event_priority=10)" not in table_sql:
+        return "invalid"
+    info = conn.execute("PRAGMA table_info(task_recovery_provenance)").fetchall()
+    if tuple(row[1] for row in info) != tuple(RECOVERY_PROVENANCE_SCHEMA_COLUMNS):
+        return "invalid"
+    shape = {
+        row[1]: (str(row[2]).upper(), int(row[3]), int(row[5]))
+        for row in info
+    }
+    if shape != RECOVERY_PROVENANCE_SCHEMA_COLUMNS:
+        return "invalid"
+    if conn.execute(
+        "PRAGMA foreign_key_list(task_recovery_provenance)"
+    ).fetchone() is not None:
+        return "invalid"
+    unique_sets = _unique_constraint_sets(conn, "task_recovery_provenance")
+    if unique_sets is None or sorted(unique_sets) != [("audit_log_id",), ("event_id",)]:
+        return "invalid"
+    return "canonical"
 
 
 def migrate_legacy_recovery_schema(conn: sqlite3.Connection) -> None:
@@ -305,6 +409,34 @@ class Store:
             payload = dict(zip(keys, values[:-1], strict=True))
             return int(verify(db_path, "task-exhausted-recovery", payload, str(values[-1])))
 
+        def recovery_payload(*values: object) -> str:
+            from .integrity import recovery_provenance_payload
+
+            if len(values) != 14:
+                return ""
+            keys = (
+                "id", "task_id", "recovered_at", "actor", "reason", "scope",
+                "process_dead_proof", "previous_task_state", "previous_execution_state",
+                "new_task_state", "new_execution_state", "audit_log_id", "event_id",
+                "integrity_signature",
+            )
+            payload = recovery_provenance_payload(dict(zip(keys, values, strict=True)))
+            return json.dumps(payload, sort_keys=True)
+
+        def recovery_provenance_signature_valid(*values: object) -> int:
+            from .integrity import verify
+
+            if len(values) != 7:
+                return 0
+            keys = (
+                "recovery_record_id", "task_id", "audit_log_id", "event_id",
+                "record_integrity_signature", "event_priority",
+            )
+            payload = dict(zip(keys, values[:-1], strict=True))
+            return int(verify(
+                db_path, "task-recovery-provenance", payload, str(values[-1]),
+            ))
+
         def approval_binding_signature_valid(*values: object) -> int:
             from .integrity import verify
             if len(values) != 7:
@@ -361,6 +493,14 @@ class Store:
         conn.create_function(
             "assurance_recovery_signature_valid", 14,
             recovery_signature_valid, deterministic=True,
+        )
+        conn.create_function(
+            "assurance_recovery_payload", 14,
+            recovery_payload, deterministic=True,
+        )
+        conn.create_function(
+            "assurance_recovery_provenance_signature_valid", 7,
+            recovery_provenance_signature_valid, deterministic=True,
         )
         conn.create_function(
             "assurance_approval_binding_signature_valid", 7,
@@ -582,6 +722,9 @@ class Store:
             recovery_table_present_before = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
             ).fetchone() is not None
+            recovery_provenance_present_before = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_provenance'"
+            ).fetchone() is not None
             operational_schema_present = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tasks'"
             ).fetchone() is not None
@@ -599,6 +742,17 @@ class Store:
                 elif recovery_status != "canonical":
                     raise sqlite3.IntegrityError(
                         "governed recovery history schema is not canonical"
+                    )
+                if recovery_provenance_present_before:
+                    if recovery_provenance_schema_status(conn) != "canonical":
+                        raise sqlite3.IntegrityError(
+                            "governed recovery provenance schema is not canonical"
+                        )
+                elif conn.execute(
+                    "SELECT 1 FROM task_recovery_records LIMIT 1"
+                ).fetchone() is not None:
+                    raise sqlite3.IntegrityError(
+                        "governed recovery provenance is missing for existing history"
                     )
             # Older databases need this column before triggers referencing it are parsed.
             if conn.execute(
@@ -831,6 +985,15 @@ class Store:
                     integrity_signature TEXT NOT NULL,
                     FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT,
                     UNIQUE(task_id, previous_execution_state)
+                );
+                CREATE TABLE IF NOT EXISTS task_recovery_provenance (
+                    recovery_record_id INTEGER PRIMARY KEY,
+                    task_id INTEGER NOT NULL,
+                    audit_log_id INTEGER NOT NULL UNIQUE,
+                    event_id INTEGER NOT NULL UNIQUE,
+                    record_integrity_signature TEXT NOT NULL,
+                    event_priority INTEGER NOT NULL CHECK(event_priority=10),
+                    integrity_signature TEXT NOT NULL
                 );
                 CREATE TRIGGER IF NOT EXISTS task_recovery_records_immutable_update
                     BEFORE UPDATE ON task_recovery_records
@@ -1217,6 +1380,10 @@ class Store:
             elif recovery_schema_status(conn) != "canonical":
                 raise sqlite3.IntegrityError(
                     "governed recovery history schema is not canonical"
+                )
+            if recovery_provenance_schema_status(conn) != "canonical":
+                raise sqlite3.IntegrityError(
+                    "governed recovery provenance schema is not canonical"
                 )
             # CREATE TRIGGER IF NOT EXISTS is intentionally not used here:
             # trigger names are not a trust boundary when an existing trigger

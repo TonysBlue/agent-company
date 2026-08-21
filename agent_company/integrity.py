@@ -89,6 +89,11 @@ TASK_RECOVERY_SIGNATURE_FIELDS = (
     "process_dead_proof", "previous_task_state", "previous_execution_state",
     "new_task_state", "new_execution_state", "audit_log_id", "event_id",
 )
+RECOVERY_EVENT_PRIORITY = 10
+RECOVERY_PROVENANCE_SIGNATURE_FIELDS = (
+    "recovery_record_id", "task_id", "audit_log_id", "event_id",
+    "record_integrity_signature", "event_priority",
+)
 
 
 def recovery_values(row: Any) -> dict[str, Any]:
@@ -102,6 +107,42 @@ def recovery_signature(db_path: Path, values: dict[str, Any]) -> str:
 def verify_recovery_signature(db_path: Path, row: Any) -> bool:
     return verify(
         db_path, "task-exhausted-recovery", recovery_values(row),
+        row["integrity_signature"],
+    )
+
+
+def recovery_provenance_payload(row: Any) -> dict[str, Any]:
+    """Return the exact audit/event representation of a signed recovery row."""
+    return {
+        "record_id": int(row["id"]),
+        "task_id": int(row["task_id"]),
+        "recovered_at": row["recovered_at"],
+        "actor": row["actor"],
+        "reason": row["reason"],
+        "scope": row["scope"],
+        "process_dead_proof": row["process_dead_proof"],
+        "previous_task_state": row["previous_task_state"],
+        "previous_execution_state": row["previous_execution_state"],
+        "new_task_state": row["new_task_state"],
+        "new_execution_state": row["new_execution_state"],
+        "audit_log_id": int(row["audit_log_id"]),
+        "event_id": int(row["event_id"]),
+        "recovery_integrity_signature": row["integrity_signature"],
+        "event_priority": RECOVERY_EVENT_PRIORITY,
+    }
+
+
+def recovery_provenance_values(row: Any) -> dict[str, Any]:
+    return {field: row[field] for field in RECOVERY_PROVENANCE_SIGNATURE_FIELDS}
+
+
+def recovery_provenance_signature(db_path: Path, values: dict[str, Any]) -> str:
+    return signature(db_path, "task-recovery-provenance", values)
+
+
+def verify_recovery_provenance_signature(db_path: Path, row: Any) -> bool:
+    return verify(
+        db_path, "task-recovery-provenance", recovery_provenance_values(row),
         row["integrity_signature"],
     )
 

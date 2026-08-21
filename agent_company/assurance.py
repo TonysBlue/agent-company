@@ -1022,7 +1022,7 @@ class AssuranceKernel:
             except Exception as exc:
                 recovery_preflight = [{"anchor": "recovery_schema", "error": str(exc)}]
             conflicts.extend(recovery_preflight)
-            if any(item.get("anchor") in {"recovery_schema", "recovery_trigger"} for item in recovery_preflight):
+            if recovery_preflight:
                 return {"status": "integrity_conflict", "conflicts": conflicts}
         self.init()
         with self.store.connect_readonly() as conn:

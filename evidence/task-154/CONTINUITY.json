@@ -1,0 +1,45 @@
+{
+  "handoffs": [
+    {
+      "artifact_refs": [
+        "/home/tony/agent-company/evidence/task-154/verification-report.md",
+        "/home/tony/agent-company/evidence/task-154/evidence-manifest.json",
+        "/home/tony/agent-company/evidence/task-154/red-test-output.txt",
+        "/home/tony/agent-company/evidence/task-154/green-test-output.txt"
+      ],
+      "decision_needed": "Independently review Task 154 recovery provenance and retained evidence; return approve or findings to CEO.",
+      "handoff_type": "control_review",
+      "summary": "Task 154 closes five recovery provenance findings with strict RED/GREEN evidence, 36 focused recovery tests, 409 Agent Company tests, 58 clean PixWeave tests, and isolated fail-closed integrity probes.",
+      "to_role": "Control & Reliability Reviewer"
+    }
+  ],
+  "known_limits": [
+    "The durable signed anchor shares the SQLite trust domain and is not an external append-only ledger.",
+    "Existing pre-anchor recovery history fails closed and needs a separately reviewed migration.",
+    "No deployment, live initialization, operational recovery, customer action, Beta, Phase D, Treatment, or C2 workflow was authorized or performed.",
+    "Independent Control & Reliability review is not included and cannot be self-issued by the implementer."
+  ],
+  "open_items": [
+    "Control & Reliability Reviewer should independently review the pushed Task 154 commit and evidence before deployment or migration planning."
+  ],
+  "project_decisions": [
+    "Recovery audit and event payloads use one canonical representation derived from every signed recovery field and canonical priority.",
+    "A separately signed immutable provenance table anchors exact recovery record, audit, event, record-signature, and priority identity.",
+    "Recovery integrity reconciles exact record, anchor, audit, and event identity sets and fails closed on any mismatch.",
+    "Recovery schema validation accepts only exact non-partial table-level unique constraints with canonical key order and collation.",
+    "Existing recovery-bearing stores without provenance anchors fail closed rather than receiving synthesized history."
+  ],
+  "project_summary": "Agent Company recovery provenance now binds signed state, exact one-to-one audit/event identity, durable deletion evidence, canonical schema constraints, and worker priority.",
+  "role": "Company Platform Engineer",
+  "schema_version": "agent-company-continuity/v1",
+  "summary": "Completed Task 154 from clean HEAD c76d288 with strict TDD, signed durable recovery provenance, exact schema validation, and full isolated regression coverage.",
+  "verified_facts": [
+    "The clean-base replay ran nine exact probes with seven expected failures and two pre-existing passing controls.",
+    "The identical nine-probe set passes after implementation in 0.347 seconds.",
+    "The complete exhausted-task recovery module passes 36 tests in 1.650 seconds.",
+    "Agent Company canonical verification passes 409 tests in 69.203 seconds.",
+    "PixWeave remained clean at d78094f26eb697c810899a40771a8af6dec7ce19 and passes 58 tests in 0.292 seconds.",
+    "Fresh isolated validation, assurance integrity, and SQLite integrity all pass; isolated provenance deletion fails closed.",
+    "The live database hash, size, and mtime remained unchanged and scoped services remained inactive."
+  ]
+}

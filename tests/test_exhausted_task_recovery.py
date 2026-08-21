@@ -79,6 +79,37 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
         self.osys.decide(approval_id, "approve", "Approved exact Task 145 decision.", "Chairman")
         return int(approval_id)
 
+    def _replace_recovery_unique_constraint(self, index_sql: str) -> None:
+        from agent_company.db import RECOVERY_TRIGGER_DEFINITIONS
+
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("ALTER TABLE task_recovery_records RENAME TO task_recovery_records_legacy")
+            conn.execute(
+                """CREATE TABLE task_recovery_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    recovered_at TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    scope TEXT NOT NULL,
+                    process_dead_proof TEXT NOT NULL,
+                    previous_task_state TEXT NOT NULL,
+                    previous_execution_state TEXT NOT NULL,
+                    new_task_state TEXT NOT NULL,
+                    new_execution_state TEXT NOT NULL,
+                    audit_log_id INTEGER,
+                    event_id INTEGER,
+                    integrity_signature TEXT NOT NULL,
+                    FOREIGN KEY(task_id) REFERENCES tasks(id) ON DELETE RESTRICT
+                )"""
+            )
+            conn.execute(index_sql)
+            for name in RECOVERY_TRIGGER_DEFINITIONS:
+                conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+            for definition in RECOVERY_TRIGGER_DEFINITIONS.values():
+                conn.execute(definition)
+            conn.execute("DROP TABLE task_recovery_records_legacy")
+
     def test_requeues_allowlisted_exhausted_task_with_signed_immutable_record(self) -> None:
         task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
         self._exhausted(task_id)
@@ -340,11 +371,12 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
                 conn.execute("UPDATE execution_events SET payload=payload WHERE id=?", (record["event_id"],))
             conn.execute("DROP TRIGGER recovery_audit_provenance_immutable_delete")
             conn.execute("DELETE FROM audit_log WHERE id=?", (record["audit_log_id"],))
-            conn.execute(
-                "INSERT INTO audit_log(ts,actor,action,entity,entity_id,details) VALUES (?,?,?,?,?,?)",
-                (record["recovered_at"], record["actor"], "requeue_exhausted_task", "task_execution", str(task_id),
-                 json.dumps({**{k: record[k] for k in ("task_id", "recovered_at", "actor", "reason", "scope")}, "record_id": record["id"]}, sort_keys=True)),
-            )
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "provenance|one-to-one"):
+                conn.execute(
+                    "INSERT INTO audit_log(ts,actor,action,entity,entity_id,details) VALUES (?,?,?,?,?,?)",
+                    (record["recovered_at"], record["actor"], "requeue_exhausted_task", "task_execution", str(task_id),
+                     json.dumps({**{k: record[k] for k in ("task_id", "recovered_at", "actor", "reason", "scope")}, "record_id": record["id"]}, sort_keys=True)),
+                )
         self.assertTrue(any(item.get("task_id") == task_id for item in recovery_conflicts(Store(self.config.db_path).connect_readonly(), self.config.db_path)))
 
     def test_init_repairs_modified_recovery_triggers_unconditionally(self) -> None:
@@ -461,6 +493,235 @@ class ExhaustedTaskRecoveryTest(unittest.TestCase):
             any(item.get("anchor") == "task_recovery_record" and item.get("task_id") == task_id for item in conflicts),
             conflicts,
         )
+
+    def test_recovery_payloads_bind_all_signed_state_and_reject_substitution(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one(
+            "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+        )
+        audit = Store(self.config.db_path).fetch_one(
+            "SELECT details FROM audit_log WHERE id=?", (record["audit_log_id"],)
+        )
+        event = Store(self.config.db_path).fetch_one(
+            "SELECT payload FROM execution_events WHERE id=?", (record["event_id"],)
+        )
+        expected = {
+            "record_id": int(record["id"]),
+            "task_id": int(record["task_id"]),
+            "scope": record["scope"],
+            "previous_task_state": record["previous_task_state"],
+            "previous_execution_state": record["previous_execution_state"],
+            "new_task_state": record["new_task_state"],
+            "new_execution_state": record["new_execution_state"],
+            "audit_log_id": int(record["audit_log_id"]),
+            "event_id": int(record["event_id"]),
+            "process_dead_proof": record["process_dead_proof"],
+            "recovery_integrity_signature": record["integrity_signature"],
+        }
+        audit_payload = json.loads(audit["details"])
+        event_payload = json.loads(event["payload"])
+        for key, value in expected.items():
+            self.assertEqual(audit_payload.get(key), value, key)
+            self.assertEqual(event_payload.get(key), value, key)
+
+        substituted = dict(event_payload)
+        substituted["previous_task_state"] = record["new_task_state"]
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER recovery_audit_provenance_immutable_update")
+            conn.execute("DROP TRIGGER recovery_event_provenance_immutable_update")
+            conn.execute(
+                "UPDATE audit_log SET details=? WHERE id=?",
+                (json.dumps(substituted, sort_keys=True), record["audit_log_id"]),
+            )
+            conn.execute(
+                "UPDATE execution_events SET payload=? WHERE id=?",
+                (json.dumps(substituted, sort_keys=True), record["event_id"]),
+            )
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("task_id") == task_id for item in conflicts), conflicts)
+
+    def test_recovery_audit_replay_is_rejected_and_detected_after_trigger_bypass(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one(
+            "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+        )
+        with Store(self.config.db_path).connect() as conn:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "provenance|one-to-one|recovery"):
+                conn.execute(
+                    """INSERT INTO audit_log(ts,actor,action,entity,entity_id,details)
+                       SELECT ts,actor,action,entity,entity_id,details FROM audit_log WHERE id=?""",
+                    (record["audit_log_id"],),
+                )
+            conn.execute("DROP TRIGGER recovery_audit_provenance_require_canonical_insert")
+            conn.execute(
+                """INSERT INTO audit_log(ts,actor,action,entity,entity_id,details)
+                   SELECT ts,actor,action,entity,entity_id,details FROM audit_log WHERE id=?""",
+                (record["audit_log_id"],),
+            )
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("task_id") == task_id for item in conflicts), conflicts)
+
+    def test_recovery_event_replay_is_rejected_and_detected_after_trigger_bypass(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one(
+            "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+        )
+        with Store(self.config.db_path).connect() as conn:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "provenance|one-to-one|recovery"):
+                conn.execute(
+                    """INSERT INTO execution_events(
+                           created_at,available_at,event_type,entity_type,entity_id,payload,status,priority)
+                       SELECT created_at,available_at,event_type,entity_type,entity_id,payload,status,priority
+                       FROM execution_events WHERE id=?""",
+                    (record["event_id"],),
+                )
+            conn.execute("DROP TRIGGER recovery_event_provenance_require_canonical_insert")
+            conn.execute(
+                """INSERT INTO execution_events(
+                       created_at,available_at,event_type,entity_type,entity_id,payload,status,priority)
+                   SELECT created_at,available_at,event_type,entity_type,entity_id,payload,status,priority
+                   FROM execution_events WHERE id=?""",
+                (record["event_id"],),
+            )
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("task_id") == task_id for item in conflicts), conflicts)
+
+    def test_deleted_recovery_triplet_is_detected_by_durable_anchor(self) -> None:
+        from agent_company.assurance import AssuranceKernel
+
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one(
+            "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+        )
+        with Store(self.config.db_path).connect() as conn:
+            for trigger in (
+                "task_recovery_records_immutable_delete",
+                "recovery_audit_provenance_immutable_delete",
+                "recovery_event_provenance_immutable_delete",
+            ):
+                conn.execute(f"DROP TRIGGER {trigger}")
+            conn.execute("DELETE FROM execution_events WHERE id=?", (record["event_id"],))
+            conn.execute("DELETE FROM audit_log WHERE id=?", (record["audit_log_id"],))
+            conn.execute("DELETE FROM task_recovery_records WHERE id=?", (record["id"],))
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("anchor") == "recovery_provenance" for item in conflicts), conflicts)
+        self.assertTrue(any("recovery" in error.lower() for error in self.osys.validate()))
+        integrity = AssuranceKernel(self.config).verify_integrity()
+        self.assertEqual(integrity["status"], "integrity_conflict")
+        self.assertTrue(
+            any(item.get("anchor") == "recovery_provenance" for item in integrity["conflicts"]),
+            integrity,
+        )
+
+    def test_replaced_recovery_row_is_detected_after_trigger_restore(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = dict(Store(self.config.db_path).fetch_one(
+            "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+        ))
+        record["reason"] = "substituted recovery"
+        columns = tuple(record)
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER task_recovery_records_immutable_delete")
+            conn.execute("DROP TRIGGER task_recovery_records_require_canonical_insert")
+            conn.execute("DELETE FROM task_recovery_records WHERE id=?", (record["id"],))
+            conn.execute(
+                f"INSERT INTO task_recovery_records({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})",
+                tuple(record[column] for column in columns),
+            )
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("task_id") == task_id for item in conflicts), conflicts)
+
+    def test_duplicate_recovery_row_is_detected_after_trigger_restore(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = dict(Store(self.config.db_path).fetch_one(
+            "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+        ))
+        record["id"] = int(record["id"]) + 100
+        record["previous_task_state"] = json.dumps({"duplicate": True}, sort_keys=True)
+        columns = tuple(record)
+        with Store(self.config.db_path).connect() as conn:
+            conn.execute("DROP TRIGGER task_recovery_records_require_canonical_insert")
+            conn.execute(
+                f"INSERT INTO task_recovery_records({','.join(columns)}) VALUES ({','.join('?' for _ in columns)})",
+                tuple(record[column] for column in columns),
+            )
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("task_id") == task_id for item in conflicts), conflicts)
+
+    def test_recovery_schema_rejects_partial_unique_index(self) -> None:
+        from agent_company.db import recovery_schema_status
+
+        self._replace_recovery_unique_constraint(
+            """CREATE UNIQUE INDEX forged_recovery_unique
+               ON task_recovery_records(task_id,previous_task_state)
+               WHERE actor='CEO'"""
+        )
+        with Store(self.config.db_path).connect_readonly() as conn:
+            self.assertEqual(recovery_schema_status(conn), "invalid")
+
+    def test_recovery_schema_rejects_nonconstraint_unique_index(self) -> None:
+        from agent_company.db import recovery_schema_status
+
+        self._replace_recovery_unique_constraint(
+            """CREATE UNIQUE INDEX forged_recovery_unique
+               ON task_recovery_records(task_id,previous_task_state)"""
+        )
+        with Store(self.config.db_path).connect_readonly() as conn:
+            self.assertEqual(recovery_schema_status(conn), "invalid")
+
+    def test_recovery_event_priority_is_canonical_immutable_and_validated(self) -> None:
+        task_id = self._task("登记受控Beta真实客户验证董事长决策事项", "Customer & Revenue", "commercial", 145)
+        self._exhausted(task_id)
+        with patch.object(self.osys, "_process_status", return_value={"alive": False, "reason": "process not found"}):
+            self.osys.requeue_exhausted_task(task_id, "CEO", "verified death")
+        record = Store(self.config.db_path).fetch_one(
+            "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
+        )
+        event = Store(self.config.db_path).fetch_one(
+            "SELECT priority FROM execution_events WHERE id=?", (record["event_id"],)
+        )
+        self.assertEqual(event["priority"], 10)
+        with Store(self.config.db_path).connect() as conn:
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable|provenance"):
+                conn.execute("UPDATE execution_events SET priority=100 WHERE id=?", (record["event_id"],))
+            conn.execute("DROP TRIGGER recovery_event_provenance_immutable_update")
+            conn.execute(
+                "UPDATE execution_events SET priority=100 WHERE id=?", (record["event_id"],)
+            )
+            Store._repair_recovery_triggers(conn)
+        with Store(self.config.db_path).connect_readonly() as conn:
+            conflicts = recovery_conflicts(conn, self.config.db_path)
+        self.assertTrue(any(item.get("task_id") == task_id for item in conflicts), conflicts)
 
     def test_recovery_conflicts_reject_weakened_same_name_schema(self) -> None:
         """Column-name compatibility is insufficient for governed recovery history."""

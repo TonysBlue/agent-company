@@ -14,6 +14,7 @@ from .db import (
     RECOVERY_TRIGGER_DEFINITIONS,
     Store,
     _normalized_sql,
+    recovery_provenance_schema_status,
     recovery_schema_status,
     utcnow,
 )
@@ -21,8 +22,12 @@ from .governance import DISCLAIMER, classify_reserved_action
 from .models import ON_DEMAND_CAPABILITIES
 from .integrity import (
     reconciliation_signature,
+    RECOVERY_EVENT_PRIORITY,
+    recovery_provenance_payload,
+    recovery_provenance_signature,
     recovery_signature,
     verify_reconciliation_signature,
+    verify_recovery_provenance_signature,
     approval_binding_signature,
     approval_decision_signature,
     verify_approval_binding_signature,
@@ -97,6 +102,9 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         # Do not query rows through an untrusted replacement schema. This keeps
         # validation/integrity reporting deterministic and fail-closed.
         return conflicts
+    provenance_status = recovery_provenance_schema_status(conn)
+    if provenance_status != "canonical":
+        return [{"anchor": "recovery_schema", "provenance_status": provenance_status}]
     triggers = {
         row["name"]: row["sql"] or ""
         for row in conn.execute(
@@ -106,7 +114,69 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
     for name, definition in RECOVERY_TRIGGER_DEFINITIONS.items():
         if name not in triggers or _normalized_sql(triggers[name]) != _normalized_sql(definition):
             conflicts.append({"anchor": "recovery_trigger", "trigger": name})
-    for row in conn.execute("SELECT * FROM task_recovery_records ORDER BY id"):
+    records = list(conn.execute("SELECT * FROM task_recovery_records ORDER BY id"))
+    anchors = list(conn.execute(
+        "SELECT * FROM task_recovery_provenance ORDER BY recovery_record_id"
+    ))
+    audits = list(conn.execute(
+        """SELECT id,ts,actor,entity_id,details FROM audit_log
+           WHERE action='requeue_exhausted_task' AND entity='task_execution'
+           ORDER BY id"""
+    ))
+    events = list(conn.execute(
+        """SELECT id,created_at,available_at,entity_id,payload,priority
+           FROM execution_events
+           WHERE event_type='task.requeued' AND entity_type='task'
+           ORDER BY id"""
+    ))
+    records_by_id = {int(row["id"]): row for row in records}
+    anchors_by_id = {int(row["recovery_record_id"]): row for row in anchors}
+    audits_by_id = {int(row["id"]): row for row in audits}
+    events_by_id = {int(row["id"]): row for row in events}
+
+    for anchor in anchors:
+        record = records_by_id.get(int(anchor["recovery_record_id"]))
+        valid = (
+            verify_recovery_provenance_signature(db_path, anchor)
+            and int(anchor["event_priority"]) == RECOVERY_EVENT_PRIORITY
+            and record is not None
+            and int(anchor["task_id"]) == int(record["task_id"])
+            and int(anchor["audit_log_id"]) == int(record["audit_log_id"] or -1)
+            and int(anchor["event_id"]) == int(record["event_id"] or -1)
+            and anchor["record_integrity_signature"] == record["integrity_signature"]
+        )
+        if not valid:
+            conflicts.append({
+                "anchor": "recovery_provenance",
+                "recovery_record_id": anchor["recovery_record_id"],
+                "task_id": anchor["task_id"],
+            })
+    for record_id, record in records_by_id.items():
+        if record_id not in anchors_by_id:
+            conflicts.append({
+                "anchor": "recovery_provenance",
+                "recovery_record_id": record_id,
+                "task_id": record["task_id"],
+            })
+
+    audit_refs = [int(row["audit_log_id"] or -1) for row in records]
+    event_refs = [int(row["event_id"] or -1) for row in records]
+    if len(audit_refs) != len(set(audit_refs)) or set(audit_refs) != set(audits_by_id):
+        for audit in audits:
+            if int(audit["id"]) not in set(audit_refs):
+                conflicts.append({
+                    "anchor": "recovery_provenance", "audit_log_id": audit["id"],
+                    "task_id": int(audit["entity_id"]) if str(audit["entity_id"]).isdigit() else None,
+                })
+    if len(event_refs) != len(set(event_refs)) or set(event_refs) != set(events_by_id):
+        for event in events:
+            if int(event["id"]) not in set(event_refs):
+                conflicts.append({
+                    "anchor": "recovery_provenance", "event_id": event["id"],
+                    "task_id": int(event["entity_id"]) if str(event["entity_id"]).isdigit() else None,
+                })
+
+    for row in records:
         task = conn.execute("SELECT * FROM tasks WHERE id=?", (row["task_id"],)).fetchone()
         execution = conn.execute("SELECT * FROM task_executions WHERE task_id=?", (row["task_id"],)).fetchone()
         try:
@@ -116,45 +186,17 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
         except (TypeError, json.JSONDecodeError):
             conflicts.append({"anchor": "task_recovery_record", "task_id": row["task_id"]})
             continue
-        expected_payload = {
-            "task_id": int(row["task_id"]),
-            "status": "open",
-            "recovered_at": row["recovered_at"],
-            "actor": row["actor"],
-            "reason": row["reason"],
-            "scope": row["scope"],
-            "completed": False,
-            "recovery_status": expected_execution.get("recovery_status"),
-            "attempt_count": expected_execution.get("attempt_count"),
-            "generation": expected_execution.get("generation"),
-            "record_id": int(row["id"]),
-            "audit_log_id": int(row["audit_log_id"] or -1),
-            "event_id": int(row["event_id"] or -1),
-            "process_dead_proof": process_dead_proof,
-        }
+        expected_payload = recovery_provenance_payload(row)
         # Recovery is an historical append-only fact: later claim, completion,
         # retry, or re-exhaustion is valid. Only the signed identity and the
         # exact event/audit pair for this record are immutable anchors.
-        events = conn.execute(
-            "SELECT id,created_at,available_at,payload FROM execution_events WHERE event_type='task.requeued' AND entity_type='task' AND entity_id=?",
-            (str(row["task_id"]),),
-        ).fetchall()
-        audits = conn.execute(
-            "SELECT id,ts,actor,details FROM audit_log WHERE action='requeue_exhausted_task' AND entity='task_execution' AND entity_id=?",
-            (str(row["task_id"]),),
-        ).fetchall()
-        event_bindings = []
-        audit_bindings = []
-        for candidate in events:
-            try:
-                event_bindings.append((candidate, json.loads(candidate["payload"])))
-            except (TypeError, json.JSONDecodeError):
-                continue
-        for candidate in audits:
-            try:
-                audit_bindings.append((candidate, json.loads(candidate["details"])))
-            except (TypeError, json.JSONDecodeError):
-                continue
+        event = events_by_id.get(int(row["event_id"] or -1))
+        audit = audits_by_id.get(int(row["audit_log_id"] or -1))
+        try:
+            event_payload = json.loads(event["payload"]) if event else None
+            audit_payload = json.loads(audit["details"]) if audit else None
+        except (TypeError, json.JSONDecodeError):
+            event_payload = audit_payload = None
         identity_fields = ("owner", "title", "domain", "acceptance_criteria")
         try:
             signed_identity = {field: expected_task.get(field) for field in identity_fields}
@@ -173,23 +215,17 @@ def recovery_conflicts(conn, db_path: Path) -> list[dict[str, object]]:
             and expected_task.get("status") == "open" and expected_task.get("result") is None
             and expected_execution.get("recovery_status") == "requeued"
             and expected_policy_scope == row["scope"]
-            and any(
-                int(event["id"]) == int(row["event_id"] or -1)
-                and payload == expected_payload
-                and payload.get("event_id") == int(row["event_id"])
-                and event["created_at"] == row["recovered_at"]
-                and event["available_at"] == row["recovered_at"]
-                for event, payload in event_bindings
-            )
-            and any(
-                int(audit["id"]) == int(row["audit_log_id"] or -1)
-                and
-                details == expected_payload
-                and details.get("audit_log_id") == int(row["audit_log_id"])
-                and audit["ts"] == row["recovered_at"]
-                and audit["actor"] == row["actor"]
-                for audit, details in audit_bindings
-            )
+            and event is not None
+            and event_payload == expected_payload
+            and event["entity_id"] == str(row["task_id"])
+            and event["created_at"] == row["recovered_at"]
+            and event["available_at"] == row["recovered_at"]
+            and int(event["priority"]) == RECOVERY_EVENT_PRIORITY
+            and audit is not None
+            and audit_payload == expected_payload
+            and audit["entity_id"] == str(row["task_id"])
+            and audit["ts"] == row["recovered_at"]
+            and audit["actor"] == row["actor"]
         )
         if not valid:
             conflicts.append({"anchor": "task_recovery_record", "task_id": row["task_id"]})
@@ -214,7 +250,9 @@ class CompanyOS:
 
     def _assert_recovery_integrity(self, conn, task_id: int) -> None:
         conflicts = recovery_conflicts(conn, self.config.db_path)
-        if any(item.get("anchor") in {"recovery_schema", "recovery_trigger"} for item in conflicts):
+        if any(item.get("anchor") in {
+            "recovery_schema", "recovery_trigger", "recovery_provenance",
+        } for item in conflicts):
             raise ValueError("governed recovery schema/provenance trigger integrity conflict")
         if any(item.get("task_id") == task_id for item in conflicts):
             raise ValueError(f"task {task_id} recovery identity/integrity conflict")
@@ -931,24 +969,19 @@ class CompanyOS:
             record_id = next_id("task_recovery_records")
             audit_id = next_id("audit_log")
             event_id = next_id("execution_events")
-            audited = {
-                "task_id": task_id, "status": "open", "recovered_at": now, "actor": actor,
-                "reason": reason, "scope": policy["scope"], "completed": False,
-                "recovery_status": "requeued", "attempt_count": 0,
-                "generation": int(new_execution["generation"]), "record_id": record_id,
-                "audit_log_id": audit_id, "event_id": event_id,
-                "process_dead_proof": json.loads(process_proof),
-            }
             values = {
-                **{key: audited[key] for key in ("task_id", "recovered_at", "actor", "reason", "scope")},
+                "task_id": task_id, "recovered_at": now, "actor": actor,
+                "reason": reason, "scope": policy["scope"],
                 "process_dead_proof": process_proof,
                 "previous_task_state": previous_task_state, "previous_execution_state": previous_execution_state,
                 "new_task_state": json.dumps(dict(new_task), sort_keys=True),
                 "new_execution_state": json.dumps(self._execution_details(new_execution), sort_keys=True),
                 "id": record_id, "audit_log_id": audit_id, "event_id": event_id,
             }
-            self.store.audit(conn, actor, "requeue_exhausted_task", "task_execution", task_id, audited, timestamp=now, row_id=audit_id)
-            self.store.enqueue_event(conn, "task.requeued", "task", task_id, audited, timestamp=now, event_id=event_id)
+            record_integrity_signature = recovery_signature(self.config.db_path, values)
+            payload = recovery_provenance_payload({
+                **values, "integrity_signature": record_integrity_signature,
+            })
             conn.execute(
                 """INSERT INTO task_recovery_records(
                    id,task_id,recovered_at,actor,reason,scope,process_dead_proof,
@@ -958,7 +991,33 @@ class CompanyOS:
                 (record_id, task_id, now, actor, reason, policy["scope"], process_proof,
                  previous_task_state, previous_execution_state, values["new_task_state"],
                  values["new_execution_state"], audit_id, event_id,
-                 recovery_signature(self.config.db_path, values)),
+                 record_integrity_signature),
+            )
+            provenance_values = {
+                "recovery_record_id": record_id,
+                "task_id": task_id,
+                "audit_log_id": audit_id,
+                "event_id": event_id,
+                "record_integrity_signature": record_integrity_signature,
+                "event_priority": RECOVERY_EVENT_PRIORITY,
+            }
+            conn.execute(
+                """INSERT INTO task_recovery_provenance(
+                       recovery_record_id,task_id,audit_log_id,event_id,
+                       record_integrity_signature,event_priority,integrity_signature
+                   ) VALUES (?,?,?,?,?,?,?)""",
+                (
+                    *provenance_values.values(),
+                    recovery_provenance_signature(self.config.db_path, provenance_values),
+                ),
+            )
+            self.store.audit(
+                conn, actor, "requeue_exhausted_task", "task_execution", task_id,
+                payload, timestamp=now, row_id=audit_id,
+            )
+            self.store.enqueue_event(
+                conn, "task.requeued", "task", task_id, payload,
+                priority=RECOVERY_EVENT_PRIORITY, timestamp=now, event_id=event_id,
             )
             record = conn.execute(
                 "SELECT * FROM task_recovery_records WHERE task_id=?", (task_id,)
@@ -1435,6 +1494,7 @@ class CompanyOS:
             "assurance_pilot_claim_history",
             "task_reconciliations",
             "task_recovery_records",
+            "task_recovery_provenance",
         }
         with self.store.connect_readonly() as conn:
             rows = list(conn.execute("SELECT name FROM sqlite_master WHERE type='table'"))

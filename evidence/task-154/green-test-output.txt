@@ -1,0 +1,54 @@
+Finding-specific GREEN command:
+python3.11 -m unittest -v \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_payloads_bind_all_signed_state_and_reject_substitution \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_audit_replay_is_rejected_and_detected_after_trigger_bypass \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_event_replay_is_rejected_and_detected_after_trigger_bypass \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_deleted_recovery_triplet_is_detected_by_durable_anchor \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_replaced_recovery_row_is_detected_after_trigger_restore \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_duplicate_recovery_row_is_detected_after_trigger_restore \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_schema_rejects_partial_unique_index \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_schema_rejects_nonconstraint_unique_index \
+  tests.test_exhausted_task_recovery.ExhaustedTaskRecoveryTest.test_recovery_event_priority_is_canonical_immutable_and_validated
+
+Result: exit 0; 9 tests passed in 0.347s.
+
+Full recovery module:
+python3.11 -m unittest -v tests.test_exhausted_task_recovery
+Result: exit 0; 36 tests passed in 1.650s.
+
+Full Agent Company:
+python3.11 -m unittest discover -s tests
+Result: exit 0; 409 tests passed in 69.203s.
+
+PixWeave identity and full suite:
+commit: d78094f26eb697c810899a40771a8af6dec7ce19
+tree: 6f2d526d912fcf283937cd265d298004a31c00b2
+worktree: clean
+python3.11 -m unittest discover -s tests
+Result: exit 0; 58 tests passed in 0.292s.
+
+Fresh isolated database:
+clean_validate []
+clean_assurance ok
+clean_sqlite ok
+
+Isolated provenance-schema deletion:
+tampered_validate_has_recovery True
+tampered_assurance integrity_conflict
+tampered_anchor recovery_schema
+tampered_sqlite ok
+
+Repository checks:
+python3.11 -m compileall -q agent_company tests
+git diff --check
+Result: both exit 0.
+
+Security tooling availability:
+bandit: not installed
+ruff: not installed
+mypy: not installed
+semgrep: not installed
+
+Static added-line checks found no network client, shell/process execution,
+service-control command, or live data/company.sqlite3 access. Matches for Beta/customer
+terms were limited to existing governed task titles repeated by isolated unit tests.
