@@ -1,0 +1,45 @@
+Post-commit concurrency verification GREEN
+
+Focused deterministic and real-claim stress:
+100 subprocess iterations, each running:
+  tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_schema_and_assurance_initializers_are_atomic
+  tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_real_executors_cannot_duplicate_claim
+Result: exit 0; 100/100 iterations and 200/200 tests passed.
+
+python3.11 -m unittest tests.test_exhausted_task_recovery -q
+Result: exit 0; 36 tests passed in 1.238s.
+
+python3.11 -m unittest tests.test_task_execution_continuity -q
+Result: exit 0; 28 tests passed in 4.511s.
+
+python3.11 -m unittest discover -s tests -q
+Result: exit 0; 410 tests passed in 59.871s.
+
+PixWeave:
+commit d78094f26eb697c810899a40771a8af6dec7ce19
+tree 6f2d526d912fcf283937cd265d298004a31c00b2
+worktree clean
+python3.11 -m unittest discover -s tests -q
+Result: exit 0; 58 tests passed in 0.290s.
+
+python3.11 -m compileall -q agent_company tests
+git diff --check
+Result: both exit 0.
+
+Fresh isolated database:
+fresh_validate []
+fresh_assurance ok
+fresh_recovery_provenance canonical
+fresh_sqlite_integrity ok
+
+Malformed isolated provenance schema:
+malformed_init IntegrityError governed recovery provenance schema is not canonical
+malformed_schema_unchanged True
+malformed_recovery_provenance invalid
+malformed_sqlite_integrity ok
+
+Live-state check:
+database_sha256 275ead1d61a0a0271e13b4aae92747750cf30bbb3f2e0a871e1e6afb4773c9a5
+database_size 438964224
+database_mtime 1786164268
+all scoped agent-company user/system services inactive

@@ -234,7 +234,8 @@ def migrate_legacy_recovery_schema(conn: sqlite3.Connection) -> None:
     for name in RECOVERY_TRIGGER_DEFINITIONS:
         conn.execute(f"DROP TRIGGER IF EXISTS {name}")
     conn.execute("ALTER TABLE task_recovery_records RENAME TO task_recovery_records_legacy")
-    conn.executescript(
+    Store.execute_script(
+        conn,
         """CREATE TABLE task_recovery_records (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             task_id INTEGER NOT NULL,
@@ -306,6 +307,18 @@ class Store:
         conn.execute("PRAGMA query_only = ON")
         self._register_assurance_sql_functions(conn)
         return conn
+
+    @staticmethod
+    def execute_script(conn: sqlite3.Connection, script: str) -> None:
+        """Execute a SQL script without sqlite3.executescript's implicit commit."""
+        statement = ""
+        for character in script:
+            statement += character
+            if character == ";" and sqlite3.complete_statement(statement):
+                conn.execute(statement)
+                statement = ""
+        if statement.strip():
+            conn.execute(statement)
 
     def _register_assurance_sql_functions(self, conn: sqlite3.Connection) -> None:
         db_path = self.db_path
@@ -518,8 +531,9 @@ class Store:
         """Add shadow assurance tables without touching operational schema or data."""
         from .integrity import ensure_key
 
-        ensure_key(self.db_path)
         with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            ensure_key(self.db_path)
             operational = {
                 row["name"] for row in conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'"
@@ -540,7 +554,8 @@ class Store:
             ).fetchone() else set()
             if principal_columns and "credential_sha256" not in principal_columns:
                 conn.execute("ALTER TABLE assurance_principals ADD COLUMN credential_sha256 TEXT")
-            conn.executescript(
+            self.execute_script(
+                conn,
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -670,7 +685,8 @@ class Store:
                     "ADD COLUMN integrity_signature TEXT"
                 )
 
-            conn.executescript(
+            self.execute_script(
+                conn,
                 """
                 DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_artifact_registrations_immutable_delete;
@@ -719,6 +735,7 @@ class Store:
 
     def init(self) -> None:
         with self.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             recovery_table_present_before = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='task_recovery_records'"
             ).fetchone() is not None
@@ -785,7 +802,8 @@ class Store:
                 }.items():
                     if name not in recovery_columns:
                         conn.execute(f"ALTER TABLE task_recovery_records ADD COLUMN {name} {definition}")
-            conn.executescript(
+            self.execute_script(
+                conn,
                 """
                 CREATE TABLE IF NOT EXISTS audit_log (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1316,7 +1334,8 @@ class Store:
                    ) != 1
                    BEGIN SELECT RAISE(ABORT, 'task reconciliation integrity signature required'); END"""
             )
-            conn.executescript(
+            self.execute_script(
+                conn,
                 """
                 DROP TRIGGER IF EXISTS task_recovery_records_require_canonical_insert;
                 CREATE TRIGGER task_recovery_records_require_canonical_insert

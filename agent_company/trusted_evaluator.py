@@ -43,6 +43,7 @@ class TrustedEvaluator:
     def init(self) -> None:
         self.kernel.init()
         with self.store.connect() as conn:
+            conn.execute("BEGIN IMMEDIATE")
             run_columns = {
                 row[1] for row in conn.execute("PRAGMA table_info(trusted_eval_runs)")
             }
@@ -78,7 +79,8 @@ class TrustedEvaluator:
                         "ALTER TABLE trusted_eval_evaluator_credentials "
                         f"ADD COLUMN {column} {definition}"
                     )
-            conn.executescript(
+            self.store.execute_script(
+                conn,
                 """
                 CREATE TABLE IF NOT EXISTS trusted_eval_manifests (
                     kind TEXT NOT NULL,

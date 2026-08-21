@@ -1,0 +1,57 @@
+{
+  "base_commit": "b0e9bc4342f7d49bce1cc91a3a82b042b9b8e8a4",
+  "finding": "concurrent schema initialization exposed transient partial governed recovery state",
+  "focused_green": {
+    "attempts": 100,
+    "tests_per_attempt": 2,
+    "total_passed": 200
+  },
+  "full_agent_company": {
+    "passed": 410,
+    "result": "pass",
+    "seconds": 59.871
+  },
+  "isolated_integrity": {
+    "fresh_assurance": "ok",
+    "fresh_recovery_provenance": "canonical",
+    "fresh_sqlite_integrity": "ok",
+    "fresh_validation_errors": [],
+    "malformed_init_error": "governed recovery provenance schema is not canonical",
+    "malformed_schema_status": "invalid",
+    "malformed_schema_unchanged": true,
+    "malformed_sqlite_integrity": "ok"
+  },
+  "live_state": {
+    "database_mtime": 1786164268,
+    "database_sha256": "275ead1d61a0a0271e13b4aae92747750cf30bbb3f2e0a871e1e6afb4773c9a5",
+    "database_size": 438964224,
+    "database_unchanged": true,
+    "scoped_services": "inactive"
+  },
+  "modules": {
+    "exhausted_task_recovery": {
+      "passed": 36,
+      "result": "pass",
+      "seconds": 1.238
+    },
+    "task_execution_continuity": {
+      "passed": 28,
+      "result": "pass",
+      "seconds": 4.511
+    }
+  },
+  "pixweave": {
+    "commit": "d78094f26eb697c810899a40771a8af6dec7ce19",
+    "passed": 58,
+    "result": "pass",
+    "seconds": 0.290,
+    "tree": "6f2d526d912fcf283937cd265d298004a31c00b2",
+    "worktree": "clean"
+  },
+  "red": {
+    "deterministic_exit_status": 1,
+    "scheduler_failure_attempt": 60,
+    "scheduler_failure_exit_status": 1
+  },
+  "schema_version": "agent-company-post-commit-verification/v1"
+}

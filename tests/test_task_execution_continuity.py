@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import queue
 import sqlite3
 import subprocess
 import tempfile
@@ -469,6 +470,85 @@ codex_enabled = true
         self.assertEqual(results.count("rejected"), 1)
         execution = self.osys.inspect_execution(task_id)["execution"]
         self.assertIn(execution["executor_id"], {"real-exec-0", "real-exec-1"})
+
+    def test_concurrent_schema_and_assurance_initializers_are_atomic(self) -> None:
+        race_db = self.root / "data" / "concurrent-init.sqlite3"
+        schema_paused = threading.Event()
+        resume_schema = threading.Event()
+        assurance_started = threading.Event()
+        assurance_state: queue.Queue[str] = queue.Queue()
+        errors: list[BaseException] = []
+        original_connect = Store.connect
+
+        def connect_with_barrier(store: Store) -> sqlite3.Connection:
+            conn = original_connect(store)
+            if (
+                store.db_path == race_db
+                and threading.current_thread().name == "schema-initializer"
+            ):
+                def pause_before_provenance(statement: str) -> None:
+                    normalized = " ".join(statement.lower().split())
+                    if normalized.startswith(
+                        "create table if not exists task_recovery_provenance"
+                    ):
+                        schema_paused.set()
+                        resume_schema.wait(5)
+
+                conn.set_trace_callback(pause_before_provenance)
+            elif (
+                store.db_path == race_db
+                and threading.current_thread().name == "assurance-initializer"
+            ):
+                def report_write_reservation(statement: str) -> None:
+                    if " ".join(statement.lower().split()) == "begin immediate":
+                        assurance_state.put("write-reservation-attempted")
+
+                conn.set_trace_callback(report_write_reservation)
+            return conn
+
+        def initialize_schema() -> None:
+            try:
+                Store(race_db, workspace=self.root).init()
+            except BaseException as exc:
+                errors.append(exc)
+
+        def initialize_assurance() -> None:
+            assurance_started.set()
+            try:
+                Store(race_db, workspace=self.root).init_assurance()
+            except BaseException as exc:
+                errors.append(exc)
+            finally:
+                assurance_state.put("finished")
+
+        with patch.object(Store, "connect", new=connect_with_barrier):
+            schema_thread = threading.Thread(
+                name="schema-initializer", target=initialize_schema,
+            )
+            schema_thread.start()
+            try:
+                self.assertTrue(
+                    schema_paused.wait(5), "schema initializer did not reach barrier",
+                )
+                assurance_thread = threading.Thread(
+                    name="assurance-initializer", target=initialize_assurance,
+                )
+                assurance_thread.start()
+                self.assertTrue(assurance_started.wait(5))
+                assurance_observation = assurance_state.get(timeout=5)
+            finally:
+                resume_schema.set()
+            schema_thread.join(5)
+            assurance_thread.join(5)
+
+        self.assertFalse(schema_thread.is_alive())
+        self.assertFalse(assurance_thread.is_alive())
+        self.assertNotEqual(
+            assurance_observation,
+            "finished",
+            "assurance initialization observed a partially initialized schema",
+        )
+        self.assertEqual(errors, [])
 
     def test_local_end_to_end_stale_recovery_reclaim_and_atomic_completion(self) -> None:
         task_id = self._create_task()

@@ -31,7 +31,9 @@ class PilotGate:
     def init(self) -> None:
         self.store.init_assurance()
         with self.store.connect() as conn:
-            conn.executescript(
+            conn.execute("BEGIN IMMEDIATE")
+            self.store.execute_script(
+                conn,
                 """
                 CREATE TABLE IF NOT EXISTS assurance_task_bindings (
                     task_id INTEGER PRIMARY KEY,
@@ -141,7 +143,8 @@ class PilotGate:
                     "WHERE task_executions.task_id="
                     "assurance_completion_bindings.task_id)"
                 )
-            conn.executescript(
+            self.store.execute_script(
+                conn,
                 """
                 DROP TRIGGER IF EXISTS assurance_execution_bindings_immutable_update;
                 DROP TRIGGER IF EXISTS assurance_execution_bindings_immutable_delete;

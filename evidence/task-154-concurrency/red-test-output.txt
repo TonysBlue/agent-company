@@ -1,0 +1,50 @@
+Post-commit concurrency verification RED
+Base commit: b0e9bc4342f7d49bce1cc91a3a82b042b9b8e8a4
+
+Scheduler-dependent reproduction command:
+python3.11 - <<'PY'
+# Repeatedly run the existing real-executor concurrency test in a subprocess.
+PY
+
+Attempts 1-59 passed. Attempt 60 failed with exit 1:
+
+Exception in thread Thread-2 (claim):
+Traceback (most recent call last):
+  File ".../threading.py", line 1045, in _bootstrap_inner
+    self.run()
+  File ".../threading.py", line 982, in run
+    self._target(*self._args, **self._kwargs)
+  File "tests/test_task_execution_continuity.py", line 456, in claim
+    self.osys.claim_task(task_id, "Product Engineer", executor_id=executor_id, backend="codex")
+  File "agent_company/ops.py", line 642, in claim_task
+    self.init()
+  File "agent_company/ops.py", line 248, in init
+    PilotGate(self.config).init()
+  File "agent_company/pilot_gate.py", line 32, in init
+    self.store.init_assurance()
+  File "agent_company/db.py", line 533, in init_assurance
+    raise sqlite3.IntegrityError(
+sqlite3.IntegrityError: governed recovery history/provenance schema is not canonical
+
+FAIL: test_concurrent_real_executors_cannot_duplicate_claim
+AssertionError: 1 != 2
+
+Ran 1 test in 0.193s
+FAILED (failures=1)
+
+Deterministic regression RED command:
+python3.11 -m unittest -v \
+  tests.test_task_execution_continuity.TaskExecutionContinuityTest.test_concurrent_schema_and_assurance_initializers_are_atomic
+
+Result before implementation: exit 1.
+
+FAIL: test_concurrent_schema_and_assurance_initializers_are_atomic
+AssertionError: True is not false : assurance initialization observed a partially initialized schema
+
+Ran 1 test in 0.063s
+FAILED (failures=1)
+
+The deterministic test pauses Store.init immediately before creation of
+task_recovery_provenance, starts Store.init_assurance on the same isolated database,
+and proves the assurance initializer can observe and reject the transient partial
+schema at the base commit.
