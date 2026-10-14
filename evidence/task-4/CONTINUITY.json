@@ -1,0 +1,31 @@
+{
+  "schema_version": "agent-company-continuity/v1",
+  "role": "Customer & Revenue",
+  "summary": "Prepared an internal prepaid-demand validation package with thresholds and stop conditions.",
+  "verified_facts": [
+    "The package separates interview evidence, real project use and actual prepayment",
+    "The initial proposed test is 29 CNY for 120 minutes",
+    "Subscription testing is gated on repeat use"
+  ],
+  "open_items": [
+    "No external recruiting or payment has occurred",
+    "Chairman must approve outreach, test price, refund promise and retention period"
+  ],
+  "project_summary": "VoiceProof commercial validation begins with bounded prepaid demand evidence and only later tests subscription.",
+  "project_decisions": [
+    "Do not use stated purchase intent as payment evidence",
+    "Stop expansion when predefined demand or utility thresholds fail"
+  ],
+  "known_limits": [
+    "All thresholds remain unmeasured until a real-user test is approved",
+    "No revenue or customer satisfaction result exists yet"
+  ],
+  "handoffs": [
+    {
+      "to_role": "CEO",
+      "handoff_type": "decision_request",
+      "summary": "Prepare a Chairman approval card after product evidence review.",
+      "decision_needed": "Whether to contact up to 12 creators and test the 29 CNY prepaid offer"
+    }
+  ]
+}

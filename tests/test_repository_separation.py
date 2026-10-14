@@ -18,11 +18,13 @@ class RepositorySeparationTest(unittest.TestCase):
 
         self.assertEqual(company.repository_id, "agent-company")
         self.assertEqual(company.local_path, Path("/home/tony/agent-company"))
-        self.assertEqual(product.repository_id, "pixweave")
+        self.assertEqual(product.repository_id, "voiceproof")
+        pixweave = registry.get("pixweave", role="Product Engineer")
+        self.assertEqual(pixweave.repository_id, "pixweave")
         product_review = registry.for_role("Control & Reliability Reviewer", "product")
-        self.assertEqual(product_review.repository_id, "pixweave")
-        self.assertEqual(product.local_path, Path("/home/tony/products/pixweave"))
-        self.assertEqual(product.remote, "git@github.com:TonysBlue/PixWeave.git")
+        self.assertEqual(product_review.repository_id, "voiceproof")
+        self.assertEqual(product.local_path, Path("/home/tony/VoiceProof"))
+        self.assertEqual(product.remote, "/home/tony/VoiceProof")
 
     def test_workspace_paths_are_role_and_task_scoped(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

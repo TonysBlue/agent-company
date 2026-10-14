@@ -1,0 +1,35 @@
+{
+  "schema_version": "agent-company-continuity/v1",
+  "role": "Product Engineer",
+  "summary": "Delivered and locally committed the bounded VoiceProof stage-zero offline QA engine.",
+  "verified_facts": [
+    "Three unit tests pass",
+    "Text alignment emits reviewable issue records",
+    "PCM WAV analysis detects long silence and level anomalies",
+    "Independent VoiceProof Git repository has root commit 0bc6da2"
+  ],
+  "open_items": [
+    "Automatic speech recognition provider comparison requires a later approved task",
+    "Real-user validation requires Chairman approval for outreach and pricing"
+  ],
+  "project_summary": "VoiceProof stage zero is an offline evidence-first checker for scripts, transcripts and PCM WAV audio.",
+  "project_decisions": [
+    "Keep VoiceProof in an independent Git repository",
+    "Return review cues rather than promise zero errors",
+    "Validate demand before building accounts, payments or production services"
+  ],
+  "known_limits": [
+    "No ASR or compressed-audio decoding",
+    "No web application or billing",
+    "Rule output requires user review"
+  ],
+  "handoffs": [
+    {
+      "to_role": "Customer & Revenue",
+      "handoff_type": "evidence",
+      "summary": "Use the offline prototype only after outreach approval to validate time saved and willingness to prepay.",
+      "decision_needed": "Chairman approval for a bounded real-user test"
+    }
+  ]
+}
+

@@ -2,7 +2,7 @@
 
 Python 3.11 stdlib-only MVP for an AI-native company operating system. Chairman is the only human. CEO, Product Engineer, and Customer & Revenue are the three resident agents. Finance & Risk Reviewer, Legal/Compliance Specialist, Independent Quality Reviewer, and Codex workers are invoked on demand and are not resident roles.
 
-The company develops and commercially operates 织象 PixWeave, a configurable AI image generation and editing product for controlled commercial visual workflows. The working name is independent from Raphael AI and does not imply affiliation. The system preserves human control: it never claims legal autonomy and blocks external, irreversible, financial, pricing, legal, production, or customer-data actions until Chairman decides.
+The company manages a product portfolio. It currently maintains 织象 PixWeave and is validating VoiceProof 声检, an evidence-first narration QA product. VoiceProof remains in demand validation and has no claim of customer satisfaction or revenue. The system preserves human control: it never claims legal autonomy and blocks external, irreversible, financial, pricing, legal, production, or customer-data actions until Chairman decides.
 
 Brand line: **让商业视觉稳定、批量、可控地产生。**
 
@@ -26,6 +26,7 @@ The trusted runner materializes the currently implemented context under `.agent-
 
 - `TonysBlue/agent-company` is the company control plane: CEO runtime, ledger, approvals, runners, workspace policy, and management dashboard.
 - `TonysBlue/PixWeave` is the standalone product repository: PixWeave source, tests, product docs, examples, and service templates.
+- `TonysBlue/VoiceProof` is a standalone product repository for the VoiceProof demand-validation prototype, tests, and product docs.
 - Runtime product data lives outside Git under `/home/tony/product-data/pixweave`.
 - Role execution uses task-scoped clones under `/home/tony/agent-workspaces/<role>/task-<id>-<repository>`.
 - Company Platform Engineer maintains this repository under CEO accountability. Control & Reliability Reviewer independently verifies material control-plane changes. Product Engineer maintains PixWeave.

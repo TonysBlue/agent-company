@@ -1,0 +1,40 @@
+{
+  "schema_version": "ceo-actions/v1",
+  "judgment": "董事长已批准启动 VoiceProof。当前先验证需求，以离线、可复核的阶段 0 产品证据和内部付费验证材料推进，不进行外部发布、收费或客户触达。",
+  "state_patch": {
+    "strategy": {
+      "primary_product": "VoiceProof",
+      "stage": "demand-validation",
+      "business_model": "consumer prepaid or subscription",
+      "goal": "验证国内内容创作者是否愿意为口播成片前的文本与音频质检付费"
+    },
+    "assumptions": [
+      "口播创作者对漏读、错读、重复和数字口误存在高频损失",
+      "先做本地离线可复核质检，能降低模型不确定性带来的用户不满",
+      "按次预付费比一开始强推订阅更适合需求验证"
+    ],
+    "critical_path": [
+      "交付可运行的离线阶段 0 原型及测试证据",
+      "形成不接触真实用户数据的付费需求验证包",
+      "董事长批准后再进行真实招募、定价或收费"
+    ]
+  },
+  "actions": [
+    {
+      "type": "create_task",
+      "owner": "Product Engineer",
+      "title": "VoiceProof 阶段 0 离线质检原型",
+      "domain": "engineering",
+      "priority": 100,
+      "acceptance_criteria": "VoiceProof 独立仓包含可运行的脚本与转写对齐、漏读重复替换及 WAV 音量静音检查；单元测试通过；README 和结构化示例报告可复核。"
+    },
+    {
+      "type": "create_task",
+      "owner": "Customer & Revenue",
+      "title": "VoiceProof 付费需求验证包",
+      "domain": "commercial",
+      "priority": 90,
+      "acceptance_criteria": "形成目标用户筛选、问题访谈、按次预付费与订阅测试方案、成功阈值和停止条件；仅限内部材料，不进行外部触达或收款。"
+    }
+  ]
+}

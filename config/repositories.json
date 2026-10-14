@@ -18,19 +18,32 @@
       "default_branch": "main",
       "canonical_test": "python3.11 -m unittest discover -s tests -v",
       "allowed_roles": ["Product Engineer", "Customer & Revenue", "Control & Reliability Reviewer"]
+    },
+    {
+      "id": "voiceproof",
+      "kind": "product",
+      "remote": "/home/tony/VoiceProof",
+      "local_path": "/home/tony/VoiceProof",
+      "default_branch": "main",
+      "canonical_test": "python3.11 -m unittest discover -s tests -v",
+      "allowed_roles": ["Product Engineer", "Customer & Revenue", "Control & Reliability Reviewer"]
     }
   ],
   "role_defaults": {
     "Company Platform Engineer": "agent-company",
     "Control & Reliability Reviewer": "agent-company",
-    "Product Engineer": "pixweave",
-    "Customer & Revenue": "pixweave"
+    "Product Engineer": "voiceproof",
+    "Customer & Revenue": "voiceproof"
   },
   "domain_defaults": {
     "platform": "agent-company",
     "governance": "agent-company",
-    "product": "pixweave",
-    "engineering": "pixweave",
+    "product": "voiceproof",
+    "engineering": "voiceproof",
+    "gtm": "voiceproof",
+    "revenue": "voiceproof",
+    "customer": "voiceproof",
+    "commercial": "voiceproof",
     "review": "agent-company"
   }
 }
