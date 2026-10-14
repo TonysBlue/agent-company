@@ -23,6 +23,7 @@ from agent_company.cli import main as cli_main
 from agent_company.config import load_config
 from agent_company.db import Store, utcnow
 from agent_company.event_engine import EventEngine
+from agent_company.ops import CompanyOS
 
 
 class FakeReasoner:
@@ -488,6 +489,35 @@ external_delivery_enabled = true
         self.assertIsNone(
             self.store.fetch_one("SELECT id FROM tasks WHERE title='Duplicate product WIP'")
         )
+
+    def test_ceo_generic_approval_is_integrity_bound_and_chairman_can_deny(self) -> None:
+        reasoner = FakeReasoner({
+            "schema_version": ACTION_SCHEMA_VERSION,
+            "judgment": "Ask before a price test.",
+            "state_patch": {},
+            "actions": [{
+                "type": "request_approval",
+                "action_type": "pricing_change",
+                "summary": "Run a bounded price test.",
+                "options": ["approve", "deny"],
+                "recommendation": "approve",
+                "risk": "price confusion",
+            }],
+        })
+        self._event("task.completed")
+        result = EventEngine(
+            self.config,
+            ceo_runtime=CEORuntime(self.config, reasoner=reasoner, sender=FakeSender()),
+        ).step()
+        approval_id = result["ceo"]["result"]["actions"][0]["approval_id"]
+
+        decision = CompanyOS(self.config).decide(
+            approval_id, "deny", "Internal testing first.", "Chairman",
+        )
+
+        self.assertEqual(decision["decision"], "deny")
+        stored = self.store.fetch_one("SELECT status FROM approvals WHERE id=?", (approval_id,))
+        self.assertEqual(stored["status"], "denied")
 
     def test_pending_approval_delivery_is_idempotent_retryable_and_does_not_block_safe_event(self) -> None:
         sender = FakeSender(failures=1)

@@ -15,6 +15,7 @@ from typing import Any, Protocol
 
 from .config import CompanyConfig
 from .db import Store, utcnow
+from .integrity import approval_binding_signature
 
 
 STATE_SCHEMA_VERSION = "ceo-state/v1"
@@ -681,9 +682,21 @@ class CEORuntime:
                     f"{action['summary']} | Options: {', '.join(action['options'])} | "
                     f"Recommendation: {action['recommendation']} | Risk: {action['risk']}"
                 )
+                binding = {
+                    "created_at": now,
+                    "requested_by": "CEO",
+                    "action_type": action["action_type"],
+                    "summary": summary,
+                    "target_task_id": None,
+                    "target_action": None,
+                }
                 cursor = conn.execute(
-                    "INSERT INTO approvals(created_at, requested_by, action_type, summary, status) VALUES (?, 'CEO', ?, ?, 'pending')",
-                    (now, action["action_type"], summary),
+                    """INSERT INTO approvals(
+                           created_at, requested_by, action_type, summary, status,
+                           target_task_id, target_action, integrity_signature
+                       ) VALUES (?, 'CEO', ?, ?, 'pending', NULL, NULL, ?)""",
+                    (now, action["action_type"], summary,
+                     approval_binding_signature(self.config.db_path, binding)),
                 )
                 action_results.append({"type": "request_approval", "status": "pending", "approval_id": int(cursor.lastrowid)})
         self.store.audit(
