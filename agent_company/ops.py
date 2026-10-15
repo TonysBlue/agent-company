@@ -1408,7 +1408,7 @@ class CompanyOS:
             self._assert_recovery_integrity(conn, task_id)
             if actor not in {"CEO", task["owner"]}:
                 raise ValueError(f"task {task_id} may only be cancelled by CEO or {task['owner']}")
-            if task["status"] not in {"open", "in_progress"}:
+            if task["status"] not in {"open", "in_progress", "blocked"}:
                 raise ValueError(f"task {task_id} cannot be cancelled from status: {task['status']}")
             result = {"reason": reason.strip(), "completed": False}
             conn.execute(

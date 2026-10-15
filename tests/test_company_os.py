@@ -223,6 +223,27 @@ reserved_actions = external_publish,external_spend,legal_commitment,contract_sig
         with self.assertRaisesRegex(ValueError, "may only be cancelled"):
             self.osys.cancel_task(task_id, "CFO", "Not my task.")
 
+    def test_ceo_can_cancel_blocked_work_without_claiming_completion(self) -> None:
+        self.osys.init()
+        store = Store(self.config.db_path)
+        task_id = store.fetch_one(
+            "SELECT id FROM tasks WHERE status='open' ORDER BY priority DESC, id"
+        )["id"]
+        with store.connect() as conn:
+            conn.execute(
+                "UPDATE tasks SET status='blocked', blocked_reason='dispatch exhausted' WHERE id=?",
+                (task_id,),
+            )
+
+        result = self.osys.cancel_task(task_id, "CEO", "Replaced after executor repair.")
+
+        self.assertEqual(result["status"], "cancelled")
+        self.assertFalse(result["completed"])
+        task = store.fetch_one("SELECT status,blocked_reason,result FROM tasks WHERE id=?", (task_id,))
+        self.assertEqual(task["status"], "cancelled")
+        self.assertIsNone(task["blocked_reason"])
+        self.assertFalse(json.loads(task["result"])["completed"])
+
     def test_validate_passes(self) -> None:
         self.osys.init()
         before = self.config.db_path.read_bytes()
