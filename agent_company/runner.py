@@ -309,6 +309,8 @@ class ExecutionRunner:
                 "path": str(evidence_dir / "CONTINUITY.json"),
                 "schema_version": "agent-company-continuity/v1",
                 "required_keys": ["schema_version", "role", "summary", "verified_facts", "open_items", "project_summary", "project_decisions", "known_limits", "handoffs"],
+                "handoff_exact_keys": ["to_role", "handoff_type", "summary", "artifact_refs", "decision_needed"],
+                "handoff_rules": "Use only registered role names in to_role; artifact_refs must be a JSON array. Use an empty handoffs array when no valid cross-role handoff is needed.",
             },
-            "constraints": "Commit and push verified changes only to the target repository. Internal evidence only; no external contact, pricing, publication, payment, customer data, or legal commitments.",
+            "constraints": "Commit verified changes to the task branch. Do not run git push inside the sandbox; the trusted runner pushes only after continuity and delivery validation. Internal evidence only; no external contact, pricing, publication, payment, customer data, or legal commitments.",
         }, ensure_ascii=False)
