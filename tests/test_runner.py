@@ -9,6 +9,7 @@ from unittest.mock import patch
 from agent_company.config import load_config
 from agent_company.ops import CompanyOS
 from agent_company.runner import ExecutionRunner
+from agent_company.workspace_manager import WorkspaceManager
 
 
 class FakeProcess:
@@ -75,6 +76,7 @@ class ExecutionRunnerTest(unittest.TestCase):
             self.config, "test-runner", "Customer & Revenue",
             ["customer", "commercial", "gtm"], poll_seconds=0.01,
         )
+        runner.workspaces = WorkspaceManager(self.root / "workspaces")
         with patch.object(runner, "_ensure_workspace"):
             with patch.object(runner.contexts, "compile", return_value={"provenance": {"bundle_sha256": "a" * 64}}):
                 with patch.object(runner.contexts, "materialize", return_value={"bundle_sha256": "a" * 64}):
@@ -181,7 +183,7 @@ class ExecutionRunnerTest(unittest.TestCase):
         self.assertIn("/home", command)
         self.assertIn("/run/user", command)
         codex_home = str(workdir / ".codex-home")
-        self.assertGreater(command.index("--ro-bind", command.index(codex_home) - 1), command.index(str(workdir)))
+        self.assertGreater(command.index("--bind", command.index(codex_home) - 1), command.index(str(workdir)))
         self.assertNotIn("/home/tony/.ssh", command)
         self.assertNotIn("SSH_AUTH_SOCK", env)
         self.assertEqual(env["SSL_CERT_FILE"], "/etc/ssl/certs/ca-certificates.crt")

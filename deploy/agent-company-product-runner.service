@@ -16,7 +16,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=read-only
 ProtectSystem=strict
-ReadWritePaths=%h/agent-company/data %h/agent-company/logs %h/agent-company/evidence %h/agent-workspaces
+ReadWritePaths=%h/agent-company/data %h/agent-company/logs %h/agent-company/evidence %h/agent-workspaces %h/VoiceProof
 InaccessiblePaths=%h/agent-company/data/trusted-eval-content
 
 [Install]

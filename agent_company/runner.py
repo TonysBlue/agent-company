@@ -204,7 +204,10 @@ class ExecutionRunner:
             "--dir", "/home/tony",
             "--ro-bind", "/home/tony/.npm-global", "/home/tony/.npm-global",
             "--bind", str(workdir), str(workdir),
-            "--ro-bind", str(codex_home), str(codex_home),
+            # Codex needs to create its local runtime sockets and aliases. The
+            # directory contains a task-scoped credential copy and remains
+            # isolated inside the task workspace.
+            "--bind", str(codex_home), str(codex_home),
             "--ro-bind", str(context_dir), str(context_dir),
             "--bind", str(evidence_dir), str(evidence_dir),
             "--proc", "/proc", "--dev", "/dev", "--setenv", "HOME", str(workdir),

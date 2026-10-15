@@ -508,7 +508,7 @@ class CEORuntime:
         except Exception as exc:
             protocol_rejected = isinstance(exc, ProtocolError) and int(event["attempts"]) >= 3
             retryable = (
-                isinstance(exc, (subprocess.TimeoutExpired, ProtocolError))
+                isinstance(exc, (subprocess.TimeoutExpired, ProtocolError, FileNotFoundError))
                 or "524" in str(exc)
                 or "timeout" in str(exc).lower()
             ) and not protocol_rejected

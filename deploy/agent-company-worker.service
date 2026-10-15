@@ -17,6 +17,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=read-only
 ProtectSystem=strict
+ReadWritePaths=%h/agent-company/data %h/agent-company/logs
 InaccessiblePaths=%h/agent-company/data/trusted-eval-content
 
 [Install]

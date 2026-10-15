@@ -421,6 +421,25 @@ external_delivery_enabled = true
         self.assertGreater(event["available_at"], utcnow())
         self.assertIn("allowlisted", event["last_error"])
 
+    def test_missing_hermes_requeues_complex_event_without_stopping_worker(self) -> None:
+        reasoner = mock.Mock()
+        reasoner.reason.side_effect = FileNotFoundError("hermes")
+        event_id = self._event("task.completed")
+
+        result = EventEngine(
+            self.config,
+            ceo_runtime=CEORuntime(self.config, reasoner=reasoner, sender=FakeSender()),
+        ).step()
+
+        self.assertEqual(result["ceo"]["status"], "retry_scheduled")
+        event = self.store.fetch_one(
+            "SELECT status, available_at, last_error FROM execution_events WHERE id=?",
+            (event_id,),
+        )
+        self.assertEqual(event["status"], "pending")
+        self.assertGreater(event["available_at"], utcnow())
+        self.assertIn("hermes", event["last_error"])
+
     def test_invalid_model_protocol_is_dead_lettered_after_three_attempts(self) -> None:
         reasoner = FakeReasoner({
             "schema_version": ACTION_SCHEMA_VERSION,
