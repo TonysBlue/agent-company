@@ -182,6 +182,31 @@ external_delivery_enabled = true
         self.assertEqual(json.loads(run["actions_json"])[0]["type"], "noop")
         self.assertEqual(json.loads(run["result_json"])["status"], "applied")
 
+    def test_identical_full_state_patch_does_not_create_a_spurious_version(self) -> None:
+        state = self.store.fetch_one(
+            "SELECT strategy_json,assumptions_json,critical_path_json,version "
+            "FROM ceo_state_versions ORDER BY version DESC LIMIT 1"
+        )
+        reasoner = FakeReasoner({
+            "schema_version": ACTION_SCHEMA_VERSION,
+            "judgment": "State remains current.",
+            "state_patch": {
+                "strategy": json.loads(state["strategy_json"]),
+                "assumptions": json.loads(state["assumptions_json"]),
+                "critical_path": json.loads(state["critical_path_json"]),
+            },
+            "actions": [{"type": "noop", "reason": "No state change."}],
+        })
+        self._event("task.failed")
+
+        result = EventEngine(self.config, ceo_runtime=CEORuntime(
+            self.config, reasoner=reasoner, sender=FakeSender()
+        )).step()
+
+        self.assertEqual(result["ceo"]["result"]["state_version"], state["version"])
+        latest = self.store.fetch_one("SELECT MAX(version) AS version FROM ceo_state_versions")
+        self.assertEqual(latest["version"], state["version"])
+
     def test_hermes_adapter_uses_v018_chat_source_timeout_and_has_no_shell_tools(self) -> None:
         completed = subprocess.CompletedProcess(
             args=[],

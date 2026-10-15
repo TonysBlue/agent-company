@@ -764,13 +764,23 @@ class CEORuntime:
     def _apply_actions(self, conn, payload: dict[str, Any], current, run_id: int) -> dict[str, Any]:
         state_patch = payload["state_patch"]
         action_results: list[dict[str, Any]] = []
-        if state_patch:
+        current_strategy = json.loads(current["strategy_json"])
+        current_assumptions = json.loads(current["assumptions_json"])
+        current_critical_path = json.loads(current["critical_path_json"])
+        next_strategy = state_patch.get("strategy", current_strategy)
+        next_assumptions = state_patch.get("assumptions", current_assumptions)
+        next_critical_path = state_patch.get("critical_path", current_critical_path)
+        if (
+            next_strategy != current_strategy
+            or next_assumptions != current_assumptions
+            or next_critical_path != current_critical_path
+        ):
             state_version = self._append_state(
                 conn,
                 expected_version=current["version"],
-                strategy=state_patch.get("strategy", json.loads(current["strategy_json"])),
-                assumptions=state_patch.get("assumptions", json.loads(current["assumptions_json"])),
-                critical_path=state_patch.get("critical_path", json.loads(current["critical_path_json"])),
+                strategy=next_strategy,
+                assumptions=next_assumptions,
+                critical_path=next_critical_path,
                 active_directive_version=current["active_directive_version"],
                 source_kind="ceo_run",
                 source_id=run_id,
