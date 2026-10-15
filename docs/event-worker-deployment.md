@@ -66,11 +66,11 @@ systemctl --user enable --now agent-company-worker.service
 Do not run the final command until CEO verification is complete. This repository
 change deliberately does not start or enable the infinite worker.
 
-The unit sets `HOME=%h` and includes `%h/.local/bin` in `PATH` so installed provider
-executables and their user configuration are visible. Do not put credentials in the unit
-file or repository. Verify the selected reasoner from the service user's environment
-before enabling it. Hermes is still required only when Weixin approval-card delivery is
-enabled.
+The unit sets `HOME=%h`, includes `%h/.npm-global/bin` and `%h/.local/bin` in `PATH`,
+and permits Codex to maintain its existing `%h/.codex` runtime directory while the rest
+of the home directory remains read-only. Do not put credentials in the unit file or
+repository. Verify the selected reasoner from the service user's environment before
+enabling it. Hermes is still required only when Weixin approval-card delivery is enabled.
 
 ## Operations and recovery
 
