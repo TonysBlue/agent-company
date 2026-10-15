@@ -13,18 +13,20 @@ the idempotent SQLite migration.
 
 The worker runs deterministic governance dispatch for ordinary events. Complex events
 (`chairman.directive`, Chairman decisions, and task completion/failure/recovery) invoke
-the persistent CEO control plane through one bounded Hermes query. The query may only
+the persistent CEO control plane through one bounded provider query. The query may only
 return an allowlisted structured protocol: update CEO state, create a bounded internal
 task, request Chairman approval, or do nothing. It cannot run shell/file tools or directly
 publish, spend, contact customers, deploy, export data, change pricing, or make a legal
 commitment.
 
 The CEO is one logical identity backed by versioned SQLite state rather than a permanently
-resident chat process. It uses the Hermes default profile implicitly and invokes the
-verified Hermes v0.18.2 form `hermes chat -q ... -Q --source tool -t todo --max-turns 1`.
-The `tool` source keeps background sessions out of normal user session lists. This adapter
-does not pass `--profile`, `--oneshot`, or `--usage-file`. Model/token fields stay null when
-the supported `chat` command does not report them.
+resident chat process. Select its adapter with `[ceo_runtime] reasoner`: `codex` is the
+default, `chatgpt_work` reads and writes the same protocol through the configured
+`chatgpt_work_bridge_command`, and `hermes` remains available for compatibility. Codex is
+invoked with `codex exec --ephemeral --sandbox read-only`, a strict JSON output schema, and
+no execution permission. The ChatGPT Work bridge must accept the prompt on stdin and write
+exactly one `ceo-actions/v1` object to stdout. The Hermes adapter uses its default profile
+and `hermes chat -q ... -Q --source tool -t todo --max-turns 1`.
 
 ## Preflight and one-step verification
 
@@ -64,10 +66,11 @@ systemctl --user enable --now agent-company-worker.service
 Do not run the final command until CEO verification is complete. This repository
 change deliberately does not start or enable the infinite worker.
 
-The unit sets `HOME=%h` and includes `%h/.local/bin` in `PATH` so the user-installed
-Hermes executable and the existing `~/.hermes` configuration are visible. Do not put
-credentials in the unit file or repository. Verify `hermes --version`, `hermes chat
---help`, and `hermes send --help` as the service user before enabling it.
+The unit sets `HOME=%h` and includes `%h/.local/bin` in `PATH` so installed provider
+executables and their user configuration are visible. Do not put credentials in the unit
+file or repository. Verify the selected reasoner from the service user's environment
+before enabling it. Hermes is still required only when Weixin approval-card delivery is
+enabled.
 
 ## Operations and recovery
 
@@ -85,7 +88,7 @@ authoritative if a FIFO notification is lost. Health is `degraded` when a proces
 event exists without a live lock holder; queue counts, worker heartbeat, last error,
 and last event are exposed by `worker-status`.
 
-Events are claimed by descending priority and then availability/id. Retryable Hermes
+Events are claimed by descending priority and then availability/id. Retryable provider
 timeouts and superseded reasoning atomically return their event to `pending`, with
 `available_at` backoff and `last_error`. Failed approval-card delivery is also deferred,
 so an available lower-priority safe event can proceed. Approval cards use the

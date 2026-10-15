@@ -14,6 +14,8 @@ from unittest import mock
 from agent_company.ceo_runtime import (
     ACTION_SCHEMA_VERSION,
     CEORuntime,
+    ChatGPTWorkBridgeReasoner,
+    CodexOneShotReasoner,
     HermesOneShotReasoner,
     HermesWeixinSender,
     ProtocolError,
@@ -597,10 +599,58 @@ external_delivery_enabled = true
             outputs.append(json.loads(stream.getvalue()))
 
         self.assertEqual(outputs[0]["event_type"], "chairman.directive")
-        self.assertEqual(outputs[1]["identity"], "Hermes default profile CEO")
+        self.assertEqual(outputs[1]["identity"], "Provider-neutral CEO (codex)")
+        self.assertEqual(outputs[1]["reasoner"], "codex")
         self.assertEqual(outputs[2]["event_type"], "ceo.fixture")
         self.assertEqual(outputs[2]["ceo"]["status"], "applied")
         self.assertFalse(outputs[2]["ceo"]["external_delivery_enabled"])
+
+    def test_codex_adapter_is_ephemeral_read_only_and_reads_structured_last_message(self) -> None:
+        response = {
+            "schema_version": ACTION_SCHEMA_VERSION,
+            "judgment": "No change.",
+            "state_patch": {},
+            "actions": [{"type": "noop", "reason": "bounded check"}],
+        }
+
+        def fake_run(argv, **kwargs):
+            output = Path(argv[argv.index("--output-last-message") + 1])
+            output.write_text(json.dumps(response), encoding="utf-8")
+            self.assertEqual(argv[:2], ["codex", "exec"])
+            self.assertIn("--ephemeral", argv)
+            self.assertEqual(argv[argv.index("--sandbox") + 1], "read-only")
+            self.assertIn("--output-schema", argv)
+            self.assertFalse(kwargs.get("shell", False))
+            return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+        with mock.patch("agent_company.ceo_runtime.subprocess.run", side_effect=fake_run):
+            result = CodexOneShotReasoner(self.config).reason("minimal prompt")
+
+        self.assertEqual(result.payload, response)
+        self.assertEqual(result.provider, "codex")
+
+    def test_chatgpt_work_bridge_uses_stdin_and_the_shared_protocol(self) -> None:
+        response = {
+            "schema_version": ACTION_SCHEMA_VERSION,
+            "judgment": "No change.",
+            "state_patch": {},
+            "actions": [{"type": "noop", "reason": "bounded check"}],
+        }
+        config = self.config.__class__(
+            **{**self.config.__dict__, "ceo_work_bridge_command": ("work-ceo-bridge", "reason")}
+        )
+
+        def fake_run(argv, **kwargs):
+            self.assertEqual(argv, ["work-ceo-bridge", "reason"])
+            self.assertEqual(kwargs["input"], "minimal prompt")
+            self.assertFalse(kwargs.get("shell", False))
+            return subprocess.CompletedProcess(argv, 0, stdout=json.dumps(response), stderr="")
+
+        with mock.patch("agent_company.ceo_runtime.subprocess.run", side_effect=fake_run):
+            result = ChatGPTWorkBridgeReasoner(config).reason("minimal prompt")
+
+        self.assertEqual(result.payload, response)
+        self.assertEqual(result.provider, "chatgpt_work")
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("worker-status", help="Show event worker health and queue state")
     wake = sub.add_parser("worker-wake", help="Persist an explicit worker wake event")
     wake.add_argument("--reason", required=True)
-    sub.add_parser("ceo-status", help="Show the persistent Hermes CEO control-plane status")
+    sub.add_parser("ceo-status", help="Show the persistent provider-neutral CEO control-plane status")
     directive = sub.add_parser("chairman-directive-ingest", help="Ingest a structured Chairman directive")
     directive.add_argument("--source-platform", required=True)
     directive.add_argument("--source-session-id", required=True)

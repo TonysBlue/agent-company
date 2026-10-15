@@ -1,4 +1,4 @@
-"""Persistent control plane for the single logical Hermes CEO."""
+"""Persistent control plane for one logical, provider-neutral CEO."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -43,6 +44,10 @@ class ProtocolError(ValueError):
 
 class VersionConflict(RuntimeError):
     pass
+
+
+class ReasonerUnavailable(RuntimeError):
+    """The configured reasoning provider could not complete this bounded call."""
 
 
 @dataclass(frozen=True)
@@ -117,6 +122,144 @@ class HermesOneShotReasoner:
         return ReasoningResponse(payload=payload)
 
 
+class CodexOneShotReasoner:
+    """Invoke Codex as a bounded, ephemeral CEO reasoning provider."""
+
+    def __init__(self, config: CompanyConfig):
+        self.config = config
+
+    def reason(self, prompt: str) -> ReasoningResponse:
+        string = {"type": "string", "minLength": 1}
+        state_patch = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["strategy", "assumptions", "critical_path"],
+            "properties": {
+                "strategy": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["primary_product", "stage", "business_model", "goal"],
+                    "properties": {
+                        "primary_product": string,
+                        "stage": string,
+                        "business_model": string,
+                        "goal": string,
+                    },
+                },
+                "assumptions": {"type": "array", "items": string},
+                "critical_path": {"type": "array", "items": string},
+            },
+        }
+        noop = {
+            "type": "object", "additionalProperties": False,
+            "required": ["type", "reason"],
+            "properties": {"type": {"const": "noop"}, "reason": string},
+        }
+        update_state = {
+            "type": "object", "additionalProperties": False,
+            "required": ["type", "reason"],
+            "properties": {"type": {"const": "update_state"}, "reason": string},
+        }
+        create_task = {
+            "type": "object", "additionalProperties": False,
+            "required": ["type", "owner", "title", "domain", "priority", "acceptance_criteria"],
+            "properties": {
+                "type": {"const": "create_task"},
+                "owner": {"type": "string", "enum": sorted(SAFE_OWNERS)},
+                "title": string,
+                "domain": {"type": "string", "enum": sorted(SAFE_DOMAINS)},
+                "priority": {"type": "integer", "minimum": 1, "maximum": 100},
+                "acceptance_criteria": string,
+            },
+        }
+        request_approval = {
+            "type": "object", "additionalProperties": False,
+            "required": ["type", "action_type", "summary", "options", "recommendation", "risk"],
+            "properties": {
+                "type": {"const": "request_approval"},
+                "action_type": {"type": "string", "enum": list(self.config.reserved_actions)},
+                "summary": string,
+                "options": {"type": "array", "minItems": 2, "items": string},
+                "recommendation": string,
+                "risk": string,
+            },
+        }
+        schema = {
+            "type": "object", "additionalProperties": False,
+            "required": ["schema_version", "judgment", "state_patch", "actions"],
+            "properties": {
+                "schema_version": {"type": "string", "const": ACTION_SCHEMA_VERSION},
+                "judgment": {"type": "string"},
+                "state_patch": state_patch,
+                "actions": {
+                    "type": "array", "minItems": 1, "maxItems": 5,
+                    "items": {"anyOf": [noop, update_state, create_task, request_approval]},
+                },
+            },
+        }
+        with tempfile.TemporaryDirectory(prefix="agent-company-ceo-") as directory:
+            root = Path(directory)
+            schema_path, output_path = root / "schema.json", root / "response.json"
+            schema_path.write_text(json.dumps(schema), encoding="utf-8")
+            argv = [
+                "codex", "exec", "--ephemeral", "--ignore-user-config",
+                "--sandbox", "read-only", "--color", "never",
+                "--output-schema", str(schema_path),
+                "--output-last-message", str(output_path),
+                "--thread-source", "agent-company-ceo-background",
+            ]
+            if self.config.ceo_codex_model:
+                argv.extend(["--model", self.config.ceo_codex_model])
+            argv.append(prompt)
+            completed = subprocess.run(
+                argv, cwd=self.config.workspace, env=os.environ.copy(),
+                capture_output=True, text=True,
+                timeout=self.config.ceo_hermes_timeout_seconds, check=False,
+            )
+            if completed.returncode:
+                raise ReasonerUnavailable(completed.stderr.strip() or f"Codex exited {completed.returncode}")
+            try:
+                payload = json.loads(output_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise ProtocolError("Codex response must be one ceo-actions/v1 JSON object") from exc
+        return ReasoningResponse(payload=payload, provider="codex")
+
+
+class ChatGPTWorkBridgeReasoner:
+    """Use an explicitly configured ChatGPT Work bridge command."""
+
+    def __init__(self, config: CompanyConfig):
+        self.config = config
+
+    def reason(self, prompt: str) -> ReasoningResponse:
+        if not self.config.ceo_work_bridge_command:
+            raise ReasonerUnavailable("ChatGPT Work CEO bridge is not configured")
+        completed = subprocess.run(
+            list(self.config.ceo_work_bridge_command), input=prompt,
+            cwd=self.config.workspace, env=os.environ.copy(), capture_output=True,
+            text=True, timeout=self.config.ceo_hermes_timeout_seconds, check=False,
+        )
+        if completed.returncode:
+            raise ReasonerUnavailable(completed.stderr.strip() or f"ChatGPT Work bridge exited {completed.returncode}")
+        try:
+            payload = json.loads(completed.stdout)
+        except json.JSONDecodeError as exc:
+            raise ProtocolError("ChatGPT Work bridge must return one ceo-actions/v1 JSON object") from exc
+        return ReasoningResponse(payload=payload, provider="chatgpt_work")
+
+
+def configured_reasoner(config: CompanyConfig) -> Reasoner:
+    providers = {
+        "codex": CodexOneShotReasoner,
+        "hermes": HermesOneShotReasoner,
+        "chatgpt_work": ChatGPTWorkBridgeReasoner,
+    }
+    try:
+        return providers[config.ceo_reasoner](config)
+    except KeyError as exc:
+        raise ValueError(f"unsupported CEO reasoner: {config.ceo_reasoner}") from exc
+
+
 class HermesWeixinSender:
     def __init__(self, config: CompanyConfig):
         self.config = config
@@ -165,7 +308,7 @@ class CEORuntime:
     ):
         self.config = config
         self.store = Store(config.db_path, workspace=config.workspace)
-        self.reasoner = reasoner or HermesOneShotReasoner(config)
+        self.reasoner = reasoner or configured_reasoner(config)
         self.sender = sender or HermesWeixinSender(config)
         self.external_delivery_enabled = (
             config.ceo_external_delivery_enabled
@@ -204,7 +347,8 @@ class CEORuntime:
             "SELECT id, created_at, finished_at, event_id, status, model, provider, error FROM ceo_runs ORDER BY id DESC LIMIT 1"
         )
         return {
-            "identity": "Hermes default profile CEO",
+            "identity": f"Provider-neutral CEO ({self.config.ceo_reasoner})",
+            "reasoner": self.config.ceo_reasoner,
             "logical_ceo_count": 1,
             "source_tag": SOURCE_TAG,
             "state_version": state["version"],
@@ -418,7 +562,7 @@ class CEORuntime:
             snapshot = {
                 "schema_version": "ceo-input-snapshot/v1",
                 "source_tag": SOURCE_TAG,
-                "logical_identity": "same logical CEO as the interactive Hermes default profile",
+                "logical_identity": "single persistent CEO identity independent of reasoning provider",
                 "event": {
                     "id": event["id"],
                     "event_type": event["event_type"],
@@ -459,7 +603,7 @@ class CEORuntime:
     def _prompt(self, snapshot: dict[str, Any]) -> str:
         return (
             "Source tag: agent-company-ceo-background. You are the same logical CEO as the "
-            "interactive Hermes default profile, operating as its unattended background form. "
+            "persistent company CEO, operating through the configured bounded reasoning provider. "
             "The snapshot includes the public organization map, RACI, role continuity, and open handoffs; "
             "use them to preserve cross-role coordination and do not absorb another role's accountability. "
             "Do not use tools. Decide only from this self-contained minimal snapshot. Never execute "
@@ -508,7 +652,7 @@ class CEORuntime:
         except Exception as exc:
             protocol_rejected = isinstance(exc, ProtocolError) and int(event["attempts"]) >= 3
             retryable = (
-                isinstance(exc, (subprocess.TimeoutExpired, ProtocolError, FileNotFoundError))
+                isinstance(exc, (subprocess.TimeoutExpired, ProtocolError, FileNotFoundError, ReasonerUnavailable))
                 or "524" in str(exc)
                 or "timeout" in str(exc).lower()
             ) and not protocol_rejected

@@ -85,8 +85,11 @@ notification; there is no fixed CEO cron pulse. An idle `worker-run` blocks in t
 and neither calls an LLM nor creates work. Ordinary events retain deterministic
 `run-cycle` dispatch. Complex events call the versioned persistent CEO control plane,
 which accepts only a strict allowlist of internal actions or Chairman approval requests.
-It invokes Hermes v0.18.2 as `hermes chat -q ... -Q --source tool` under the implicit
-default profile, with no shell/file tools. Retryable or superseded reasoning requeues the
+The logical CEO is independent of its reasoning provider. `ceo_runtime.reasoner` selects
+`codex` (the default), `chatgpt_work` through an explicitly configured bridge command, or
+the legacy `hermes` adapter. Codex runs as an ephemeral one-shot process with a read-only
+sandbox and a strict output schema; no provider receives execution authority. Retryable
+or superseded reasoning requeues the
 same event with backoff. Approval delivery uses `hermes send --to weixin`; a failed card
 does not block lower-priority safe events. Raw Chairman conversation is never retained,
 only structured directives, source identifiers, and a message SHA-256. Use `ceo-step

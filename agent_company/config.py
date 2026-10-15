@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import configparser
+import shlex
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -33,6 +34,9 @@ class CompanyConfig:
     reserved_actions: tuple[str, ...] = field(default_factory=lambda: tuple(DEFAULT_RESERVED_ACTIONS))
     ceo_hermes_timeout_seconds: int = 120
     ceo_external_delivery_enabled: bool = True
+    ceo_reasoner: str = "codex"
+    ceo_codex_model: str | None = None
+    ceo_work_bridge_command: tuple[str, ...] = ()
 
 
 def load_config(path: str | Path | None = None) -> CompanyConfig:
@@ -69,4 +73,7 @@ def load_config(path: str | Path | None = None) -> CompanyConfig:
         reserved_actions=reserved_actions,
         ceo_hermes_timeout_seconds=int(get("ceo_runtime", "hermes_timeout_seconds", "120")),
         ceo_external_delivery_enabled=get_bool("ceo_runtime", "external_delivery_enabled", True),
+        ceo_reasoner=get("ceo_runtime", "reasoner", "codex").strip().lower(),
+        ceo_codex_model=(get("ceo_runtime", "codex_model", "").strip() or None),
+        ceo_work_bridge_command=tuple(shlex.split(get("ceo_runtime", "chatgpt_work_bridge_command", ""))),
     )
