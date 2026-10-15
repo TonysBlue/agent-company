@@ -22,7 +22,7 @@
     {
       "id": "voiceproof",
       "kind": "product",
-      "remote": "/home/tony/VoiceProof",
+      "remote": "git@github.com:TonysBlue/VoiceProof.git",
       "local_path": "/home/tony/VoiceProof",
       "default_branch": "main",
       "canonical_test": "python3.11 -m unittest discover -s tests -v",
